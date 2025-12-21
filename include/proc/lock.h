@@ -11,14 +11,15 @@ void spin_unlock(spin_lock_t *lock);
 
 static inline void lock_irq(void)
 {
-	__asm__ volatile("cli");
+	__asm__ volatile("cli" ::: "memory");
 	lock_counter++;
-};
+}
 
 static inline void unlock_irq(void)
 {
 	if (lock_counter)
 		lock_counter--;
+
 	if (!lock_counter)
-		__asm__ volatile("sti");
-};
+		__asm__ volatile("sti" ::: "memory");
+}
