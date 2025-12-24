@@ -4,7 +4,7 @@
 #include "signal.h"
 #include "types.h"
 
-enum ProcessStates { NEW, RUNNING, WAITING, ZOMBIE };
+enum process_states { NEW, RUNNING, WAITING, ZOMBIE };
 
 struct task {
 	pid_t pid;
