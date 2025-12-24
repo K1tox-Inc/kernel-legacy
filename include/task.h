@@ -17,7 +17,7 @@ struct task {
 	struct task *real_parent;
 	struct task *parent;
 
-	struct list_head childrens;
+	struct list_head children;
 	struct list_head siblings;
 
 	/* Context */
