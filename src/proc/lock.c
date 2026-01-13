@@ -10,7 +10,7 @@ void spin_lock(spin_lock_t *lock)
 	 * For Multi-Core, need an atomic Test-And-Set loop here :
 	 *
 	 * while(*lock)
-	 *  Attomic ops;
+	 *  Atomic ops;
 	 *
 	 *
 	 */
