@@ -15,7 +15,11 @@ typedef unsigned int   uint32_t;
 typedef unsigned int   uintptr_t;
 
 typedef unsigned int size_t;
-typedef int          ssize_t;
+typedef signed int   ssize_t;
+
+typedef int pid_t;
+typedef int uid_t;
+typedef int gid_t;
 
 struct list_head {
 	struct list_head *next, *prev;
