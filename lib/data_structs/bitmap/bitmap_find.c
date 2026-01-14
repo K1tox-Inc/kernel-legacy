@@ -1,6 +1,6 @@
 #include "bitmap.h"
 
-#define BIT_IS_FULL                   255
+#define BIT_IS_FULL 255
 
 ssize_t bitmap_find_next_zero(size_t nb_bits, uint8_t *data)
 {
