@@ -70,7 +70,7 @@ typedef void (*key_handler_t)(keyboard_key_t);
 
 void keyboard_bind_key(key_handler_t handler, keyboard_key_t key);
 void keyboard_unbind_key(uint8_t keycode);
-void keyboard_handle();
+void keyboard_handle(trap_frame_t *frame);
 void keyboard_init(void);
 void keyboard_remap_layout(keyboard_key_t *table, uint32_t size);
 void keyboard_switch_layout(Layout new_layout);

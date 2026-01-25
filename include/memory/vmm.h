@@ -1,6 +1,9 @@
 #pragma once
 
-// INCLUDES
+// ============================================================================
+// IMCLUDES
+// ============================================================================
+#include <arch/trap_frame.h>
 
 // DEFINE AND MACRO
 
@@ -113,7 +116,7 @@ extern uintptr_t current_page_dir;
 
 // EXTERNAL APIs
 
-void      page_fault_handler(REGISTERS reg, int interrupt, int error);
+void      page_fault_handler(trap_frame_t *frame);
 uintptr_t vmm_get_mapping(uintptr_t page_dir_phys, uintptr_t v_addr);
 bool      vmm_map_page(uintptr_t page_dir_phys, uintptr_t v_addr, uintptr_t p_addr, uint32_t flags);
 bool      vmm_unmap_page(uintptr_t page_dir_phys, uintptr_t v_addr);

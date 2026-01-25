@@ -1,6 +1,6 @@
 #pragma once
 
-#include <arch/register.h>
+#include <arch/trap_frame.h>
 #include <types.h>
 
 typedef struct {
@@ -13,7 +13,7 @@ typedef struct {
 	uintptr_t base;
 } __attribute__((packed)) idtr_t;
 
-typedef void (*irqHandler)(REGISTERS registers, int interrupt, int error);
+typedef void (*irqHandler)(trap_frame_t *frame);
 
 void          x86_init(void);
 const gdtr_t *get_gdtr(void);

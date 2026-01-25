@@ -1,5 +1,6 @@
 #include "keyboard.h"
 #include "layout.h"
+#include <arch/trap_frame.h>
 
 Layout             current_layout_type = QWERTY;
 scancode_routine_t current_layout[256] = {0};
@@ -230,9 +231,10 @@ void keyboard_bind_key(key_handler_t handler, keyboard_key_t key)
 // TODO : use free when memory
 void keyboard_unbind_key(uint8_t keycode) { current_layout[keycode] = UNDEFINED_ROUTINE; }
 
-// TODO : improve to add statement handling + init dynamically when memory is implemented
-void keyboard_handle(void)
+// TODO: improve to add statement handling + init dynamically when memory is implemented
+void keyboard_handle(trap_frame_t *frame)
 {
+	(void)frame;
 	if (inb(0x64) & 0x01) {          // read status
 		uint8_t keycode = inb(0x60); // read data
 		if (current_layout[keycode].handler) {

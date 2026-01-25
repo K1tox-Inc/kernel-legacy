@@ -4,10 +4,7 @@
 #include <types.h>
 
 typedef struct {
-	uint32_t  gs;
-	uint32_t  fs;
-	uint32_t  es;
-	REGISTERS to_remove_quickly_as_soon_possible;
+	REGISTERS regs;
 
 	uint32_t int_no;
 	uint32_t err_code;
