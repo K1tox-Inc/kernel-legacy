@@ -1,5 +1,6 @@
 #include <arch/acpi.h>
 #include <arch/io.h>
+#include <arch/trap_frame.h>
 #include <arch/x86.h>
 #include <drivers/keyboard.h>
 #include <drivers/vga.h>
@@ -31,7 +32,7 @@ enum IDTTypeAttributes {
 	PresentBit = 0x01 << 7
 };
 
-typedef void (*syscallHandler)(REGISTERS registers);
+typedef void (*syscallHandler)(trap_frame_t *frame);
 
 #define IDT_SIZE        256
 #define IDT_ENTRY(indx) (idt_entries + (indx))
@@ -109,7 +110,7 @@ extern void irq_47(void);
 // [...]
 extern void irq_128(void);
 
-extern void syscall_dispatcher(REGISTERS, int, int);
+extern void syscall_dispatcher(trap_frame_t *frame);
 
 idt_entry idt_entries[IDT_SIZE];
 idtr_t    idtr = {.limit = sizeof(idt_entry) * IDT_SIZE - 1, .base = (uint32_t)&idt_entries};
@@ -143,12 +144,12 @@ const char *interrupt_names[] = {"Divide Error",
                                  "Virtualization Exception",
                                  "Control Protection Exception"};
 
-void exception_handler(REGISTERS reg, int interrupt, int error)
+void exception_handler(trap_frame_t *frame)
 {
-	if (interrupt_handlers[interrupt] != NULL)
-		interrupt_handlers[interrupt](reg, interrupt, error);
+	if (interrupt_handlers[frame->int_no] != NULL)
+		interrupt_handlers[frame->int_no](frame);
 	else
-		kpanic(interrupt_names[interrupt]);
+		kpanic(interrupt_names[frame->int_no]);
 }
 
 inline void idt_register_interrupt_handlers(uint8_t num, irqHandler handler)
