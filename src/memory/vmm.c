@@ -1,3 +1,4 @@
+#include <arch/trap_frame.h>
 #include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
@@ -31,21 +32,16 @@ uintptr_t current_page_dir;
 /////////////////////////////////////////////////
 // External APIs
 
-void page_fault_handler(REGISTERS reg, int interrupt, int error)
+void page_fault_handler(trap_frame_t *frame)
 {
 	uint32_t faulting_address;
-	uint32_t error_code;
 
-	(void)interrupt;
-	(void)error;
-	(void)reg;
 	asm volatile("mov %%cr2, %0" : "=r"(faulting_address));
-	asm volatile("mov 4(%%ebp), %0" : "=r"(error_code));
 
 	vga_printf("Faulting address: 0x%x\n", faulting_address);
-	vga_printf("Error code: 0x%x\n", error_code);
+	vga_printf("Error code: 0x%x\n", frame->err_code);
 
-	if (error_code & 0x1) {
+	if (frame->err_code & 0x1) {
 		vga_printf("Cause: Protection violation\n");
 	} else {
 		vga_printf("Cause: Page not present\n");

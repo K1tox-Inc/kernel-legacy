@@ -3,7 +3,7 @@
 #include <types.h>
 
 typedef struct {
-	uint32_t ds;
+	uint32_t ds,es,fs,gs;
 	uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
 
 } __attribute__((packed)) REGISTERS;
