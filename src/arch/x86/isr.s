@@ -45,10 +45,9 @@ exception_routine:
 	# Pass pointer to trap_frame as argument
 	lea eax, [esp]
 	push eax
-	
 	call exception_handler
 	
-	add esp, 4  # Clean up pushed pointer
+	add esp, 4
 
 	# Restore segment registers (reverse order: gs, fs, es, ds)
 	pop eax
@@ -61,9 +60,7 @@ exception_routine:
 	mov ds, ax
 
 	popa
-
 	add esp, 8
-
 	iret
 
 isr_no_err_stub  0  # Division by Zero

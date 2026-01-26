@@ -8,47 +8,30 @@
 	.extern interrupt_handlers
 
 syscall_dispatcher:
-	# Pass pointer to trap_frame as argument
-	lea eax, [esp]
-	push eax
-	
-	# Get int_no from trap_frame (offset: 4 segs + 8 GPRs = 48 bytes)
-	mov eax, [esp+52]  # +4 because we pushed the pointer
+	mov eax, [esp+4]
+	mov eax, [eax+48]
 	shl eax, 2
 	mov eax, [syscall_handlers+eax]
-
 	test eax, eax
 	jz .no_sys_handler
-
-	call eax
-	add esp, 4  # Clean up pushed pointer
-
+	jmp eax
 .no_sys_handler:
 	ret
 
 interrupt_dispatcher:
-	# Pass pointer to trap_frame as argument
-	lea eax, [esp]
-	push eax
-	
-	# Get int_no from trap_frame (offset: 4 segs + 8 GPRs = 48 bytes)
-	mov eax, [esp+52]  # +4 because we pushed the pointer
+	mov eax, [esp+4]
+	mov eax, [eax+48]
 	shl eax, 2
 	mov eax, [interrupt_handlers+eax]
-
 	test eax, eax
 	jz .no_int_handler
-
-	call eax
-	add esp, 4  # Clean up pushed pointer
-
+	jmp eax
 .no_int_handler:
 	ret
 
 interrupt_routine:
 	pusha
 
-	# Push all segment registers (order: ds, es, fs, gs)
 	mov ax, ds
 	push eax
 	mov ax, es
@@ -58,35 +41,26 @@ interrupt_routine:
 	mov ax, gs
 	push eax
 
-	# Load kernel data segment
 	mov ax, 0x10
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
 
-	# Send EOI to PIC
-	# Adjust offset: 4 segments * 4 bytes + 8 GPRs * 4 bytes = 48 bytes
 	mov eax, [esp+48]
 	cmp eax, 40
 	jl .skip_pic2
-
 	mov al, 0x20
 	out 0xA0, al
-
 .skip_pic2:
 	mov al, 0x20
 	out 0x20, al
 
-	# Pass pointer to trap_frame as argument
 	lea eax, [esp]
 	push eax
-	
 	call interrupt_dispatcher
-	
-	add esp, 4  # Clean up pushed pointer
+	add esp, 4
 
-	# Restore segment registers (reverse order: gs, fs, es, ds)
 	pop eax
 	mov gs, ax
 	pop eax
@@ -124,5 +98,4 @@ irq_stub 44
 irq_stub 45
 irq_stub 46
 irq_stub 47
-# [...]
 irq_stub 128

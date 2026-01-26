@@ -1,6 +1,6 @@
 #pragma once
 
-#include <register.h>
+#include <arch/register.h>
 #include <types.h>
 
 typedef struct {
