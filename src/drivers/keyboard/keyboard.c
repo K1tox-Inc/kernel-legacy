@@ -4,7 +4,6 @@
 Layout             current_layout_type = QWERTY;
 scancode_routine_t current_layout[256] = {0};
 
-/////////////////////////////////////////////////////////////////////////////////////////////
 // Printable Group
 
 static char keyboard_get_shifted_value(keyboard_key_t key)
@@ -33,9 +32,7 @@ static void keyboard_printable_handler(keyboard_key_t key)
 }
 
 // Printable Group
-/////////////////////////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////////////////////////
 // Control Group
 
 static void keyboard_toggle_handler(keyboard_key_t key)
@@ -71,9 +68,7 @@ static key_handler_t keyboard_get_control_handler(uint8_t state)
 }
 
 // Control Group
-/////////////////////////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////////////////////////
 // Navigation Group
 
 static void keyboard_navigation_handler(keyboard_key_t key)
@@ -92,17 +87,13 @@ static void keyboard_navigation_handler(keyboard_key_t key)
 }
 
 // Navigation Group
-/////////////////////////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////////////////////////
 // Function Group
 
 static void keyboard_function_handler(keyboard_key_t key) { tty_switch(ttys + key.value); }
 
 // Function Group
-/////////////////////////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////////////////////////
 // Special Group
 
 static void keyboard_enter_handler(keyboard_key_t key)
@@ -159,9 +150,7 @@ static key_handler_t keyboard_get_special_handler(uint8_t undergroup)
 }
 
 // Special Group
-/////////////////////////////////////////////////////////////////////////////////////////////
 
-/////////////////////////////////////////////////////////////////////////////////////////////
 // Internal API
 
 static key_handler_t keyboard_get_default_key_handler(keyboard_key_t key)
@@ -178,7 +167,6 @@ static key_handler_t keyboard_get_default_key_handler(keyboard_key_t key)
 	case KEY_SPECIAL:
 		return keyboard_get_special_handler(key.undergroup);
 	default:
-		// kpanic("Error: key Invalid when called keyboard_get_key_handler fun\n");
 		break;
 	}
 	return NULL;
@@ -197,7 +185,6 @@ static void keyboard_init_default_table(void)
 	}
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////
 // External API
 
 void keyboard_switch_layout(Layout new_layout)
@@ -243,8 +230,8 @@ void keyboard_bind_key(key_handler_t handler, keyboard_key_t key)
 // TODO : use free when memory
 void keyboard_unbind_key(uint8_t keycode) { current_layout[keycode] = UNDEFINED_ROUTINE; }
 
-// TODO: improve to add statement handling + init dynamically when memory is implemented
-void keyboard_handle()
+// TODO : improve to add statement handling + init dynamically when memory is implemented
+void keyboard_handle(void)
 {
 	if (inb(0x64) & 0x01) {          // read status
 		uint8_t keycode = inb(0x60); // read data

@@ -23,7 +23,6 @@
 // Enums
 
 enum mem_type { FREE_MEMORY = 0, RESERVED_MEMORY, HOLES_MEMORY };
-// typedef enum { LOWMEM_ZONE = 0, DMA_ZONE, HIGHMEM_ZONE, INVALID_ZONE } zone_type;
 
 // Structures
 

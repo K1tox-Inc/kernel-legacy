@@ -8,9 +8,8 @@
 #include <memory/slab.h>
 #include <memory/vmalloc.h>
 
-void kernel_main()
+void kernel_main(void)
 {
 	while (true) // hang
 		__asm__ volatile("hlt");
-	;
 }
