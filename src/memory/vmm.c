@@ -15,7 +15,6 @@
  * See: https://wiki.osdev.org/Paging#32-bit_Paging_(Protected_Mode)
  */
 
-/////////////////////////////////////////////////
 // Defines
 
 #define PD_SLOT                1022
@@ -26,10 +25,8 @@
 uintptr_t kpage_dir;
 uintptr_t current_page_dir;
 
-/////////////////////////////////////////////////
 // Internal APIs
 
-/////////////////////////////////////////////////
 // External APIs
 
 void page_fault_handler(trap_frame_t *frame)

@@ -12,7 +12,6 @@ void spin_lock(spin_lock_t *lock)
 	 * while(*lock)
 	 *  Atomic ops;
 	 *
-	 *
 	 */
 }
 

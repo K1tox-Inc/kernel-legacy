@@ -2,10 +2,12 @@ ifneq ($(MAKEBUILDTYPE),Release)
 MAKEBUILDTYPE=Debug
 endif
 
+BASE_BUILD_DIR=build
+
 ifeq ($(MAKEBUILDTYPE),Release)
-BUILDDIR=build/release
+BUILDDIR=$(BASE_BUILD_DIR)/release
 else
-BUILDDIR=build/debug
+BUILDDIR=$(BASE_BUILD_DIR)/debug
 endif
 
 BINDIR=$(BUILDDIR)/bin
@@ -107,7 +109,8 @@ clean:
 
 endif
 
-# Todo: did not work. to revisit
+# did not work.
+# Todo: rework.
 .PHONY: setup-dev
 setup-dev:
 	@mkdir -vp $(TOOLSDIR)

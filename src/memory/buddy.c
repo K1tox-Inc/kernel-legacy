@@ -15,17 +15,12 @@ static const char *debug_buddy_zone_to_str(zone_type zone);
 #define PAGE_DATA_IS_MAGIC(page)           ((page)->private_data == PAGE_MAGIC)
 #define WHO_IS_MY_BUDDY(addr, order, base) ((((addr) - (base)) ^ ORDER_TO_BYTES(order)) + (base))
 
-// ============================================================================
 // STRUCT
-// ============================================================================
 
-// ============================================================================
 // VARIABLES GLOBALES
-// ============================================================================
 
 static buddy_allocator_t buddy[MAX_ZONE];
 
-/////////////////////////////////////////////////////////////////////////////////
 // Internals APIs
 static const char *debug_buddy_order_to_string(int order)
 {
@@ -193,7 +188,6 @@ static page_t *get_buddy_page(void *block, size_t order, zone_type zone)
 	return NULL;
 }
 
-/////////////////////////////////////////////////////////////////////////////////
 // Externals APIs
 
 size_t buddy_print(zone_type zone)
@@ -223,6 +217,7 @@ size_t buddy_print(zone_type zone)
 	return total_free_bytes;
 }
 
+// Still useful?
 void buddy_print_summary(void)
 {
 	vga_printf("\n================ Buddy Allocator Summary ================\n");
@@ -327,9 +322,7 @@ void buddy_init(void)
 	boot_allocator_freeze();
 }
 
-///////////////////////////////////////////////////////////////////////////////
 // DEBUG
-///////////////////////////////////////////////////////////////////////////////
 
 static const char *debug_buddy_zone_to_str(zone_type zone)
 {
@@ -392,8 +385,6 @@ static void debug_buddy_corrupted_list(size_t order, zone_type zone)
 			debug_buddy_panic(__func__);
 		}
 	}
-	// vga_printf("[OK] Buddy free_list for order %s is healthy\n",
-	// debug_buddy_order_to_string(order), count);
 }
 
 static void print_buddy_free_list(size_t order, zone_type zone)
@@ -439,8 +430,7 @@ static void debug_buddy_check_lost_pages(void)
 			}
 		}
 	}
-	// vga_printf("Total free pages (descriptor): %u\n", page_get_updated_free_count());
-	// vga_printf("Total free pages (in buddy regions): %u\n", total_buddy);
+
 	if (lost > 0) {
 		vga_printf("\n\n--- KERNEL PANIC: PAGES Missing ---\n");
 		vga_printf("Total lost pages: %u\n", lost);
@@ -547,9 +537,9 @@ static void debug_buddy_free_block(zone_type zone)
 	}
 }
 
+// Still useful?
 void debug_buddy(void)
 {
-
 	for (size_t zone = 0; zone < MAX_ZONE; zone++) {
 		// 	for (int order = 0; order <= MAX_ORDER; order++) {
 		// 		debug_buddy_corrupted_list(order, zone);
