@@ -6,7 +6,7 @@
 
 // Structs & Defines
 
-#define GDT_MAX_ENTRIES 8
+#define GDT_MAX_ENTRIES 6
 
 extern const uintptr_t kernel_stack_top;
 struct tss             g_tss = {0};
@@ -75,24 +75,20 @@ void gdt_init(void)
 	              GDT_FLAGS); // Kernel Code Segment
 	gdt_set_entry(GDT_ENTRY(2), 0x00, 0xFFFFFF, GDT_KERNEL_ACCESS,
 	              GDT_FLAGS); // Kernel Data Segment
-	gdt_set_entry(GDT_ENTRY(3), 0x00, 0xFFFFFF,
-	              (ACCESS_BIT | DPL_RING0 | DC_BIT | RW_BIT | PRESENT_BIT), GDT_FLAGS);
 
 #undef GDT_KERNEL_ACCESS
 
 #define GDT_USER_ACCESS (GDT_COMMON_ACCESS | DPL_RING3)
 
 	// -------------- User descriptors --------------
-	gdt_set_entry(GDT_ENTRY(4), 0x00, 0xFFFFFF, GDT_USER_ACCESS | EXECUTABLE_BIT,
+	gdt_set_entry(GDT_ENTRY(3), 0x00, 0xFFFFFF, GDT_USER_ACCESS | EXECUTABLE_BIT,
 	              GDT_FLAGS); // User Code Segment
-	gdt_set_entry(GDT_ENTRY(5), 0x00, 0xFFFFFF, GDT_USER_ACCESS,
+	gdt_set_entry(GDT_ENTRY(4), 0x00, 0xFFFFFF, GDT_USER_ACCESS,
 	              GDT_FLAGS); // User Data Segment
-	gdt_set_entry(GDT_ENTRY(6), 0x00, 0xFFFFFF,
-	              (ACCESS_BIT | DPL_RING0 | DC_BIT | RW_BIT | PRESENT_BIT), GDT_FLAGS);
 
 #undef GDT_USER_ACCESS
 
-	gdt_set_entry(GDT_ENTRY(7), (uint32_t)&g_tss, sizeof(struct tss) - 1,
+	gdt_set_entry(GDT_ENTRY(5), (uint32_t)&g_tss, sizeof(struct tss) - 1,
 	              PRESENT_BIT | DPL_RING0 | EXECUTABLE_BIT | ACCESS_BIT, 0x00);
 
 #undef GDT_FLAGS
