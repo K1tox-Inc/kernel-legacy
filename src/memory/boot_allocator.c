@@ -484,7 +484,7 @@ void boot_allocator_init(multiboot_tag_mmap_t *mmap, uint8_t *mmap_end)
 	}
 }
 
-// Be carful Only DMA/LOWMEM is USABLE otherwise you need to do a temporary mapping
+// Be careful Only DMA/LOWMEM is USABLE otherwise you need to do a temporary mapping
 void *boot_alloc(uint32_t size, zone_type zone, bool freeable)
 {
 	if (bootmem.state == FROZEN) {
