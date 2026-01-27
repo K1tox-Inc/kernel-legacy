@@ -136,20 +136,32 @@ const char *interrupt_names[] = {"Divide Error",
                                  "Stack-Segment Fault",
                                  "General Protection",
                                  "Page Fault",
-                                 "reserved. Do not use.",
+                                 "Reserved",
                                  "x87 FPU Floating-Point Error (Math Fault)",
                                  "Alignment Check",
                                  "Machine Check",
                                  "SIMD Floating-Point Exception",
                                  "Virtualization Exception",
-                                 "Control Protection Exception"};
+                                 "Control Protection Exception",
+                                 "Reserved",
+                                 "Reserved",
+                                 "Reserved",
+                                 "Reserved",
+                                 "Reserved",
+                                 "Reserved",
+                                 "Hypervisor Injection Exception",
+                                 "VMM Communication Exception",
+                                 "Security Exception",
+                                 "Reserved"};
 
 void exception_handler(trap_frame_t *frame)
 {
 	if (interrupt_handlers[frame->int_no] != NULL)
 		interrupt_handlers[frame->int_no](frame);
-	else
+	else if (frame->int_no < sizeof(interrupt_names) / sizeof(interrupt_names[0]))
 		kpanic(interrupt_names[frame->int_no]);
+	else
+		kpanic("Unknown Exception");
 }
 
 inline void idt_register_interrupt_handlers(uint8_t num, irqHandler handler)
