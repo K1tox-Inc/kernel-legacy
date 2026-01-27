@@ -71,13 +71,14 @@ interrupt_routine:
 	mov ds, ax
 
 	popa
-	add esp, 4
+	add esp, 8
 	iret
 
 .macro irq_stub num
 .global irq_\num
 irq_\num:
 	cli
+	push 0
 	push \num
 	jmp interrupt_routine
 .endm
