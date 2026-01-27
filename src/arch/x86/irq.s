@@ -9,7 +9,7 @@
 
 syscall_dispatcher:
 	mov eax, [esp+4]
-	mov eax, [eax+48]
+	mov eax, [eax]
 	shl eax, 2
 	mov eax, [syscall_handlers+eax]
 	test eax, eax
