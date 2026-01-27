@@ -1,3 +1,4 @@
+#include <arch/tss.h>
 #include <arch/x86.h>
 #include <libk.h>
 #include <memory/memory.h>
@@ -5,9 +6,10 @@
 
 // Structs & Defines
 
-#define GDT_MAX_ENTRIES 7
-#define GDT_ENTRY(indx) (gdt_entries + (indx))
-#define GDT_FLAGS       (SEGMENT_SIZE_BIT | GRANULARITY_BIT)
+#define GDT_MAX_ENTRIES 8
+
+extern const uintptr_t kernel_stack_top;
+struct tss             g_tss = {0};
 
 enum Gdt_Access_Byte {
 	ACCESS_BIT      = 0b00000001, // Bit 0: Indique si le segment a été accédé par le CPU
@@ -58,38 +60,50 @@ static inline void gdt_set_entry(struct segment_descriptor *gdt_entry, uint32_t 
 
 const gdtr_t *get_gdtr(void) { return &gdtr; }
 
-// TODO : Implement TSS
 void gdt_init(void)
 {
+#define GDT_ENTRY(indx)   (gdt_entries + (indx))
+#define GDT_COMMON_ACCESS (ACCESS_BIT | RW_BIT | PRESENT_BIT | DESCRIPTOR_TYPE)
+#define GDT_FLAGS         (SEGMENT_SIZE_BIT | GRANULARITY_BIT)
+
 	gdt_set_entry(GDT_ENTRY(0), 0x00, 0x00, 0x00, 0x00);
+
+#define GDT_KERNEL_ACCESS (GDT_COMMON_ACCESS | DPL_RING0)
+
 	// -------------- Kernel descriptors --------------
-	// Kernel Segment
-	gdt_set_entry(
-	    GDT_ENTRY(1), 0x00, 0xFFFFFF,
-	    (ACCESS_BIT | RW_BIT | EXECUTABLE_BIT | DESCRIPTOR_TYPE | DPL_RING0 | PRESENT_BIT),
-	    GDT_FLAGS);
-	// Kernel Data Segment
-	gdt_set_entry(GDT_ENTRY(2), 0x00, 0xFFFFFF,
-	              (ACCESS_BIT | RW_BIT | DESCRIPTOR_TYPE | DPL_RING0 | PRESENT_BIT), GDT_FLAGS);
-	// Kernel Stack
+	gdt_set_entry(GDT_ENTRY(1), 0x00, 0xFFFFFF, GDT_KERNEL_ACCESS | EXECUTABLE_BIT,
+	              GDT_FLAGS); // Kernel Code Segment
+	gdt_set_entry(GDT_ENTRY(2), 0x00, 0xFFFFFF, GDT_KERNEL_ACCESS,
+	              GDT_FLAGS); // Kernel Data Segment
 	gdt_set_entry(GDT_ENTRY(3), 0x00, 0xFFFFFF,
 	              (ACCESS_BIT | DPL_RING0 | DC_BIT | RW_BIT | PRESENT_BIT), GDT_FLAGS);
 
-	// -------------- User descriptors --------------
-	// User Code Segment
-	gdt_set_entry(
-	    GDT_ENTRY(4), 0x00, 0xFFFFFF,
-	    (ACCESS_BIT | RW_BIT | EXECUTABLE_BIT | DESCRIPTOR_TYPE | DPL_RING3 | PRESENT_BIT),
-	    GDT_FLAGS);
-	// User Data Segment
-	gdt_set_entry(GDT_ENTRY(5), 0x00, 0xFFFFFF,
-	              (ACCESS_BIT | RW_BIT | DESCRIPTOR_TYPE | DPL_RING3 | PRESENT_BIT), GDT_FLAGS);
-	// User Stack
-	gdt_set_entry(GDT_ENTRY(6), 0x00, 0xFFFFFF,
-	              (ACCESS_BIT | DPL_RING3 | DC_BIT | RW_BIT | PRESENT_BIT), GDT_FLAGS);
+#undef GDT_KERNEL_ACCESS
 
-	gdtr.limit = (sizeof(segment_descriptor_t) * GDT_MAX_ENTRIES) - 1;
+#define GDT_USER_ACCESS (GDT_COMMON_ACCESS | DPL_RING3)
+
+	// -------------- User descriptors --------------
+	gdt_set_entry(GDT_ENTRY(4), 0x00, 0xFFFFFF, GDT_USER_ACCESS | EXECUTABLE_BIT,
+	              GDT_FLAGS); // User Code Segment
+	gdt_set_entry(GDT_ENTRY(5), 0x00, 0xFFFFFF, GDT_USER_ACCESS,
+	              GDT_FLAGS); // User Data Segment
+	gdt_set_entry(GDT_ENTRY(6), 0x00, 0xFFFFFF,
+	              (ACCESS_BIT | DPL_RING0 | DC_BIT | RW_BIT | PRESENT_BIT), GDT_FLAGS);
+
+#undef GDT_USER_ACCESS
+
+	gdt_set_entry(GDT_ENTRY(7), (uint32_t)&g_tss, sizeof(struct tss) - 1,
+	              PRESENT_BIT | DPL_RING0 | EXECUTABLE_BIT | ACCESS_BIT, 0x00);
+
+#undef GDT_FLAGS
+#undef GDT_ENTRY
+
+	gdtr.limit = (sizeof(struct segment_descriptor) * GDT_MAX_ENTRIES) - 1;
 	gdtr.base  = (uint32_t)gdt_entries;
+
+	g_tss.ss0   = 0x10;
+	g_tss.esp0  = kernel_stack_top;
+	g_tss.iomap = sizeof(struct tss);
 
 	// Register the GDT in the CPU
 	__asm__ volatile("lgdtl (gdtr)");
@@ -103,4 +117,7 @@ void gdt_init(void)
 	                 "movw %ax, %ss \n"
 	                 "ljmp $0x08, $next \n" // Long jump to reload CS
 	                 "next:");
+
+	// Register TSS segment
+	__asm__ volatile("ltr %%ax" : : "a"(0x28));
 }

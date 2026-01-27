@@ -22,7 +22,7 @@
 #ifdef offsetof
 # undef offsetof
 #endif
-#define offsetof(type, member) ((size_t) & ((type *)0)->member)
+#define offsetof(type, member) ((size_t)&((type *)0)->member)
 #ifdef container_of
 # undef container_of
 #endif
