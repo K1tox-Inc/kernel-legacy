@@ -1,6 +1,7 @@
 #pragma once
 
 // INCLUDES
+#include <arch/trap_frame.h>
 
 // DEFINE AND MACRO
 
