@@ -83,7 +83,7 @@ extern boot_allocator_t bootmem;
 static region_t         all_reg_g[MAX_REGIONS * REGION_TYPE_COUNT];
 
 /*
- * The following APIs are used to store precoce allocations and to keep a track of every used memory
+ * The following APIs are used to store early allocations and to keep a track of every used memory
  * before the memory system is available
  */
 

@@ -93,6 +93,7 @@ void gdt_init(void)
 
 #undef GDT_FLAGS
 #undef GDT_ENTRY
+#undef GDT_COMMON_ACCESS
 
 	gdtr.limit = (sizeof(struct segment_descriptor) * GDT_MAX_ENTRIES) - 1;
 	gdtr.base  = (uint32_t)gdt_entries;
