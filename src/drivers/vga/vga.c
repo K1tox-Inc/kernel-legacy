@@ -110,10 +110,10 @@ static int ft_puthexa(unsigned long nb, bool upper, bool addr)
 }
 
 // Internal APIs
-//////////////////////////////////////////
+
 // External APIs
 
-void vga_setup_default_screen()
+void vga_setup_default_screen(void)
 {
 	tty_framebuffer_clear();
 	vga_printf(KERNEL_BANNER "\n" TTY_PROMPT);

@@ -8,7 +8,6 @@
 
 #include <arch/x86.h>
 
-////////////////////////////////////////////////
 // Header
 
 static void     boot_allocator_sort_regions(region_t *reg, uint32_t count);
@@ -82,9 +81,10 @@ typedef void (*regions_foreach_fn)(region_t *regions);
 
 extern boot_allocator_t bootmem;
 static region_t         all_reg_g[MAX_REGIONS * REGION_TYPE_COUNT];
+
 /*
- *  The following APIs are used to store precoce allocations and to keep a track of evry used memory
- *  before the memory system is available
+ * The following APIs are used to store precoce allocations and to keep a track of evry used memory
+ * before the memory system is available
  */
 
 // Globals
@@ -96,7 +96,6 @@ extern uint8_t   kernel_start[];
 extern uint8_t   kernel_end[];
 extern uint8_t   kernel_stack_top[];
 
-////////////////////////////////////////////////
 // Code
 
 static zone_type boot_alloc_get_addr_zone(uintptr_t addr)
@@ -154,8 +153,6 @@ void boot_allocator_reserved_wrapper(uintptr_t start, uintptr_t end)
 {
 	boot_allocator_add_region(&bootmem, start, end, RESERVED_MEMORY);
 }
-
-////////////////////////////////////////////////////////////////////////////////////////////
 
 static void boot_allocator_sort_regions(region_t *reg, uint32_t count)
 {
@@ -327,7 +324,6 @@ static void boot_allocator_init_zones(uint32_t zcount[MAX_ZONE],
 	}
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////
 // External APis
 
 region_t *boot_allocator_get_region(enum mem_type type) { return bootmem.regions[type]; }
@@ -452,8 +448,8 @@ void boot_allocator_init(multiboot_tag_mmap_t *mmap, uint8_t *mmap_end)
 	// Zone VGA/BIOS_ROM (0xa0000-0x100000)
 	boot_allocator_add_region(&bootmem, 0xa0000, 0x100000, RESERVED_MEMORY);
 	// Zone Low memory
-	const gdt_ptr_t *gdtr = gdtr_getter();
-	const idtr_t    *idtr = idtr_getter();
+	const gdtr_t *gdtr = get_gdtr();
+	const idtr_t *idtr = get_idtr();
 	boot_allocator_add_region(&bootmem, VIRT_TO_PHYS_LINEAR(gdtr->base),
 	                          VIRT_TO_PHYS_LINEAR(gdtr->base + gdtr->limit + 1), RESERVED_MEMORY);
 	boot_allocator_add_region(&bootmem, VIRT_TO_PHYS_LINEAR(idtr->base),
@@ -488,26 +484,7 @@ void boot_allocator_init(multiboot_tag_mmap_t *mmap, uint8_t *mmap_end)
 	}
 }
 
-// void boot_alloc_clean_up(void)
-// {
-// 	for (int i = bootmem.num_allocations; i >= 0; i--) {
-// 		if (bootmem.allocations[i].free == TO_KEEP)
-// 			continue;
-// 		boot_alloc_entry_t *entry = &bootmem.allocations[i];
-// 		for (size_t offset = entry->p_addr; offset < entry->size; offset += PAGE_SIZE) {
-// 			page_t *page = page_addr_to_page(offset);
-// 			FLAG_UNSET(page->flags, PAGE_RESERVED);
-// 			FLAG_SET(page->flags, PAGE_BUDDY);
-// 			page->private_data = 0;
-// 		}
-// boot_allocator_add_region(&bootmem, entry->p_addr, entry->p_addr + entry->size,
-//                           FREE_MEMORY);
-// 	}
-// 	BOOT_ALLOCATOR_SORT_AND_MERGE(bootmem.regions[FREE_MEMORY], bootmem.count[FREE_MEMORY]);
-// 	boot_allocator_freeze();
-// }
-
-// Be carful Only DMA/LOWMEM is USABLE otherwise u need to do a temp mapping
+// Be carful Only DMA/LOWMEM is USABLE otherwise you need to do a temporary mapping
 void *boot_alloc(uint32_t size, zone_type zone, bool freeable)
 {
 	if (bootmem.state == FROZEN) {

@@ -3,7 +3,6 @@
 #include <memory/memory.h>
 #include <types.h>
 
-/////////////////////////////
 // Structs & Defines
 
 #define GDT_MAX_ENTRIES 7
@@ -30,7 +29,7 @@ enum Gdt_Flags {
 	GRANULARITY_BIT  = 0b1000  // Bit 3: 0=limite en octets, 1=limite en pages de 4Ko
 };
 
-typedef struct segment_descriptor {
+struct segment_descriptor {
 	uint16_t limit_low;      // 0  -> 15
 	uint16_t base_low;       // 16 -> 31
 	uint8_t  base_middle;    // 32 -> 39
@@ -38,16 +37,15 @@ typedef struct segment_descriptor {
 	uint8_t  limit_high : 4; // 48 -> 51
 	uint8_t  flags : 4;      // 51 -> 55
 	uint8_t  base_high;      // 55 -> 63
-} __attribute__((packed)) segment_descriptor_t;
+} __attribute__((packed));
 
-///////////////////////////////////
 // Code
 
-gdt_ptr_t            gdtr;
-segment_descriptor_t gdt_entries[GDT_MAX_ENTRIES];
+gdtr_t                    gdtr;
+struct segment_descriptor gdt_entries[GDT_MAX_ENTRIES];
 
-static inline void gdt_set_entry(segment_descriptor_t *gdt_entry, uint32_t base, uint32_t limit,
-                                 uint8_t access, uint8_t flags)
+static inline void gdt_set_entry(struct segment_descriptor *gdt_entry, uint32_t base,
+                                 uint32_t limit, uint8_t access, uint8_t flags)
 {
 	gdt_entry->limit_low   = (limit & 0xFFFF);
 	gdt_entry->base_low    = (base & 0xFFFF);
@@ -58,7 +56,7 @@ static inline void gdt_set_entry(segment_descriptor_t *gdt_entry, uint32_t base,
 	gdt_entry->base_high   = (base >> 24) & 0xFF;
 }
 
-const gdt_ptr_t *gdtr_getter(void) { return &gdtr; }
+const gdtr_t *get_gdtr(void) { return &gdtr; }
 
 // TODO : Implement TSS
 void gdt_init(void)

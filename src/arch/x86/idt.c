@@ -112,7 +112,7 @@ extern void irq_128(void);
 extern void syscall_dispatcher(REGISTERS, int, int);
 
 idt_entry idt_entries[IDT_SIZE];
-idtr_t    idtr = {.limit = sizeof(idt_entry) * IDT_SIZE - 1, .base = (uint32_t)&idt_entries};
+idtr_t    idtr = {.limit = sizeof(idt_entry) * IDT_SIZE - 1, .base = (uintptr_t)&idt_entries};
 
 irqHandler interrupt_handlers[256] = {
     [0x80] = syscall_dispatcher,
@@ -187,7 +187,7 @@ static inline void idt_set_entry(idt_entry *ptr, uint16_t selector, uint8_t type
 	ptr->type_attributes = type;
 }
 
-const idtr_t *idtr_getter(void) { return &idtr; }
+const idtr_t *get_idtr(void) { return &idtr; }
 
 void idt_init(void)
 {

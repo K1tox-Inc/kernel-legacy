@@ -76,7 +76,6 @@ static void page_descriptor_foreach(pages_foreach_fn handler, void *data)
 		handler(&page_descriptors[i], data);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // External Apis
 
 uint32_t page_to_index(page_t *page) { return page - page_descriptors; }

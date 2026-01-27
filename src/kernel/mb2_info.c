@@ -2,7 +2,6 @@
 #include <kernel/panic.h>
 #include <memory/boot_allocator.h>
 
-////////////////////////////////////////////////////////////
 // Globals
 
 multiboot_info_t *mb2info = NULL;
@@ -34,7 +33,6 @@ const struct multiboot2_header_tag_end mb2_tag_end
     __attribute__((used, section(".multiboot2_header"), aligned(8))) = {
         .type = 0, .flags = 0, .size = sizeof(struct multiboot2_header_tag_end)};
 
-////////////////////////////////////////////////////////////
 // Functions
 
 void mb2_mmap_iter(multiboot_tag_mmap_t *mmap, uint8_t *mmap_end, entry_handler_t handler,
