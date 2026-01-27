@@ -8,8 +8,8 @@
 
 #define GDT_MAX_ENTRIES 6
 
-extern const uintptr_t kernel_stack_top;
-struct tss             g_tss = {0};
+extern uint8_t kernel_stack_top[];
+struct tss     g_tss = {0};
 
 enum Gdt_Access_Byte {
 	ACCESS_BIT      = 0b00000001, // Bit 0: Indique si le segment a été accédé par le CPU
@@ -99,7 +99,7 @@ void gdt_init(void)
 	gdtr.base  = (uint32_t)gdt_entries;
 
 	g_tss.ss0   = 0x10;
-	g_tss.esp0  = kernel_stack_top;
+	g_tss.esp0  = (uintptr_t)kernel_stack_top;
 	g_tss.iomap = sizeof(struct tss);
 
 	// Register the GDT in the CPU
