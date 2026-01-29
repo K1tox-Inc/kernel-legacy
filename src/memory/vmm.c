@@ -23,7 +23,6 @@
 #define GET_PT_WITH_INDEX(idx) (FIRST_PAGE_TABLE_VADDR + (idx * PAGE_SIZE))
 
 uintptr_t kpage_dir;
-uintptr_t current_page_dir;
 
 // Internal APIs
 
@@ -78,7 +77,6 @@ void vmm_finalize(void)
 		}
 	}
 	kpage_dir        = page_dir_phys;
-	current_page_dir = page_dir_phys;
 	paging_reload_cr3(page_dir_phys);
 }
 

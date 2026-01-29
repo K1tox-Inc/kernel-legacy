@@ -110,7 +110,6 @@ enum Page_Directory_Entry {
 
 // VARIABLES GLOBALES
 
-extern uintptr_t current_page_dir;
 
 // EXTERNAL APIs
 
