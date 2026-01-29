@@ -30,8 +30,10 @@
 // ============================================================================
 
 typedef struct section {
-	uintptr_t start;
-	uint32_t  size;
+    uintptr_t v_addr;
+    uintptr_t src_ptr;
+    uint32_t  size;
+    uint32_t  flags;
 } section_t;
 
 #define get_next_section_start(start, size) ALIGN(((start) + (size)), PAGE_SIZE)
@@ -40,4 +42,4 @@ typedef struct section {
 // EXTERNAL APIs
 // ============================================================================
 
-uintptr_t userspace_create_new(section_t *user_text, section_t *user_data, section_t *user_heap);
+uintptr_t userspace_create_new(section_t *text, section_t *data, section_t *stack);
