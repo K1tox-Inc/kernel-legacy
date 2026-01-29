@@ -22,7 +22,7 @@
 #define PAGE_DIR_VADDR         ((PD_SLOT << 22) | (PD_SLOT << 12))
 #define GET_PT_WITH_INDEX(idx) (FIRST_PAGE_TABLE_VADDR + (idx * PAGE_SIZE))
 
-uintptr_t kpage_dir;
+uintptr_t kpage_dir = 0;
 
 // Internal APIs
 
@@ -76,7 +76,7 @@ void vmm_finalize(void)
 			current_pt_ptr[j] = p_addr | PTE_PRESENT_BIT | PTE_RW_BIT;
 		}
 	}
-	kpage_dir        = page_dir_phys;
+	kpage_dir = page_dir_phys;
 	paging_reload_cr3(page_dir_phys);
 }
 
@@ -178,3 +178,5 @@ uintptr_t vmm_get_mapping(uintptr_t page_dir_phys, uintptr_t v_addr)
 
 	return page_phys_base + offset;
 }
+
+uintptr_t vmm_get_kernel_directory(void) { return kpage_dir; }
