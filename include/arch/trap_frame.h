@@ -15,5 +15,4 @@ typedef struct {
 
 	uint32_t user_esp;
 	uint32_t user_ss;
-
 } __attribute__((packed)) trap_frame_t;
