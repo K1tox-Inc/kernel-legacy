@@ -231,7 +231,7 @@ void keyboard_bind_key(key_handler_t handler, keyboard_key_t key)
 // TODO : use free when memory
 void keyboard_unbind_key(uint8_t keycode) { current_layout[keycode] = UNDEFINED_ROUTINE; }
 
-// TODO: improve to add statement handling + init dynamically when memory is implemented
+// TODO : improve to add statement handling + init dynamically when memory is implemented
 void keyboard_handle(trap_frame_t *frame)
 {
 	(void)frame;
