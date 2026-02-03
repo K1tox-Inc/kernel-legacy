@@ -3,6 +3,8 @@
 #include <memory/memory.h>
 #include <types.h>
 #include <utils/kmacro.h>
+#include <proc/task.h>
+
 
 // ============================================================================
 // MEMORY LAYOUT DEFINITIONS
@@ -37,9 +39,12 @@ typedef struct section {
 } section_t;
 
 #define get_next_section_start(start, size) ALIGN(((start) + (size)), PAGE_SIZE)
+#define get_next_section_start_after_page_guard(start, size) ALIGN(((start) + (size + PAGE_SIZE)), PAGE_SIZE)
+
 
 // ============================================================================
 // EXTERNAL APIs
 // ============================================================================
 
-uintptr_t userspace_create_new(section_t *text, section_t *data, section_t *stack);
+uintptr_t userspace_create_new(section_t *text, section_t *data, section_t *stack, struct task *new_proccess);
+
