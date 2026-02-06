@@ -25,27 +25,42 @@ isr_\num:
 exception_routine:
 	pusha
 
+	# Push all segment registers (order: ds, es, fs, gs)
 	mov ax, ds
 	push eax
+	mov ax, es
+	push eax
+	mov ax, fs
+	push eax
+	mov ax, gs
+	push eax
 
+	# Load kernel data segment
 	mov ax, 0x10
 	mov ds, ax
 	mov es, ax
 	mov fs, ax
 	mov gs, ax
 
+	# Pass pointer to trap_frame as argument
+	lea eax, [esp]
+	push eax
 	call exception_handler
+	
+	add esp, 4
 
+	# Restore segment registers (reverse order: gs, fs, es, ds)
+	pop eax
+	mov gs, ax
+	pop eax
+	mov fs, ax
+	pop eax
+	mov es, ax
 	pop eax
 	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
 
 	popa
-
 	add esp, 8
-
 	iret
 
 isr_no_err_stub  0  # Division by Zero
