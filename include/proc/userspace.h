@@ -3,8 +3,8 @@
 #include <memory/memory.h>
 #include <types.h>
 #include <utils/kmacro.h>
-#include <proc/task.h>
 
+struct task;
 
 // ============================================================================
 // MEMORY LAYOUT DEFINITIONS
@@ -32,21 +32,20 @@
 // ============================================================================
 
 typedef struct section {
-    uintptr_t v_addr;
-    uintptr_t data_buffer;  // set temporary in the kernel
-    uint32_t  data_buffer_size;
-    uint32_t  mapping_size;
-    uint32_t  flags;
+	uintptr_t v_addr;
+	uintptr_t data_buffer; // set temporary in the kernel
+	uint32_t  data_buffer_size;
+	uint32_t  mapping_size;
+	uint32_t  flags;
 } section_t;
 
 #define get_next_section_start(start, size) ALIGN(((start) + (size)), PAGE_SIZE)
-#define get_next_section_start_after_page_guard(start, size) ALIGN(((start) + (size + PAGE_SIZE)), PAGE_SIZE)
+#define get_next_section_start_after_page_guard(start, size)                                       \
+	ALIGN(((start) + (size + PAGE_SIZE)), PAGE_SIZE)
 #define get_prev_section_start(end, size) ALIGN_DOWN(((end) - (size)), PAGE_SIZE)
-
 
 // ============================================================================
 // EXTERNAL APIs
 // ============================================================================
 
 bool userspace_create_new(section_t *text, section_t *data, struct task *new_proccess);
-

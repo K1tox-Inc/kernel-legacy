@@ -108,7 +108,7 @@ bool vmm_map_page(uintptr_t page_dir_phys, uintptr_t v_addr, uintptr_t p_addr, u
 	pt_virt[pte_idx] = p_addr | flags;
 
 	uintptr_t current_pd = get_current_page_directory_phys();
-	if (current_pd = page_dir_phys) {
+	if (current_pd == page_dir_phys) {
 		if (needs_cr3_reload) {
 			paging_reload_cr3(page_dir_phys);
 		} else {

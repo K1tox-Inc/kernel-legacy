@@ -3,7 +3,8 @@
 
 #include <signal.h>
 #include <types.h>
-#include <proc/userspace.h>
+
+typedef struct section section_t;
 
 enum process_states { NEW, RUNNING, WAITING, ZOMBIE };
 
@@ -29,13 +30,13 @@ struct task {
 	uintptr_t kernel_stack_base;
 
 	section_t code_sec;
-    section_t data_sec;
-    section_t stack_sec;
-    section_t heap_sec;
+	section_t data_sec;
+	section_t stack_sec;
+	section_t heap_sec;
 
 	/* Scheduling */
-	struct task *next; // Used for "Round Robin"
-	struct task *prev;
+	struct task        *next; // Used for "Round Robin"
+	struct task        *prev;
 	enum process_states state;
 
 	/* Signals */
