@@ -3,6 +3,8 @@
 #include <memory/memory.h>
 #include <types.h>
 #include <utils/kmacro.h>
+#include <proc/task.h>
+
 
 // ============================================================================
 // MEMORY LAYOUT DEFINITIONS
@@ -13,7 +15,7 @@
 
 #define USER_STACK_START (KERNEL_START - PAGE_SIZE)
 #define USER_STACK_SIZE  8192
-#define USER_STACK_END   (USER_STACK_START - USER_STACK_SIZE)
+#define USER_STACK_END   (USER_STACK_START - USER_STACK_SIZE - PAGE_SIZE)
 
 #define USER_HEAP_MAX  (USER_STACK_END - PAGE_SIZE)
 #define USER_HEAP_SIZE 0
@@ -31,15 +33,20 @@
 
 typedef struct section {
     uintptr_t v_addr;
-    uintptr_t src_ptr;
-    uint32_t  size;
+    uintptr_t data_buffer;  // set temporary in the kernel
+    uint32_t  data_buffer_size;
+    uint32_t  mapping_size;
     uint32_t  flags;
 } section_t;
 
 #define get_next_section_start(start, size) ALIGN(((start) + (size)), PAGE_SIZE)
+#define get_next_section_start_after_page_guard(start, size) ALIGN(((start) + (size + PAGE_SIZE)), PAGE_SIZE)
+#define get_prev_section_start(end, size) ALIGN_DOWN(((end) - (size)), PAGE_SIZE)
+
 
 // ============================================================================
 // EXTERNAL APIs
 // ============================================================================
 
-uintptr_t userspace_create_new(section_t *text, section_t *data, section_t *stack);
+bool userspace_create_new(section_t *text, section_t *data, struct task *new_proccess);
+
