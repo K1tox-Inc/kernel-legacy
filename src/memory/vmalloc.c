@@ -16,7 +16,7 @@
 
 // Defines
 
-#define MAX_VMALLOC_SIZE (MiB_SIZE * 128)
+#define MAX_VMALLOC_SIZE ((MiB_SIZE * 128) - 8192)
 #define MIN_VMALLOC_SIZE PAGE_SIZE
 
 // Macros

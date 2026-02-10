@@ -43,7 +43,7 @@
 #define MAX_ZONE      3
 
 #define VMALLOC_START 0xF8000000
-#define VMALLOC_END   0xFFFFFFFF
+#define VMALLOC_END   0xFFFFDFFF
 
 // Macros
 #define PHYS_TO_VIRT_LINEAR(p_addr) ((void *)((uintptr_t)(p_addr) + KERNEL_VADDR_BASE))
