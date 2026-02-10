@@ -33,8 +33,8 @@ struct task;
 
 typedef struct section {
 	uintptr_t v_addr;
-	uintptr_t data_buffer; // set temporary in the kernel
-	uint32_t  data_buffer_size;
+	uintptr_t data_start;
+	uint32_t  data_size;
 	uint32_t  mapping_size;
 	uint32_t  flags;
 } section_t;

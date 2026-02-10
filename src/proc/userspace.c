@@ -10,21 +10,21 @@
 static inline void init_heap_section(section_t *prev, section_t *heap)
 {
 	ft_bzero(heap, sizeof(section_t));
-	heap->v_addr      = get_next_section_start_after_page_guard(prev->v_addr, prev->mapping_size);
-	heap->data_buffer = 0;
-	heap->data_buffer_size = 0;
-	heap->mapping_size     = 0;
-	heap->flags            = USER_SECTION_RW;
+	heap->v_addr       = get_next_section_start_after_page_guard(prev->v_addr, prev->mapping_size);
+	heap->data_start   = 0;
+	heap->data_size    = 0;
+	heap->mapping_size = 0;
+	heap->flags        = USER_SECTION_RW;
 }
 
 static inline void init_stack_section(section_t *stack)
 {
 	ft_bzero(stack, sizeof(section_t));
-	stack->v_addr           = get_prev_section_start(USER_STACK_START, USER_STACK_SIZE);
-	stack->data_buffer      = 0;
-	stack->data_buffer_size = 0;
-	stack->mapping_size     = ALIGN(USER_STACK_SIZE, PAGE_SIZE);
-	stack->flags            = USER_SECTION_RW;
+	stack->v_addr       = get_prev_section_start(USER_STACK_START, USER_STACK_SIZE);
+	stack->data_start   = 0;
+	stack->data_size    = 0;
+	stack->mapping_size = ALIGN(USER_STACK_SIZE, PAGE_SIZE);
+	stack->flags        = USER_SECTION_RW;
 }
 
 static inline section_t *task_text(struct task *new_task) { return &new_task->code_sec; }
@@ -72,24 +72,23 @@ bool map_section(uintptr_t uspace_pd_phy, section_t *to_map)
 bool userspace_create_new(section_t *text, section_t *data, struct task *new_task)
 {
 	// Section Text
-	if (!text || text->data_buffer_size == 0)
+	if (!text || text->data_size == 0)
 		return false;
 	else if (!text->v_addr)
 		text->v_addr = USER_TEXT_START;
 	text->flags        = USER_SECTION_RO;
-	text->mapping_size = ALIGN(text->data_buffer_size, PAGE_SIZE);
+	text->mapping_size = ALIGN(text->data_size, PAGE_SIZE);
 	ft_memcpy(task_text(new_task), text, sizeof(section_t));
 
-	if (data && data->data_buffer_size > 0) {
+	if (data && data->data_size > 0) {
 		if (data->v_addr == 0)
 			data->v_addr = get_next_section_start(text->v_addr, text->mapping_size);
-		data->mapping_size = ALIGN(data->data_buffer_size, PAGE_SIZE);
+		data->mapping_size = ALIGN(data->data_size, PAGE_SIZE);
 		data->flags        = USER_SECTION_RW;
 		ft_memcpy(task_data(new_task), data, sizeof(section_t));
 	}
 
-	section_t *last_sec =
-	    (data && data->data_buffer_size > 0) ? task_data(new_task) : task_text(new_task);
+	section_t *last_sec = (data && data->data_size > 0) ? task_data(new_task) : task_text(new_task);
 	init_heap_section(last_sec, task_heap(new_task));
 
 	section_t *stack = task_stack(new_task);
@@ -107,7 +106,7 @@ bool userspace_create_new(section_t *text, section_t *data, struct task *new_tas
 	else if (!map_section(uspace_pd_phy, task_stack(new_task)))
 		map_success = false;
 	else {
-		if (data && data->data_buffer_size > 0) {
+		if (data && data->data_size > 0) {
 			if (!map_section(uspace_pd_phy, task_data(new_task)))
 				map_success = false;
 		}

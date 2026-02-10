@@ -118,6 +118,8 @@ bool      vmm_map_page(uintptr_t page_dir_phys, uintptr_t v_addr, uintptr_t p_ad
 bool      vmm_unmap_page(uintptr_t page_dir_phys, uintptr_t v_addr);
 uintptr_t vmm_get_mapping(uintptr_t page_dir_phys, uintptr_t v_addr);
 uintptr_t vmm_get_kernel_directory(void);
+void     *vmm_kmap(uintptr_t p_addr);
+void      vmm_kunmap(void);
 
 static inline uintptr_t get_current_page_directory_phys(void)
 {
