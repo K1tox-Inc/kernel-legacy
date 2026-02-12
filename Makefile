@@ -19,7 +19,7 @@ AS=i686-linux-gnu-as
 ASFLAGS=
 
 CC=i686-linux-gnu-gcc
-CFLAGS=-ffreestanding -fno-builtin -fno-exceptions -fno-stack-protector
+CFLAGS=-ffreestanding -fno-builtin -fno-exceptions -fno-stack-protector -nostdinc
 CFLAGS+=-Wall -Wextra
 
 ifeq ($(MAKEBUILDTYPE),Release)

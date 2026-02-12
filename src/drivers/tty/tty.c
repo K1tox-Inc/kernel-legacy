@@ -134,7 +134,7 @@ void tty_cli_handle_nl(void)
 	} else if (ft_strequ(current_tty->cli, "help")) {
 		print_help();
 	} else if (ft_strequ(current_tty->cli, "clear")) {
-		vga_setup_default_screen(current_tty->mode);
+		vga_setup_default_screen();
 		current_tty->cli[0] = 0;
 		return;
 	} else if (ft_strequ(current_tty->cli, "azerty")) {
