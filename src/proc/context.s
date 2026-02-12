@@ -1,6 +1,8 @@
 .intel_syntax noprefix
 .code32
 
+.section .text
+
 .extern g_tss
 
 # tss + 4 => esp0
