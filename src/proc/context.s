@@ -17,6 +17,18 @@ switch_to:
   push esi
   push edi
 
+  mov ebx, [ebp + 8]
+  mov [ebx + 36], esp
+
+  mov ebx, [ebp + 12]
+  mov esp, [ebx + 36]
+
+  mov eax, [ebx + 40]
+  mov cr3, eax
+
+  mov eax, [ebx + 44]
+  mov [g_tss + 4], eax
+
   pop edi
   pop esi
   pop ebx
