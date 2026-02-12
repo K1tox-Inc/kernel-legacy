@@ -7,6 +7,7 @@
  * with the C struct definition, preventing hard-coded offset bugs.
  */
 
+#include <arch/tss.h>
 #include <proc/task.h>
 #include <signal.h>
 #include <types.h>
@@ -18,6 +19,11 @@
  */
 #define DEFINE_OFFSET(structure, field)                                                            \
 	__asm__ volatile(".ascii \"\\n.equ TASK_" #field "_OFFSET, %c0\\n\""                       \
+			 :                                                                         \
+			 : "i"(offsetof(structure, field)))
+
+#define DEFINE_TSS_OFFSET(structure, field)                                                        \
+	__asm__ volatile(".ascii \"\\n.equ TSS_ESP0_OFFSET, %c0\\n\""                              \
 			 :                                                                         \
 			 : "i"(offsetof(structure, field)))
 
@@ -36,5 +42,5 @@ void generate_offsets(void)
 	DEFINE_OFFSET(struct task, kernel_stack_pointer);
 
 	__asm__ volatile(".ascii \"\\n# TSS offsets\\n\"");
-	__asm__ volatile(".ascii \".equ TSS_ESP0_OFFSET, 4\\n\"");
+	DEFINE_TSS_OFFSET(struct tss, esp0);
 }

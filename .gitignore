@@ -44,8 +44,9 @@ include/proc/task_offsets.inc
 tools/gen_offsets.s
 tools/gen_offsets
 
-# Ignore tools directory except source files
-tools/*
+# Ignore tools directory binaries and generated files, but keep source files
 !tools/*.c
 !tools/*.h
+!tools/*.md
+tools/*
 _codeql_detected_source_root
