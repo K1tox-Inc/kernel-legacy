@@ -47,7 +47,14 @@ DOCKERIMAGETAG=ubuntu
 
 OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\(\.c\|\.cpp\|\.s\)' | sed 's/\(\.c\|\.cpp\|\.s\)/.o/g'))
 
-$(BINDIR)/%.o: src/%.s
+# Generate offset constants header file
+include/proc/task_offsets.inc: tools/gen_offsets.c include/proc/task.h
+	@echo "Generating task offset constants..."
+	@$(CC) -S -I./include -I./lib/libk -I./lib/data_structs -I./lib/libutils $(CFLAGS) tools/gen_offsets.c -o tools/gen_offsets.s
+	@sed -n 's/^.*\.ascii "\(.*\)"$$/\1/p' tools/gen_offsets.s | sed 's/\\n/\n/g' > $@
+	@echo "Generated $@"
+
+$(BINDIR)/%.o: src/%.s include/proc/task_offsets.inc
 	@mkdir -pv $(@D)
 	$(AS) $(ASFLAGS) -o $@ $<
 
@@ -71,6 +78,7 @@ format:
 .PHONY: clean
 clean:
 	$(RM) -r $(BUILDDIR)
+	$(RM) include/proc/task_offsets.inc tools/gen_offsets.s
 	@make -C lib/libk clean
 	@make -C lib/data_structs clean
 	@make -C lib/libutils clean

@@ -39,6 +39,13 @@ core.*
 # Ignore custom scripts or generated files (adjust as needed)
 scripts/generated/*
 
-# Ignore tools directory
-tools/
+# Generated offset constants
+include/proc/task_offsets.inc
+tools/gen_offsets.s
+tools/gen_offsets
+
+# Ignore tools directory except source files
+tools/*
+!tools/*.c
+!tools/*.h
 _codeql_detected_source_root
