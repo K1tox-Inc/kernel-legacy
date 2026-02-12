@@ -35,7 +35,6 @@ switch_to:
   pop esi
   pop ebx
 
-  mov esp, ebp
   pop ebp
 
   ret
