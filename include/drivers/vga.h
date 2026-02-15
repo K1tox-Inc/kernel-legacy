@@ -70,6 +70,6 @@ void vga_disable_cursor(void);
 void vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
 void vga_set_cursor_position(uint8_t x, uint8_t y);
 void vga_set_mode(enum vga_color mode);
-void vga_setup_default_screen();
+void vga_setup_default_screen(void);
 void vga_refresh_screen(void);
 void vga_printf(const char *fmt, ...);
