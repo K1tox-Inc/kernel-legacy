@@ -188,10 +188,10 @@ uintptr_t vmm_get_kernel_directory(void) { return kpage_dir; }
 
 void *vmm_kmap(uintptr_t p_addr)
 {
-	if (!vmm_map_page(vmm_get_current_directory(), VMM_KMAP_VADDR, p_addr,
+	if (!vmm_map_page(get_current_page_directory_phys(), VMM_KMAP_VADDR, p_addr,
 	                  PTE_PRESENT_BIT | PTE_RW_BIT))
 		return NULL;
 	return (void *)VMM_KMAP_VADDR;
 }
 
-void vmm_kunmap(void) { vmm_unmap_page(vmm_get_current_directory(), VMM_KMAP_VADDR); }
+void vmm_kunmap(void) { vmm_unmap_page(get_current_page_directory_phys(), VMM_KMAP_VADDR); }

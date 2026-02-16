@@ -1,10 +1,10 @@
 #ifndef TASK_H
 #define TASK_H
 
-#include <signal.h>
+#include <proc/signal.h>
+#include <proc/section.h>
+#include <proc/userspace.h>
 #include <types.h>
-
-typedef struct section section_t;
 
 enum process_states { NEW, RUNNING, WAITING, ZOMBIE };
 

@@ -60,12 +60,14 @@ bool map_section(uintptr_t uspace_pd_phy, section_t *to_map)
 	for (size_t i = 0; i < pt_count; i++) {
 		uintptr_t v_addr = to_map->v_addr + (i * PAGE_SIZE);
 		uintptr_t p_addr = p_pool_addr + (i * PAGE_SIZE);
+		void *kmap_window = vmm_kmap(p_addr);
 		if (!vmm_map_page(uspace_pd_phy, v_addr, p_addr, to_map->flags)) {
 			buddy_free_block((void *)p_pool_addr);
 			return false;
 		}
 		// ---"LOADING PART HERE IN FUTUR" ---
 	}
+	vmm_kunmap();
 	return true;
 }
 

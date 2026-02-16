@@ -29,19 +29,23 @@ typedef struct {
 
 void io_stream_init_mem(io_stream_t *stream, const void *buffer, size_t size);
 
-static inline bool    io_open(io_stream_t *s) { return s->ops->open ? s->ops->open(s) : true; }
+static inline bool io_open(io_stream_t *s) { return s->ops->open ? s->ops->open(s) : true; }
+
 static inline ssize_t io_read(io_stream_t *s, void *d, size_t n)
 {
 	return s->ops->read ? s->ops->read(s, d, n) : -1;
 }
+
 static inline ssize_t io_write(io_stream_t *s, const void *d, size_t n)
 {
 	return s->ops->write ? s->ops->write(s, d, n) : -1;
 }
+
 static inline ssize_t io_seek(io_stream_t *s, ssize_t off, int w)
 {
 	return s->ops->seek ? s->ops->seek(s, off, w) : -1;
 }
+
 static inline void io_close(io_stream_t *s)
 {
 	if (s->ops->close)
