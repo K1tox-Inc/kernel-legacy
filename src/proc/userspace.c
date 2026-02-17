@@ -1,11 +1,10 @@
+#include <kernel/io_stream.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/vmm.h>
+#include <proc/section.h>
 #include <proc/task.h>
 #include <proc/userspace.h>
-
-#define USER_SECTION_RO (PTE_PRESENT_BIT | PTE_US_BIT)
-#define USER_SECTION_RW (PTE_PRESENT_BIT | PTE_US_BIT | PTE_RW_BIT)
 
 static inline void init_heap_section(section_t *prev, section_t *heap)
 {
@@ -51,22 +50,35 @@ bool map_section(uintptr_t uspace_pd_phy, section_t *to_map)
 	if (!to_map || to_map->mapping_size == 0)
 		return true;
 
-	uint32_t pt_count = to_map->mapping_size / PAGE_SIZE;
-	// here we can use LOWMEM if kmap is not implemented
+	uint32_t  pt_count    = to_map->mapping_size / PAGE_SIZE;
 	uintptr_t p_pool_addr = (uintptr_t)buddy_alloc_pages(to_map->mapping_size, HIGHMEM_ZONE);
 	if (!p_pool_addr)
 		return false;
 
-	for (size_t i = 0; i < pt_count; i++) {
-		uintptr_t v_addr = to_map->v_addr + (i * PAGE_SIZE);
-		uintptr_t p_addr = p_pool_addr + (i * PAGE_SIZE);
-		void *kmap_window = vmm_kmap(p_addr);
-		if (!vmm_map_page(uspace_pd_phy, v_addr, p_addr, to_map->flags)) {
+	io_stream_t *stream = NULL;
+	if (to_map->data_start && to_map->data_size > 0) {
+		stream = section_create_reader(to_map);
+		if (!stream) {
 			buddy_free_block((void *)p_pool_addr);
 			return false;
 		}
-		// ---"LOADING PART HERE IN FUTUR" ---
 	}
+
+	for (size_t i = 0; i < pt_count; i++) {
+		uintptr_t v_addr      = to_map->v_addr + (i * PAGE_SIZE);
+		uintptr_t p_addr      = p_pool_addr + (i * PAGE_SIZE);
+		void     *kmap_window = vmm_kmap(p_addr);
+		if (!vmm_map_page(uspace_pd_phy, v_addr, p_addr, to_map->flags)) {
+			buddy_free_block((void *)p_pool_addr);
+			io_close(stream);
+			return false;
+		}
+		if (stream)
+			io_read(stream, kmap_window, PAGE_SIZE);
+		else
+			ft_bzero(kmap_window, PAGE_SIZE);
+	}
+	io_close(stream);
 	vmm_kunmap();
 	return true;
 }

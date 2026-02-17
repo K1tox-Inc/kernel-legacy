@@ -1,9 +1,9 @@
 #pragma once
 
-#include <types.h>
-#include <proc/section.h>
-#include <utils/kmacro.h>
 #include <memory/memory.h>
+#include <proc/section.h>
+#include <types.h>
+#include <utils/kmacro.h>
 
 struct task;
 

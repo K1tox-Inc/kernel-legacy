@@ -1,8 +1,8 @@
 #ifndef TASK_H
 #define TASK_H
 
-#include <proc/signal.h>
 #include <proc/section.h>
+#include <proc/signal.h>
 #include <proc/userspace.h>
 #include <types.h>
 
