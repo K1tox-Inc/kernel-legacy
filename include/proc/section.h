@@ -25,6 +25,9 @@
 #define USER_TEXT_START 0x08048000 // legacy for ABI system
 #define USERSPACE_START 0x00000000
 
+#define USER_SECTION_RO (PTE_PRESENT_BIT | PTE_US_BIT)
+#define USER_SECTION_RW (PTE_PRESENT_BIT | PTE_US_BIT | PTE_RW_BIT)
+
 // ============================================================================
 // STRUCTS & MACROS
 // ============================================================================
@@ -37,7 +40,13 @@ typedef struct section {
 	uint32_t  flags;
 } section_t;
 
-
 // ============================================================================
 // EXTERNAL APIs
 // ============================================================================
+
+struct io_stream;
+
+bool section_init_from_buffer(section_t *sec, uintptr_t v_addr, const void *buffer, uint32_t size,
+                              uint32_t flags);
+
+struct io_stream *section_create_reader(section_t *sec);

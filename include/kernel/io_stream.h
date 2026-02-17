@@ -1,4 +1,5 @@
 #pragma once
+#include <memory/kmalloc.h>
 #include <types.h>
 
 struct io_stream;
@@ -12,10 +13,10 @@ typedef struct io_ops {
 } io_ops_t;
 
 typedef struct io_stream {
-	void           *ctx;
-	size_t          size;
-	size_t          pos;
-	const io_ops_t *ops;
+	void     *ctx;
+	size_t    size;
+	size_t    pos;
+	io_ops_t *ops;
 } io_stream_t;
 
 #define SEEK_SET 0
@@ -27,27 +28,50 @@ typedef struct {
 	size_t      size;
 } mem_stream_ctx_t;
 
-void io_stream_init_mem(io_stream_t *stream, const void *buffer, size_t size);
+static inline io_stream_t *io_stream_get_new(void *ctx, size_t size, size_t pos)
+{
+	io_stream_t *ret = kmalloc(sizeof(io_stream_t), GFP_KERNEL | __GFP_ZERO);
+	if (!ret)
+		return NULL;
 
-static inline bool io_open(io_stream_t *s) { return s->ops->open ? s->ops->open(s) : true; }
+	ret->ops = kmalloc(sizeof(io_ops_t), GFP_KERNEL | __GFP_ZERO);
+	if (!ret->ops) {
+		kfree(ret);
+		return NULL;
+	}
+
+	ret->ctx  = ctx;
+	ret->size = size;
+	ret->pos  = pos;
+	return ret;
+}
+
+static inline bool io_open(io_stream_t *s)
+{
+	return s->ops && s->ops->open ? s->ops->open(s) : true;
+}
 
 static inline ssize_t io_read(io_stream_t *s, void *d, size_t n)
 {
-	return s->ops->read ? s->ops->read(s, d, n) : -1;
+	return s->ops && s->ops->read ? s->ops->read(s, d, n) : -1;
 }
 
 static inline ssize_t io_write(io_stream_t *s, const void *d, size_t n)
 {
-	return s->ops->write ? s->ops->write(s, d, n) : -1;
+	return s->ops && s->ops->write ? s->ops->write(s, d, n) : -1;
 }
 
 static inline ssize_t io_seek(io_stream_t *s, ssize_t off, int w)
 {
-	return s->ops->seek ? s->ops->seek(s, off, w) : -1;
+	return s->ops && s->ops->seek ? s->ops->seek(s, off, w) : -1;
 }
 
 static inline void io_close(io_stream_t *s)
 {
-	if (s->ops->close)
+	if (!s)
+		return;
+	if (s->ops && s->ops->close)
 		s->ops->close(s);
+	kfree(s->ops);
+	kfree(s);
 }
