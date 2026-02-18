@@ -22,8 +22,7 @@
 #define PAGE_DIR_VADDR         ((PD_SLOT << 22) | (PD_SLOT << 12))
 #define GET_PT_WITH_INDEX(idx) (FIRST_PAGE_TABLE_VADDR + (idx * PAGE_SIZE))
 
-uintptr_t kpage_dir;
-uintptr_t current_page_dir;
+uintptr_t kpage_dir = 0;
 
 // Internal APIs
 
@@ -77,8 +76,7 @@ void vmm_finalize(void)
 			current_pt_ptr[j] = p_addr | PTE_PRESENT_BIT | PTE_RW_BIT;
 		}
 	}
-	kpage_dir        = page_dir_phys;
-	current_page_dir = page_dir_phys;
+	kpage_dir = page_dir_phys;
 	paging_reload_cr3(page_dir_phys);
 }
 
@@ -109,10 +107,13 @@ bool vmm_map_page(uintptr_t page_dir_phys, uintptr_t v_addr, uintptr_t p_addr, u
 	}
 	pt_virt[pte_idx] = p_addr | flags;
 
-	if (needs_cr3_reload) {
-		paging_reload_cr3(page_dir_phys);
-	} else {
-		paging_invalid_TLB_addr(v_addr);
+	uintptr_t current_pd = get_current_page_directory_phys();
+	if (current_pd == page_dir_phys) {
+		if (needs_cr3_reload) {
+			paging_reload_cr3(page_dir_phys);
+		} else {
+			paging_invalid_TLB_addr(v_addr);
+		}
 	}
 	return true;
 }
@@ -179,4 +180,36 @@ uintptr_t vmm_get_mapping(uintptr_t page_dir_phys, uintptr_t v_addr)
 	uintptr_t offset         = v_addr & 0xFFF;
 
 	return page_phys_base + offset;
+}
+
+uintptr_t vmm_get_kernel_directory(void) { return kpage_dir; }
+
+#define VMM_KMAP_VADDR 0xFFFFE000
+
+void *vmm_kmap(uintptr_t p_addr)
+{
+	if (!vmm_map_page(get_current_page_directory_phys(), VMM_KMAP_VADDR, p_addr,
+	                  PTE_PRESENT_BIT | PTE_RW_BIT))
+		return NULL;
+	return (void *)VMM_KMAP_VADDR;
+}
+
+void vmm_kunmap(void) { vmm_unmap_page(get_current_page_directory_phys(), VMM_KMAP_VADDR); }
+
+void vmm_free_pt_range(uintptr_t pd_phys, uint32_t pde_start, uint32_t pde_end)
+{
+	uint32_t *pd = (uint32_t *)PHYS_TO_VIRT_LINEAR(pd_phys);
+
+	for (uint32_t i = pde_start; i < pde_end; i++) {
+		if (pd[i] & PDE_PRESENT_BIT) {
+			buddy_free_block((void *)GET_ENTRY_ADDR(pd[i]));
+			pd[i] = 0;
+		}
+	}
+}
+
+void vmm_destroy_user_pd(uintptr_t pd_phys)
+{
+	vmm_free_pt_range(pd_phys, 0, 768);
+	buddy_free_block((void *)pd_phys);
 }

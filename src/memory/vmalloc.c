@@ -16,7 +16,7 @@
 
 // Defines
 
-#define MAX_VMALLOC_SIZE (MiB_SIZE * 128)
+#define MAX_VMALLOC_SIZE ((MiB_SIZE * 128) - 8192)
 #define MIN_VMALLOC_SIZE PAGE_SIZE
 
 // Macros
@@ -203,6 +203,7 @@ void vfree(void *ptr)
 		return;
 	area->state = VM_AREA_FREE;
 	// step 1 free pages one by one and unmap finish by free pages
+	uintptr_t current_page_dir = get_current_page_directory_phys();
 	for (size_t i = 0; i < area->nr_pages; i++) {
 		uintptr_t vaddr = area->start_vaddr + (i * PAGE_SIZE);
 		vmm_unmap_page(current_page_dir, vaddr);
@@ -259,6 +260,7 @@ void *vmalloc(size_t size)
 		return NULL;
 	}
 	// secondStep map all page in vmalloc are
+	uintptr_t current_page_dir = get_current_page_directory_phys();
 	for (size_t i = 0; i < number_of_pages; i++) {
 		uintptr_t paddr = allocated_area->pages[i];
 		uintptr_t vaddr = allocated_area->start_vaddr + (i * PAGE_SIZE);

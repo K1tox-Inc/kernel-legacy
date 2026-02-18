@@ -1,7 +1,7 @@
 #ifndef SIGNAL_H
 #define SIGNAL_H
 
-#include "types.h"
+#include <types.h>
 
 struct signal_node {
 	int              signo;
