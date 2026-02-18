@@ -3,7 +3,6 @@
 #include <libk.h>
 #include <memory/vmm.h>
 #include <proc/section.h>
-#include <proc/task.h>
 #include <proc/userspace.h>
 
 static inline void init_heap_section(section_t *prev, section_t *heap)

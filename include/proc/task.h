@@ -1,5 +1,4 @@
-#ifndef TASK_H
-#define TASK_H
+#pragma once
 
 #include <proc/section.h>
 #include <proc/signal.h>
@@ -42,5 +41,3 @@ struct task {
 	/* Signals */
 	struct signal_queue signals;
 };
-
-#endif

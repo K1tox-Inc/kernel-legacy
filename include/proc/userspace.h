@@ -2,10 +2,9 @@
 
 #include <memory/memory.h>
 #include <proc/section.h>
+#include <proc/task.h>
 #include <types.h>
 #include <utils/kmacro.h>
-
-struct task;
 
 // ============================================================================
 // STRUCTS & MACROS
