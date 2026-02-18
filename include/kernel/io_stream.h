@@ -44,22 +44,22 @@ static inline io_stream_t *io_stream_get_new(void *ctx, size_t size, size_t pos)
 
 static inline bool io_open(io_stream_t *s)
 {
-	return s->ops && s->ops->open ? s->ops->open(s) : true;
+	return s && s->ops && s->ops->open ? s->ops->open(s) : true;
 }
 
 static inline ssize_t io_read(io_stream_t *s, void *d, size_t n)
 {
-	return s->ops && s->ops->read ? s->ops->read(s, d, n) : -1;
+	return s && s->ops && s->ops->read ? s->ops->read(s, d, n) : -1;
 }
 
 static inline ssize_t io_write(io_stream_t *s, const void *d, size_t n)
 {
-	return s->ops && s->ops->write ? s->ops->write(s, d, n) : -1;
+	return s && s->ops && s->ops->write ? s->ops->write(s, d, n) : -1;
 }
 
 static inline ssize_t io_seek(io_stream_t *s, ssize_t off, int w)
 {
-	return s->ops && s->ops->seek ? s->ops->seek(s, off, w) : -1;
+	return s && s->ops && s->ops->seek ? s->ops->seek(s, off, w) : -1;
 }
 
 static inline void io_close(io_stream_t *s)
