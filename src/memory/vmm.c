@@ -195,3 +195,21 @@ void *vmm_kmap(uintptr_t p_addr)
 }
 
 void vmm_kunmap(void) { vmm_unmap_page(get_current_page_directory_phys(), VMM_KMAP_VADDR); }
+
+void vmm_free_pt_range(uintptr_t pd_phys, uint32_t pde_start, uint32_t pde_end)
+{
+	uint32_t *pd = (uint32_t *)PHYS_TO_VIRT_LINEAR(pd_phys);
+
+	for (uint32_t i = pde_start; i < pde_end; i++) {
+		if (pd[i] & PDE_PRESENT_BIT) {
+			buddy_free_block((void *)GET_ENTRY_ADDR(pd[i]));
+			pd[i] = 0;
+		}
+	}
+}
+
+void vmm_destroy_user_pd(uintptr_t pd_phys)
+{
+	vmm_free_pt_range(pd_phys, 0, 768);
+	buddy_free_block((void *)pd_phys);
+}

@@ -20,4 +20,4 @@ struct task;
 // EXTERNAL APIs
 // ============================================================================
 
-bool userspace_create_new(section_t *text, section_t *data, struct task *new_proccess);
+bool userspace_create_new(section_t *text, section_t *data, struct task *new_task);

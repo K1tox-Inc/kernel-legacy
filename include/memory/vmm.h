@@ -116,10 +116,11 @@ void      page_fault_handler(trap_frame_t *frame);
 uintptr_t vmm_get_mapping(uintptr_t page_dir_phys, uintptr_t v_addr);
 bool      vmm_map_page(uintptr_t page_dir_phys, uintptr_t v_addr, uintptr_t p_addr, uint32_t flags);
 bool      vmm_unmap_page(uintptr_t page_dir_phys, uintptr_t v_addr);
-uintptr_t vmm_get_mapping(uintptr_t page_dir_phys, uintptr_t v_addr);
 uintptr_t vmm_get_kernel_directory(void);
 void     *vmm_kmap(uintptr_t p_addr);
 void      vmm_kunmap(void);
+void      vmm_free_pt_range(uintptr_t pd_phys, uint32_t pde_start, uint32_t pde_end);
+void      vmm_destroy_user_pd(uintptr_t pd_phys);
 
 static inline uintptr_t get_current_page_directory_phys(void)
 {

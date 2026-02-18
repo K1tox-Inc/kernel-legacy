@@ -53,6 +53,7 @@ bool section_init_from_buffer(section_t *sec, uintptr_t v_addr, const void *star
 		return false;
 
 	sec->v_addr       = v_addr;
+	sec->p_addr       = 0; // pt_pool for mapping
 	sec->data_size    = size;
 	sec->mapping_size = ALIGN(size, PAGE_SIZE);
 	sec->flags        = flags;

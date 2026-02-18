@@ -34,6 +34,7 @@
 
 typedef struct section {
 	uintptr_t v_addr;
+	uintptr_t p_addr;
 	uintptr_t data_start;
 	uint32_t  data_size;
 	uint32_t  mapping_size;

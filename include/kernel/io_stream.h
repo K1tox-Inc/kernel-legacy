@@ -13,10 +13,10 @@ typedef struct io_ops {
 } io_ops_t;
 
 typedef struct io_stream {
+	io_ops_t *ops;
 	void     *ctx;
 	size_t    size;
 	size_t    pos;
-	io_ops_t *ops;
 } io_stream_t;
 
 #define SEEK_SET 0
@@ -30,15 +30,11 @@ typedef struct {
 
 static inline io_stream_t *io_stream_get_new(void *ctx, size_t size, size_t pos)
 {
-	io_stream_t *ret = kmalloc(sizeof(io_stream_t), GFP_KERNEL | __GFP_ZERO);
+	io_stream_t *ret = kmalloc(sizeof(io_stream_t) + sizeof(io_ops_t), GFP_KERNEL | __GFP_ZERO);
 	if (!ret)
 		return NULL;
 
-	ret->ops = kmalloc(sizeof(io_ops_t), GFP_KERNEL | __GFP_ZERO);
-	if (!ret->ops) {
-		kfree(ret);
-		return NULL;
-	}
+	ret->ops = (io_ops_t *)(ret + 1);
 
 	ret->ctx  = ctx;
 	ret->size = size;
@@ -72,6 +68,5 @@ static inline void io_close(io_stream_t *s)
 		return;
 	if (s->ops && s->ops->close)
 		s->ops->close(s);
-	kfree(s->ops);
 	kfree(s);
 }
