@@ -30,7 +30,7 @@ static inline section_t *task_data(struct task *new_task) { return &new_task->da
 static inline section_t *task_heap(struct task *new_task) { return &new_task->heap_sec; }
 static inline section_t *task_stack(struct task *new_task) { return &new_task->stack_sec; }
 
-bool userspace_map_kernel(uint32_t uspace_pd_phy)
+static bool userspace_map_kernel(uint32_t uspace_pd_phy)
 {
 	uint32_t *uspace_pd_virt = (uint32_t *)PHYS_TO_VIRT_LINEAR(uspace_pd_phy);
 	ft_bzero(uspace_pd_virt, PAGE_SIZE);
@@ -44,7 +44,7 @@ bool userspace_map_kernel(uint32_t uspace_pd_phy)
 	return true;
 }
 
-bool map_section(uintptr_t uspace_pd_phy, section_t *to_map)
+static bool map_section(uintptr_t uspace_pd_phy, section_t *to_map)
 {
 	if (!to_map || to_map->mapping_size == 0)
 		return true;
@@ -138,16 +138,8 @@ bool userspace_create_new(section_t *text, section_t *data, struct task *new_tas
 				goto bad;
 	}
 
-	new_task->esp = task_stack(new_task)->v_addr + task_stack(new_task)->mapping_size;
-    
-    new_task->cr3 = uspace_pd_phy;
+	new_task->cr3 = uspace_pd_phy;
 
-    void *kstack = kmalloc(task_stack(new_task)->mapping_size, GFP_KERNEL);
-    if (!kstack)
-        goto bad;
-
-    new_task->kernel_stack_pointer = (uintptr_t)kstack;
-    new_task->kernel_stack_base = (uintptr_t)kstack + task_stack(new_task)->mapping_size;
 	return true;
 bad:
 	if (task_text(new_task)->p_addr)

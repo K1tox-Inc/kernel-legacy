@@ -2,6 +2,7 @@
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <proc/task.h>
+#include <proc/userspace.h>
 #include <utils/error.h>
 #include <utils/id_manager.h>
 
@@ -34,32 +35,55 @@ static void task_print_section(const char *label, const section_t *sec)
 	           sec->mapping_size, sec->flags);
 }
 
-struct task *task_get_new(char *name, struct task *real_parent, struct task *parent,
-                          struct task *next, struct task *prev)
+struct task *task_get_new(char *name, bool userspace, section_t *text, section_t *data)
 {
 	size_t name_len = ft_strlen(name);
 	name_len        = name_len > 15 ? 15 : name_len;
-
+	// kmalloc use slabs caches here
 	char *memory_zone = kmalloc(sizeof(struct task) + name_len + 1, GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
 		return NULL;
 
 	struct task *ret = (struct task *)memory_zone;
 
-	ret->pid         = id_manager_alloc(&pid_manager);
-	// ret->uid         = 0;
-    // ret->gid         = 0;
-    ret->real_parent = real_parent;
-	ret->parent      = parent;
-    INIT_SENTINEL(children, &ret->children);
-    INIT_SENTINEL(siblings, &ret->siblings);
-    
-	ret->name        = memory_zone + sizeof(struct task);
-	ret->next        = next;
-	ret->prev        = prev;
+	ret->pid  = id_manager_alloc(&pid_manager);
+	ret->name = memory_zone + sizeof(struct task);
+
+	INIT_SENTINEL(children, &ret->children);
+	INIT_SENTINEL(siblings, &ret->siblings);
 
 	ft_memcpy(ret->name, name, name_len);
 	ret->name[name_len] = 0;
+
+	void *kstack = kmalloc(DEFAULT_STACK_SIZE, GFP_KERNEL | __GFP_ZERO);
+	if (!kstack) {
+		kfree(ret);
+		return NULL;
+	}
+
+	ret->kernel_stack_pointer = (uintptr_t)kstack;
+	ret->kernel_stack_base    = (uintptr_t)kstack + DEFAULT_STACK_SIZE;
+
+	/*
+	 * Stack Canary: Replaces hardware guard pages in higher-half linear mapping
+	 * Placed at the stack lowest address to detect downward overflows
+	 * MUST be verified by the scheduler during every context switch
+	 */
+	*(uint32_t *)(ret->kernel_stack_pointer) = STACK_CANARY_MAGIC;
+
+	ret->esp = ret->kernel_stack_base;
+
+	if (userspace) {
+		if (!userspace_create_new(text, data, ret)) {
+			kfree(kstack);
+			kfree(ret);
+			return NULL;
+		}
+		ret->ring = 3;
+	} else {
+		ret->cr3  = vmm_get_kernel_directory();
+		ret->ring = 0;
+	}
 
 	return ret;
 }

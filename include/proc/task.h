@@ -5,6 +5,8 @@
 #include <proc/userspace.h>
 #include <types.h>
 
+#define STACK_CANARY_MAGIC 0xDEADBEEF
+
 enum process_states { NEW, RUNNING, WAITING, ZOMBIE };
 
 struct task {
@@ -41,8 +43,10 @@ struct task {
 	/* Signals */
 	struct signal_queue signals;
 	/* Info */
-	char	*name;
+	char  *name;
+	size_t ring;
 };
 
-void task_print_info(const struct task *task);
-struct task *task_get_new(char *name, struct task *real_parent,struct task *parent,struct task *next,struct task *prev);
+void         task_print_info(const struct task *task);
+struct task *task_get_new(char *name, struct task *real_parent, struct task *parent,
+                          struct task *next, struct task *prev);
