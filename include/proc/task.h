@@ -40,4 +40,9 @@ struct task {
 
 	/* Signals */
 	struct signal_queue signals;
+	/* Info */
+	char	*name;
 };
+
+void task_print_info(const struct task *task);
+struct task *task_get_new(char *name, struct task *real_parent,struct task *parent,struct task *next,struct task *prev);
