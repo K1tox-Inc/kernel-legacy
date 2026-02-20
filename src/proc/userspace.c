@@ -18,10 +18,10 @@ static inline void init_heap_section(section_t *prev, section_t *heap)
 static inline void init_stack_section(section_t *stack)
 {
 	ft_bzero(stack, sizeof(section_t));
-	stack->v_addr       = get_prev_section_start(USER_STACK_START, USER_STACK_SIZE);
+	stack->v_addr       = get_prev_section_start(USER_STACK_START, DEFAULT_STACK_SIZE);
 	stack->data_start   = 0;
 	stack->data_size    = 0;
-	stack->mapping_size = ALIGN(USER_STACK_SIZE, PAGE_SIZE);
+	stack->mapping_size = ALIGN(DEFAULT_STACK_SIZE, PAGE_SIZE);
 	stack->flags        = USER_SECTION_RW;
 }
 
@@ -138,9 +138,17 @@ bool userspace_create_new(section_t *text, section_t *data, struct task *new_tas
 				goto bad;
 	}
 
-	new_task->cr3 = uspace_pd_phy;
-	return true;
+	new_task->esp = task_stack(new_task)->v_addr + task_stack(new_task)->mapping_size;
+    
+    new_task->cr3 = uspace_pd_phy;
 
+    void *kstack = kmalloc(task_stack(new_task)->mapping_size, GFP_KERNEL);
+    if (!kstack)
+        goto bad;
+
+    new_task->kernel_stack_pointer = (uintptr_t)kstack;
+    new_task->kernel_stack_base = (uintptr_t)kstack + task_stack(new_task)->mapping_size;
+	return true;
 bad:
 	if (task_text(new_task)->p_addr)
 		buddy_free_block((void *)task_text(new_task)->p_addr);
