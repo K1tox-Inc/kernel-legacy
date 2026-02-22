@@ -24,6 +24,7 @@
 	} while (0)
 
 static t_id_manager pid_manager;
+static struct task *current_task = NULL;
 
 // ============================================================================
 // INTERNAL APIs
@@ -51,6 +52,7 @@ static void task_print_section(const char *label, const section_t *sec)
 
 static void cpu_idle_loop(void)
 {
+	vga_printf(" Welcome from our first process ! :) ");
 	while (true) // hang
 		__asm__ volatile("hlt");
 }
@@ -58,6 +60,8 @@ static void cpu_idle_loop(void)
 // ============================================================================
 // EXTERNAL APIs
 // ============================================================================
+
+struct task *task_get_current_task(void) { return current_task; }
 
 struct task *task_get_new(char *name, bool userspace, section_t *text, section_t *data)
 {
@@ -145,8 +149,8 @@ void task_init_idle(void)
 
 	idle_task->esp -= switch_to_regs * sizeof(size_t);
 	idle_task->state = TASK_RUNNING;
-
-	task_print_info(idle_task);
+	current_task     = idle_task;
+	task_launcher(current_task);
 }
 
 // ============================================================================

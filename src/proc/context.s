@@ -4,6 +4,8 @@
 .section .text
 
 .extern g_tss
+.global switch_to
+.global task_launcher
 
 # tss + 4 => esp0
 # task + 36 => esp
@@ -38,3 +40,21 @@ switch_to:
   pop ebp
 
   ret
+
+# void task_launcher(struct task *next);
+task_launcher:
+    mov ebx, [esp + 4]
+    mov eax, [ebx + 40]
+    mov cr3, eax
+
+    mov eax, [ebx + 48]
+    mov [g_tss + 4], eax
+
+    mov esp, [ebx + 36]
+
+    pop edi
+    pop esi
+    pop ebx
+    pop ebp
+
+    ret
