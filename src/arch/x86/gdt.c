@@ -60,6 +60,8 @@ static inline void gdt_set_entry(struct segment_descriptor *gdt_entry, uint32_t 
 
 const gdtr_t *get_gdtr(void) { return &gdtr; }
 
+void set_tss_to_kstack_top(uintptr_t stack_top) { g_tss.esp0 = stack_top; }
+
 void gdt_init(void)
 {
 #define GDT_ENTRY(indx)   (gdt_entries + (indx))
