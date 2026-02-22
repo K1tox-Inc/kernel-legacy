@@ -174,3 +174,38 @@ void task_print_info(const struct task *task)
 	task_print_section("Stack", &task->stack_sec);
 	task_print_section("Heap", &task->heap_sec);
 }
+
+void task_print_stack(const struct task *task)
+{
+	if (!task) {
+		vga_printf("task_print_stack: task pointer is NULL\n");
+		return;
+	}
+
+	uintptr_t esp  = task->esp;
+	uintptr_t base = task->kernel_stack_base;
+
+	vga_printf("=== Stack dump for task '%s' (PID %d) ===\n", task->name ? task->name : "(null)",
+	           task->pid);
+	vga_printf("  esp  = %p\n", (void *)esp);
+	vga_printf("  base = %p  (top of stack)\n", (void *)base);
+
+	if (!esp || !base || esp >= base) {
+		vga_printf("  (stack is empty or invalid: esp >= base)\n");
+		return;
+	}
+
+	size_t slot_count = (base - esp) / sizeof(uint32_t);
+	vga_printf("  %u bytes used (%u dwords)\n", (unsigned)(base - esp), (unsigned)slot_count);
+	vga_printf("  %s | %s\n", "ADDRESS", "VALUE");
+	vga_printf("  -------------|-------------\n");
+
+	uint32_t *ptr = (uint32_t *)esp;
+	uint32_t *end = (uint32_t *)base;
+
+	for (; ptr < end; ptr++) {
+		vga_printf("  %p | 0x%x\n", (void *)ptr, *ptr);
+	}
+
+	vga_printf("=== End of stack dump ===\n");
+}

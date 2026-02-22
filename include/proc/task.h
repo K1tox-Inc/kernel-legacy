@@ -4,7 +4,6 @@
 #include <proc/signal.h>
 #include <types.h>
 
-#define STACK_CANARY_MAGIC 0xDEADBEEF
 #define STACK_CANARY_MAGIC 0xCAFEBABE;
 
 enum process_states { TASK_NEW, TASK_RUNNING, TASK_WAITING, TASK_ZOMBIE };
