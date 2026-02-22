@@ -1,10 +1,20 @@
+// ============================================================================
+// INCLUDES
+// ============================================================================
+
 #include <drivers/vga.h>
+#include <kernel/panic.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
+#include <memory/vmm.h>
 #include <proc/task.h>
 #include <proc/userspace.h>
 #include <utils/error.h>
 #include <utils/id_manager.h>
+
+// ============================================================================
+// DEFINE AND MACRO
+// ============================================================================
 
 #define INIT_SENTINEL(name, ptr)                                                                   \
 	do {                                                                                           \
@@ -15,15 +25,19 @@
 
 static t_id_manager pid_manager;
 
+// ============================================================================
+// INTERNAL APIs
+// ============================================================================
+
 static const char *task_state_to_string(enum process_states state)
 {
-	if (state == NEW)
+	if (state == TASK_NEW)
 		return "NEW";
-	if (state == RUNNING)
+	if (state == TASK_RUNNING)
 		return "RUNNING";
-	if (state == WAITING)
+	if (state == TASK_WAITING)
 		return "WAITING";
-	if (state == ZOMBIE)
+	if (state == TASK_ZOMBIE)
 		return "ZOMBIE";
 	return "UNKNOWN";
 }
@@ -34,6 +48,16 @@ static void task_print_section(const char *label, const section_t *sec)
 	           (void *)sec->v_addr, (void *)sec->p_addr, (void *)sec->data_start, sec->data_size,
 	           sec->mapping_size, sec->flags);
 }
+
+static void cpu_idle_loop(void)
+{
+	while (true) // hang
+		__asm__ volatile("hlt");
+}
+
+// ============================================================================
+// EXTERNAL APIs
+// ============================================================================
 
 struct task *task_get_new(char *name, bool userspace, section_t *text, section_t *data)
 {
@@ -46,15 +70,12 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 
 	struct task *ret = (struct task *)memory_zone;
 
-	ret->pid  = id_manager_alloc(&pid_manager);
-	ret->name = memory_zone + sizeof(struct task);
+	ret->pid = id_manager_alloc(&pid_manager);
 
 	INIT_SENTINEL(children, &ret->children);
 	INIT_SENTINEL(siblings, &ret->siblings);
 
-	ft_memcpy(ret->name, name, name_len);
-	ret->name[name_len] = 0;
-
+	// kmalloc use buddy allocator here
 	void *kstack = kmalloc(DEFAULT_STACK_SIZE, GFP_KERNEL | __GFP_ZERO);
 	if (!kstack) {
 		kfree(ret);
@@ -84,6 +105,25 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 		ret->cr3  = vmm_get_kernel_directory();
 		ret->ring = 0;
 	}
+
+	ret->state = TASK_NEW;
+
+	ret->name = memory_zone + sizeof(struct task);
+	ft_memcpy(ret->name, name, name_len);
+	ret->name[name_len] = 0;
+
+	/*
+	 * All these fields are zeroed by kmalloc with __GFP_ZERO
+	 * and must be initialized by the caller if needed (like fork) :
+	 *
+	 *	uid_t uid;
+	 *	gid_t gid;
+	 *	struct task *real_parent;
+	 *	struct task *parent;
+	 *	struct task  *prev;
+	 *	struct task  *next; // Used for "Round Robin"
+	 *
+	 */
 
 	return ret;
 }

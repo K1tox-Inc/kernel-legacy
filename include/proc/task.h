@@ -2,12 +2,12 @@
 
 #include <proc/section.h>
 #include <proc/signal.h>
-#include <proc/userspace.h>
 #include <types.h>
 
 #define STACK_CANARY_MAGIC 0xDEADBEEF
+#define STACK_CANARY_MAGIC 0xCAFEBABE;
 
-enum process_states { NEW, RUNNING, WAITING, ZOMBIE };
+enum process_states { TASK_NEW, TASK_RUNNING, TASK_WAITING, TASK_ZOMBIE };
 
 struct task {
 	pid_t pid;
