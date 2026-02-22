@@ -128,6 +128,31 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 	return ret;
 }
 
+void task_init_idle(void)
+{
+	struct task *idle_task = task_get_new("Idle", false, NULL, NULL);
+	if (!idle_task)
+		kpanic("Failed to init Idle :(\n");
+
+	// Stack crafting
+	size_t switch_to_regs = 5;
+	for (size_t i = 1; i <= switch_to_regs; i++) {
+		if (i > 1)
+			*((uint32_t *)(idle_task->esp) - i) = i;
+		else
+			*((uint32_t *)(idle_task->esp) - i) = (uintptr_t)(&cpu_idle_loop);
+	}
+
+	idle_task->esp -= switch_to_regs * sizeof(size_t);
+	idle_task->state = TASK_RUNNING;
+
+	task_print_info(idle_task);
+}
+
+// ============================================================================
+// DEBUG APIs
+// ============================================================================
+
 void task_print_info(const struct task *task)
 {
 	if (!task) {

@@ -48,5 +48,6 @@ struct task {
 };
 
 void         task_print_info(const struct task *task);
-struct task *task_get_new(char *name, struct task *real_parent, struct task *parent,
-                          struct task *next, struct task *prev);
+void         task_print_stack(const struct task *task);
+struct task *task_get_new(char *name, bool userspace, section_t *text, section_t *data);
+void         task_init_idle(void);
