@@ -5,6 +5,7 @@
 #include <types.h>
 
 #define STACK_CANARY_MAGIC 0xCAFEBABE
+#define PID_MAX            32768
 
 enum process_states { TASK_NEW, TASK_RUNNING, TASK_WAITING, TASK_ZOMBIE };
 

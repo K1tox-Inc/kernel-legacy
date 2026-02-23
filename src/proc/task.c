@@ -23,7 +23,12 @@
 		name->prev             = name;                                                             \
 	} while (0)
 
-static t_id_manager pid_manager;
+static t_id_manager *pid_manager = NULL;
+
+__attribute__((constructor)) static void init_pid_manager(void)
+{
+	pid_manager = id_manager_create(PID_MAX);
+}
 static struct task *current_task = NULL;
 
 // ============================================================================
@@ -67,6 +72,11 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 {
 	size_t name_len = ft_strlen(name);
 	name_len        = name_len > 15 ? 15 : name_len;
+
+	// Ensure PID manager is initialized before allocating a PID
+	if (!pid_manager)
+		return NULL;
+
 	// kmalloc use slabs caches here
 	char *memory_zone = kmalloc(sizeof(struct task) + name_len + 1, GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
@@ -74,7 +84,11 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 
 	struct task *ret = (struct task *)memory_zone;
 
-	ret->pid = id_manager_alloc(&pid_manager);
+	ret->pid = id_manager_alloc(pid_manager);
+	if (ret->pid == -1) {
+		kfree(ret);
+		return NULL;
+	}
 
 	INIT_SENTINEL(children, &ret->children);
 	INIT_SENTINEL(siblings, &ret->siblings);
