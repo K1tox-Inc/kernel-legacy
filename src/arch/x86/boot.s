@@ -160,7 +160,6 @@ reload_eip:
     #--------------------------------------------------------
 
 
-    call x86_init
     call kernel_main
 
     cli

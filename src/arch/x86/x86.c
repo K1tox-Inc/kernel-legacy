@@ -23,7 +23,6 @@ void call_constructors(void)
 
 void x86_init(void)
 {
-
 	gdt_init();
 	idt_init();
 	idt_register_interrupt_handlers(14, (irqHandler)page_fault_handler);
