@@ -25,11 +25,6 @@ static inline void init_stack_section(section_t *stack)
 	stack->flags        = USER_SECTION_RW;
 }
 
-static inline section_t *task_text(struct task *new_task) { return &new_task->code_sec; }
-static inline section_t *task_data(struct task *new_task) { return &new_task->data_sec; }
-static inline section_t *task_heap(struct task *new_task) { return &new_task->heap_sec; }
-static inline section_t *task_stack(struct task *new_task) { return &new_task->stack_sec; }
-
 static bool userspace_map_kernel(uint32_t uspace_pd_phy)
 {
 	uint32_t *uspace_pd_virt = (uint32_t *)PHYS_TO_VIRT_LINEAR(uspace_pd_phy);
@@ -88,8 +83,10 @@ bad:
 	return false;
 }
 
-bool userspace_create_new(section_t *text, section_t *data, struct task *new_task)
+bool userspace_create_new(struct task *new_task)
 {
+	section_t *text = task_text(new_task);
+	section_t *data = task_data(new_task);
 	// Section Text
 	if (!text || text->data_size == 0)
 		return false;
@@ -99,7 +96,6 @@ bool userspace_create_new(section_t *text, section_t *data, struct task *new_tas
 		text->v_addr = USER_TEXT_START;
 	text->flags        = USER_SECTION_RO;
 	text->mapping_size = ALIGN(text->data_size, PAGE_SIZE);
-	ft_memcpy(task_text(new_task), text, sizeof(section_t));
 
 	// Section Data
 	if (data && data->data_size > 0) {
@@ -109,7 +105,6 @@ bool userspace_create_new(section_t *text, section_t *data, struct task *new_tas
 			return false;
 		data->mapping_size = ALIGN(data->data_size, PAGE_SIZE);
 		data->flags        = USER_SECTION_RW;
-		ft_memcpy(task_data(new_task), data, sizeof(section_t));
 	}
 
 	// Section Heap
@@ -142,12 +137,12 @@ bool userspace_create_new(section_t *text, section_t *data, struct task *new_tas
 
 	return true;
 bad:
-	if (task_text(new_task)->p_addr)
-		buddy_free_block((void *)task_text(new_task)->p_addr);
-	if (task_stack(new_task)->p_addr)
-		buddy_free_block((void *)task_stack(new_task)->p_addr);
-	if (task_data(new_task)->p_addr)
-		buddy_free_block((void *)task_data(new_task)->p_addr);
+	if (text && text->p_addr)
+		buddy_free_block((void *)text->p_addr);
+	if (data && data->p_addr)
+		buddy_free_block((void *)data->p_addr);
+	if (stack && stack->p_addr)
+		buddy_free_block((void *)stack->p_addr);
 	vmm_destroy_user_pd(uspace_pd_phy);
 	return false;
 }

@@ -23,16 +23,16 @@
 # 40     | 4    | uintptr_t cr3 (Page Directory Pointer)
 # 44     | 4    | uintptr_t kernel_stack_pointer (Bottom / Canary)
 # 48     | 4    | uintptr_t kernel_stack_base (Top / TSS.esp0)
-# 52     | 24   | section_t code_sec
-# 76     | 24   | section_t data_sec
-# 100    | 24   | section_t stack_sec
-# 124    | 24   | section_t heap_sec
-# 148    | 4    | struct task *next (Scheduler)
-# 152    | 4    | struct task *prev
-# 156    | 4    | enum process_states state
-# 160    | 12   | struct signal_queue signals
-# 172    | 4    | char *name
-# 176    | 4    | size_t ring
+# 52     | 4    | section_t *code_sec
+# 56     | 4    | section_t *data_sec
+# 60     | 4    | section_t *stack_sec
+# 64     | 4    | section_t *heap_sec
+# 68     | 4    | struct task *next (Scheduler)
+# 72     | 4    | struct task *prev
+# 76     | 4    | enum process_states state
+# 80     | 12   | struct signal_queue signals
+# 92     | 4    | char *name
+# 96     | 4    | size_t ring
 # =============================================================================
 
 # void switch_to(struct task *current, struct task *next);

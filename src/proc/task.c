@@ -50,6 +50,10 @@ static const char *task_state_to_string(enum process_states state)
 
 static void task_print_section(const char *label, const section_t *sec)
 {
+	if (!sec) {
+		vga_printf("  - %s: (null)\n", label);
+		return;
+	}
 	vga_printf("  - %s: vaddr=%p | paddr=%p | data=%p | size=%u | map=%u | flags=0x%x\n", label,
 	           (void *)sec->v_addr, (void *)sec->p_addr, (void *)sec->data_start, sec->data_size,
 	           sec->mapping_size, sec->flags);
@@ -70,6 +74,9 @@ struct task *task_get_current_task(void) { return current_task; }
 
 struct task *task_get_new(char *name, bool userspace, section_t *text, section_t *data)
 {
+	if (!name)
+		return NULL;
+
 	size_t name_len = ft_strlen(name);
 	name_len        = name_len > 15 ? 15 : name_len;
 
@@ -78,27 +85,33 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 		return NULL;
 
 	// kmalloc use slabs caches here
-	char *memory_zone = kmalloc(sizeof(struct task) + name_len + 1, GFP_KERNEL | __GFP_ZERO);
+	char *memory_zone = kmalloc(sizeof(struct task) + name_len + 1 + (sizeof(section_t) * 4),
+	                            GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
 		return NULL;
 
 	struct task *ret = (struct task *)memory_zone;
 
+	ret->code_sec  = (section_t *)(memory_zone + sizeof(struct task));
+	ret->data_sec  = (section_t *)(memory_zone + sizeof(struct task) + sizeof(section_t));
+	ret->stack_sec = (section_t *)(memory_zone + sizeof(struct task) + sizeof(section_t) * 2);
+	ret->heap_sec  = (section_t *)(memory_zone + sizeof(struct task) + sizeof(section_t) * 3);
+	if (text)
+		ft_memcpy(ret->code_sec, text, sizeof(section_t));
+	if (data)
+		ft_memcpy(ret->data_sec, data, sizeof(section_t));
+
 	ret->pid = id_manager_alloc(pid_manager);
-	if (ret->pid == -1) {
-		kfree(ret);
-		return NULL;
-	}
+	if (ret->pid == -1)
+		goto free_task;
 
 	INIT_SENTINEL(children, &ret->children);
 	INIT_SENTINEL(siblings, &ret->siblings);
 
 	// kmalloc use buddy allocator here
 	void *kstack = kmalloc(DEFAULT_STACK_SIZE, GFP_KERNEL | __GFP_ZERO);
-	if (!kstack) {
-		kfree(ret);
-		return NULL;
-	}
+	if (!kstack)
+		goto free_pid;
 
 	ret->kernel_stack_pointer = (uintptr_t)kstack;
 	ret->kernel_stack_base    = (uintptr_t)kstack + DEFAULT_STACK_SIZE;
@@ -113,11 +126,8 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 	ret->esp = ret->kernel_stack_base;
 
 	if (userspace) {
-		if (!userspace_create_new(text, data, ret)) {
-			kfree(kstack);
-			kfree(ret);
-			return NULL;
-		}
+		if (!userspace_create_new(ret))
+			goto free_kstack;
 		ret->ring = 3;
 	} else {
 		ret->cr3  = vmm_get_kernel_directory();
@@ -126,7 +136,7 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 
 	ret->state = TASK_NEW;
 
-	ret->name = memory_zone + sizeof(struct task);
+	ret->name = memory_zone + sizeof(struct task) + sizeof(section_t) * 4;
 	ft_memcpy(ret->name, name, name_len);
 	ret->name[name_len] = 0;
 
@@ -144,6 +154,14 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 	 */
 
 	return ret;
+
+free_kstack:
+	kfree(kstack);
+free_pid:
+	id_manager_free(pid_manager, ret->pid);
+free_task:
+	kfree(ret);
+	return NULL;
 }
 
 void task_init_idle(void)
@@ -187,10 +205,10 @@ void task_print_info(const struct task *task)
 	vga_printf("  - CPU: esp=%p | cr3=%p\n", (void *)task->esp, (void *)task->cr3);
 	vga_printf("  - Kernel Stack: base=%p | ptr=%p\n", (void *)task->kernel_stack_base,
 	           (void *)task->kernel_stack_pointer);
-	task_print_section("Code", &task->code_sec);
-	task_print_section("Data", &task->data_sec);
-	task_print_section("Stack", &task->stack_sec);
-	task_print_section("Heap", &task->heap_sec);
+	task_print_section("Code", task->code_sec);
+	task_print_section("Data", task->data_sec);
+	task_print_section("Stack", task->stack_sec);
+	task_print_section("Heap", task->heap_sec);
 }
 
 void task_print_stack(const struct task *task)
