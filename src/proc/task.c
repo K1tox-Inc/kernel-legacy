@@ -72,6 +72,8 @@ static void cpu_idle_loop(void)
 
 struct task *task_get_current_task(void) { return current_task; }
 
+// text and data are used as templates; this function allocates its own internal sections
+// After return, the caller must free the input text and data if they were heap-allocated
 struct task *task_get_new(char *name, bool userspace, section_t *text, section_t *data)
 {
 	if (!name)
@@ -92,12 +94,12 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 
 	struct task *ret = (struct task *)memory_zone;
 
-	ret->code_sec  = (section_t *)(memory_zone + sizeof(struct task));
+	ret->text_sec  = (section_t *)(memory_zone + sizeof(struct task));
 	ret->data_sec  = (section_t *)(memory_zone + sizeof(struct task) + sizeof(section_t));
 	ret->stack_sec = (section_t *)(memory_zone + sizeof(struct task) + sizeof(section_t) * 2);
 	ret->heap_sec  = (section_t *)(memory_zone + sizeof(struct task) + sizeof(section_t) * 3);
 	if (text)
-		ft_memcpy(ret->code_sec, text, sizeof(section_t));
+		ft_memcpy(ret->text_sec, text, sizeof(section_t));
 	if (data)
 		ft_memcpy(ret->data_sec, data, sizeof(section_t));
 
@@ -205,7 +207,7 @@ void task_print_info(const struct task *task)
 	vga_printf("  - CPU: esp=%p | cr3=%p\n", (void *)task->esp, (void *)task->cr3);
 	vga_printf("  - Kernel Stack: base=%p | ptr=%p\n", (void *)task->kernel_stack_base,
 	           (void *)task->kernel_stack_pointer);
-	task_print_section("Code", task->code_sec);
+	task_print_section("Text", task->text_sec);
 	task_print_section("Data", task->data_sec);
 	task_print_section("Stack", task->stack_sec);
 	task_print_section("Heap", task->heap_sec);

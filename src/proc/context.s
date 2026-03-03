@@ -23,7 +23,7 @@
 # 40     | 4    | uintptr_t cr3 (Page Directory Pointer)
 # 44     | 4    | uintptr_t kernel_stack_pointer (Bottom / Canary)
 # 48     | 4    | uintptr_t kernel_stack_base (Top / TSS.esp0)
-# 52     | 4    | section_t *code_sec
+# 52     | 4    | section_t *text_sec
 # 56     | 4    | section_t *data_sec
 # 60     | 4    | section_t *stack_sec
 # 64     | 4    | section_t *heap_sec

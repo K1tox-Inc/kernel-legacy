@@ -188,7 +188,7 @@ void userspace_print(const struct task *task)
 	vga_printf("  user esp       = %p\n", (void *)task->esp);
 	vga_printf("\n");
 
-	print_section_info("TEXT ", task->code_sec);
+	print_section_info("TEXT ", task->text_sec);
 	print_section_info("DATA ", task->data_sec);
 	print_section_info("HEAP ", task->heap_sec);
 	print_section_info("STACK", task->stack_sec);
@@ -196,8 +196,8 @@ void userspace_print(const struct task *task)
 	/* Memory map summary (low -> high) */
 	vga_printf("\n  --- Virtual memory map ---\n");
 	vga_printf("  0x%08x  USER_TEXT_START\n", USER_TEXT_START);
-	if (task->code_sec && task->code_sec->mapping_size)
-		vga_printf("  0x%08x  .text end\n", task->code_sec->v_addr + task->code_sec->mapping_size);
+	if (task->text_sec && task->text_sec->mapping_size)
+		vga_printf("  0x%08x  .text end\n", task->text_sec->v_addr + task->text_sec->mapping_size);
 	if (task->data_sec && task->data_sec->mapping_size)
 		vga_printf("  0x%08x  .data end\n", task->data_sec->v_addr + task->data_sec->mapping_size);
 	if (task->heap_sec)
