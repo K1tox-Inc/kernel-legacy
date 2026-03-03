@@ -20,4 +20,5 @@
 // ============================================================================
 
 bool userspace_create_new(struct task *new_task);
+void userspace_print(const struct task *task);
 
