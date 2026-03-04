@@ -1,3 +1,4 @@
+#include <arch/x86.h>
 #include <drivers/vga.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
@@ -7,7 +8,42 @@
 #include <proc/userspace.h>
 #include <utils/error.h>
 
+static void flush_registers(uint32_t **kstack, size_t it)
+{
+	for (size_t i = 0; i < it; i++)
+		*(--(*kstack)) = 0;
+}
+
 void hello_kproc(void) { vga_printf("Hello from our Kernel process !"); }
+
+// look here for futur wiki https://wiki.osdev.org/Getting_to_Ring_3
+// carefull here the kstack must be fully zeroed
+int exec_task(struct task *task, bool userspace)
+{
+	uint32_t *kstack     = (uint32_t *)task->kernel_stack_base;
+	uintptr_t code_start = (uintptr_t)task->text_sec->v_addr;
+
+	if (userspace) {
+		uintptr_t stack_top = task->stack_sec->v_addr + task->stack_sec->mapping_size;
+		// those value are the only ones restored by iret
+		*(--kstack) = USER_DS;             // Stack segment
+		*(--kstack) = stack_top;           // ESP
+		*(--kstack) = EFLAGS_USER_DEFAULT; // Eflags
+		*(--kstack) = USER_CS;             // CS
+		*(--kstack) = code_start;          // EIP
+		flush_registers(&kstack, 4);
+	} else {
+		*(--kstack) = code_start;
+		flush_registers(&kstack, 4);
+	}
+
+	task->esp = (uintptr_t)kstack;
+
+	if (userspace)
+		task_user_launcher(task);
+	else
+		task_launcher(task);
+}
 
 int exec_fn(void *fn_start, size_t fn_size, char *fn_name, bool userspace)
 {
@@ -20,9 +56,8 @@ int exec_fn(void *fn_start, size_t fn_size, char *fn_name, bool userspace)
 	struct task *fn_task = task_get_new(fn_name, userspace, &text, NULL);
 	if (!fn_task)
 		return -ENOMEM;
-	uint32_t *kstack = (uint32_t *)fn_task->kernel_stack_base;
 
-
+	exec_task(fn_task, userspace);
 	return SUCCESS;
 }
 
