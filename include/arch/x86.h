@@ -82,7 +82,7 @@ enum Gdt_Access_Byte {
 
 typedef void (*irqHandler)(trap_frame_t *frame);
 
-void          x86_init(void);
+void          init(void);
 const gdtr_t *get_gdtr(void);
 const idtr_t *get_idtr(void);
 void          gdt_init(void);

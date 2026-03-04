@@ -4,7 +4,8 @@
 
 void kernel_main(void)
 {
-	x86_init();
+
+	init();
 	exec_mok("cafe");
 	task_init_idle();
 }
