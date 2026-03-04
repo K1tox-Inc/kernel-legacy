@@ -11,19 +11,6 @@
 extern uint8_t kernel_stack_top[];
 struct tss     g_tss = {0};
 
-enum Gdt_Access_Byte {
-	ACCESS_BIT      = 0b00000001, // Bit 0: Indique si le segment a été accédé par le CPU
-	RW_BIT          = 0b00000010, // Bit 1: Lecture/écriture pour données, lecture pour code
-	DC_BIT          = 0b00000100, // Bit 2: Direction pour données, Conforming pour code
-	EXECUTABLE_BIT  = 0b00001000, // Bit 3: 1=segment de code, 0=segment de données
-	DESCRIPTOR_TYPE = 0b00010000, // Bit 4: 1=segment code/données, 0=segment système
-	DPL_RING0       = 0b00000000, // Bits 5-6: Niveau noyau, privilèges maximaux
-	DPL_RING1       = 0b00100000, // Bits 5-6: Niveau intermédiaire, rarement utilisé
-	DPL_RING2       = 0b01000000, // Bits 5-6: Niveau intermédiaire, rarement utilisé
-	DPL_RING3       = 0b01100000, // Bits 5-6: Niveau utilisateur, privilèges minimaux
-	PRESENT_BIT     = 0b10000000  // Bit 7: Indique si le segment est présent en mémoire
-};
-
 enum Gdt_Flags {
 	RESERVED_BIT     = 0b0001, // Bit 0: Réservé, doit être à 0
 	LONG_MODE_BIT    = 0b0010, // Bit 1: 1=segment 64-bit (mode long), 0=mode protégé standard
@@ -68,14 +55,15 @@ void gdt_init(void)
 #define GDT_COMMON_ACCESS (ACCESS_BIT | RW_BIT | PRESENT_BIT | DESCRIPTOR_TYPE)
 #define GDT_FLAGS         (SEGMENT_SIZE_BIT | GRANULARITY_BIT)
 
-	gdt_set_entry(GDT_ENTRY(0), 0x00, 0x00, 0x00, 0x00);
+	gdt_set_entry(GDT_ENTRY(GDT_IDX_NULL), 0x00, 0x00, 0x00, 0x00);
 
 #define GDT_KERNEL_ACCESS (GDT_COMMON_ACCESS | DPL_RING0)
 
 	// -------------- Kernel descriptors --------------
-	gdt_set_entry(GDT_ENTRY(1), 0x00, 0xFFFFFF, GDT_KERNEL_ACCESS | EXECUTABLE_BIT,
+	gdt_set_entry(GDT_ENTRY(GDT_IDX_KERNEL_CODE), 0x00, 0xFFFFFF,
+	              GDT_KERNEL_ACCESS | EXECUTABLE_BIT,
 	              GDT_FLAGS); // Kernel Code Segment
-	gdt_set_entry(GDT_ENTRY(2), 0x00, 0xFFFFFF, GDT_KERNEL_ACCESS,
+	gdt_set_entry(GDT_ENTRY(GDT_IDX_KERNEL_DATA), 0x00, 0xFFFFFF, GDT_KERNEL_ACCESS,
 	              GDT_FLAGS); // Kernel Data Segment
 
 #undef GDT_KERNEL_ACCESS
@@ -83,14 +71,14 @@ void gdt_init(void)
 #define GDT_USER_ACCESS (GDT_COMMON_ACCESS | DPL_RING3)
 
 	// -------------- User descriptors --------------
-	gdt_set_entry(GDT_ENTRY(3), 0x00, 0xFFFFFF, GDT_USER_ACCESS | EXECUTABLE_BIT,
+	gdt_set_entry(GDT_ENTRY(GDT_IDX_USER_CODE), 0x00, 0xFFFFFF, GDT_USER_ACCESS | EXECUTABLE_BIT,
 	              GDT_FLAGS); // User Code Segment
-	gdt_set_entry(GDT_ENTRY(4), 0x00, 0xFFFFFF, GDT_USER_ACCESS,
+	gdt_set_entry(GDT_ENTRY(GDT_IDX_USER_DATA), 0x00, 0xFFFFFF, GDT_USER_ACCESS,
 	              GDT_FLAGS); // User Data Segment
 
 #undef GDT_USER_ACCESS
 
-	gdt_set_entry(GDT_ENTRY(5), (uint32_t)&g_tss, sizeof(struct tss) - 1,
+	gdt_set_entry(GDT_ENTRY(GDT_IDX_TSS), (uint32_t)&g_tss, sizeof(struct tss) - 1,
 	              PRESENT_BIT | DPL_RING0 | EXECUTABLE_BIT | ACCESS_BIT, 0x00);
 
 #undef GDT_FLAGS
