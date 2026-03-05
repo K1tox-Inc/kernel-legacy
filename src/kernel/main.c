@@ -1,15 +1,11 @@
-#include <drivers/keyboard.h>
-#include <drivers/vga.h>
-#include <libutils.h>
-#include <memory/buddy.h>
-#include <memory/kmalloc.h>
-#include <memory/memory.h>
-#include <memory/page.h>
-#include <memory/slab.h>
-#include <memory/vmalloc.h>
+#include <arch/x86.h>
+#include <proc/exec.h>
+#include <proc/task.h>
 
 void kernel_main(void)
 {
-	while (true) // hang
-		__asm__ volatile("hlt");
+
+	init();
+	exec_mok("cafe");
+	task_init_idle();
 }
