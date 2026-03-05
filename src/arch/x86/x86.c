@@ -21,7 +21,7 @@ void call_constructors(void)
 	}
 }
 
-void x86_init(void)
+void init(void)
 {
 	gdt_init();
 	idt_init();

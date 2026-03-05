@@ -99,9 +99,15 @@ bool vmm_map_page(uintptr_t page_dir_phys, uintptr_t v_addr, uintptr_t p_addr, u
 		pt_virt = (uint32_t *)PHYS_TO_VIRT_LINEAR(pt_phys);
 		ft_bzero(pt_virt, PAGE_SIZE);
 
-		pd_virt[pde_idx] = pt_phys | PDE_PRESENT_BIT | PDE_RW_BIT | PDE_US_BIT;
+		pd_virt[pde_idx] = pt_phys | PDE_PRESENT_BIT | PDE_RW_BIT;
+		if (flags & PDE_US_BIT)
+			pd_virt[pde_idx] |= PDE_US_BIT;
 		needs_cr3_reload = true;
 	} else {
+		if ((flags & PDE_US_BIT) && !(pde & PDE_US_BIT)) {
+			pd_virt[pde_idx] |= PDE_US_BIT;
+			needs_cr3_reload = true;
+		}
 		uintptr_t pt_phys = GET_ENTRY_ADDR(pde);
 		pt_virt           = (uint32_t *)PHYS_TO_VIRT_LINEAR(pt_phys);
 	}

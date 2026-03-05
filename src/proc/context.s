@@ -6,6 +6,7 @@
 .extern g_tss
 .global switch_to
 .global task_launcher
+.global task_user_launcher
 
 # =============================================================================
 # STRUCT TASK LAYOUT (Memory Map)
@@ -23,16 +24,16 @@
 # 40     | 4    | uintptr_t cr3 (Page Directory Pointer)
 # 44     | 4    | uintptr_t kernel_stack_pointer (Bottom / Canary)
 # 48     | 4    | uintptr_t kernel_stack_base (Top / TSS.esp0)
-# 52     | 24   | section_t code_sec
-# 76     | 24   | section_t data_sec
-# 100    | 24   | section_t stack_sec
-# 124    | 24   | section_t heap_sec
-# 148    | 4    | struct task *next (Scheduler)
-# 152    | 4    | struct task *prev
-# 156    | 4    | enum process_states state
-# 160    | 12   | struct signal_queue signals
-# 172    | 4    | char *name
-# 176    | 4    | size_t ring
+# 52     | 4    | section_t *text_sec
+# 56     | 4    | section_t *data_sec
+# 60     | 4    | section_t *stack_sec
+# 64     | 4    | section_t *heap_sec
+# 68     | 4    | struct task *next (Scheduler)
+# 72     | 4    | struct task *prev
+# 76     | 4    | enum process_states state
+# 80     | 12   | struct signal_queue signals
+# 92     | 4    | char *name
+# 96     | 4    | size_t ring
 # =============================================================================
 
 # void switch_to(struct task *current, struct task *next);
@@ -66,18 +67,48 @@ switch_to:
 
 # void task_launcher(struct task *next);
 task_launcher:
+  # get task *next into ebx
   mov ebx, [esp + 4]
+  
+  # reload cr3
   mov eax, [ebx + 40]
   mov cr3, eax
 
+  # update g_tss
   mov eax, [ebx + 48]
   mov [g_tss + 4], eax
 
+  # jump to new process stack
   mov esp, [ebx + 36]
 
+  # pop flushed registers
   pop edi
   pop esi
   pop ebx
   pop ebp
 
   ret
+
+task_user_launcher:
+    mov ebx, [esp + 4]
+    mov eax, [ebx + 40]
+    mov cr3, eax
+
+    mov eax, [ebx + 48]
+    mov [g_tss + 4], eax
+
+    mov esp, [ebx + 36]
+    
+    # set segs as UserDS
+    mov ax, 0x23  # UserDS = 0x23
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    pop edi
+    pop esi
+    pop ebx
+    pop ebp
+
+    iret

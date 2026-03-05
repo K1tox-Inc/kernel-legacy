@@ -19,4 +19,5 @@
 // EXTERNAL APIs
 // ============================================================================
 
-bool userspace_create_new(section_t *text, section_t *data, struct task *new_task);
+bool userspace_create_new(struct task *new_task);
+void userspace_print(const struct task *task);
