@@ -85,6 +85,8 @@ struct exec_fn_mok mok_registry[] = {{"cafe", user_cafe_start, user_cafe_end, tr
 
 int exec_mok(const char *name)
 {
+	if (!name)
+		return -EINVAL;
 	size_t name_len = ft_strlen(name);
 	for (int i = 0; mok_registry[i].name != NULL; i++) {
 		size_t reg_name_len = ft_strlen(mok_registry[i].name);
