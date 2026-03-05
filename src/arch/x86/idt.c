@@ -9,13 +9,13 @@
 #include <memory/memory.h>
 #include <types.h>
 
-typedef struct __attribute__((packed)) {
+struct idt_entry {
 	uint16_t offset_1;
 	uint16_t selector;
 	uint8_t  zero;
 	uint8_t  type_attributes;
 	uint16_t offset_2;
-} idt_entry;
+} __attribute__((packed));
 
 enum IDTTypeAttributes {
 	TaskGate    = 0x05,
@@ -32,7 +32,7 @@ enum IDTTypeAttributes {
 	PresentBit = 0x01 << 7
 };
 
-typedef void (*syscallHandler)(trap_frame_t *frame);
+typedef void (*syscallHandler)(struct trap_frame *frame);
 
 #define IDT_SIZE        256
 #define IDT_ENTRY(indx) (idt_entries + (indx))
@@ -110,10 +110,11 @@ extern void irq_47(void);
 // [...]
 extern void irq_128(void);
 
-extern void syscall_dispatcher(trap_frame_t *frame);
+extern void syscall_dispatcher(struct trap_frame *frame);
 
-idt_entry idt_entries[IDT_SIZE];
-idtr_t    idtr = {.limit = sizeof(idt_entry) * IDT_SIZE - 1, .base = (uintptr_t)&idt_entries};
+struct idt_entry idt_entries[IDT_SIZE];
+struct idtr      idtr = {.limit = sizeof(struct idt_entry) * IDT_SIZE - 1,
+                         .base  = (uintptr_t)&idt_entries};
 
 irqHandler interrupt_handlers[256] = {
     [0x80] = syscall_dispatcher,
@@ -154,7 +155,7 @@ const char *interrupt_names[] = {"Divide Error",
                                  "Security Exception",
                                  "Reserved"};
 
-void exception_handler(trap_frame_t *frame)
+void exception_handler(struct trap_frame *frame)
 {
 	if (interrupt_handlers[frame->int_no] != NULL)
 		interrupt_handlers[frame->int_no](frame);
@@ -192,7 +193,8 @@ static void init_pic(void)
 	outb(PIC2_DATA, 0x00);
 }
 
-static inline void idt_set_entry(idt_entry *ptr, uint16_t selector, uint8_t type, uint32_t offset)
+static inline void idt_set_entry(struct idt_entry *ptr, uint16_t selector, uint8_t type,
+                                 uint32_t offset)
 {
 	ptr->offset_1        = offset & 0xffff;
 	ptr->offset_2        = (offset & 0xffff0000) >> 16;
@@ -200,12 +202,12 @@ static inline void idt_set_entry(idt_entry *ptr, uint16_t selector, uint8_t type
 	ptr->type_attributes = type;
 }
 
-const idtr_t *get_idtr(void) { return &idtr; }
+const struct idtr *get_idtr(void) { return &idtr; }
 
 void idt_init(void)
 {
 	init_pic();
-	ft_bzero((void *)&idt_entries, sizeof(idt_entry) * IDT_SIZE);
+	ft_bzero((void *)&idt_entries, sizeof(struct idt_entry) * IDT_SIZE);
 
 	idt_set_entry(IDT_ENTRY(0x00), 0x08, PresentBit | IntGate_32 | CPU_Ring0, (uint32_t)isr_0);
 	idt_set_entry(IDT_ENTRY(0x01), 0x08, PresentBit | IntGate_32 | CPU_Ring0, (uint32_t)isr_1);

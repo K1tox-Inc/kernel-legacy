@@ -4,37 +4,38 @@
 
 struct io_stream;
 
-typedef struct io_ops {
+struct io_ops {
 	bool (*open)(struct io_stream *stream);
 	ssize_t (*read)(struct io_stream *stream, void *dest, size_t size);
 	ssize_t (*write)(struct io_stream *stream, const void *src, size_t size);
 	ssize_t (*seek)(struct io_stream *stream, ssize_t offset, int origin);
 	void (*close)(struct io_stream *stream);
-} io_ops_t;
-
-typedef struct io_stream {
-	io_ops_t *ops;
-	void     *ctx;
-	size_t    size;
-	size_t    pos;
-} io_stream_t;
+};
 
 #define SEEK_SET 0
 #define SEEK_CUR 1
 #define SEEK_END 2
 
-typedef struct {
+struct mem_stream_ctx {
 	const void *buffer;
 	size_t      size;
-} mem_stream_ctx_t;
+};
 
-static inline io_stream_t *io_stream_get_new(void *ctx, size_t size, size_t pos)
+struct io_stream {
+	struct io_ops *ops;
+	void          *ctx;
+	size_t         size;
+	size_t         pos;
+};
+
+static inline struct io_stream *io_stream_get_new(void *ctx, size_t size, size_t pos)
 {
-	io_stream_t *ret = kmalloc(sizeof(io_stream_t) + sizeof(io_ops_t), GFP_KERNEL | __GFP_ZERO);
+	struct io_stream *ret =
+	    kmalloc(sizeof(struct io_stream) + sizeof(struct io_ops), GFP_KERNEL | __GFP_ZERO);
 	if (!ret)
 		return NULL;
 
-	ret->ops = (io_ops_t *)(ret + 1);
+	ret->ops = (struct io_ops *)(ret + 1);
 
 	ret->ctx  = ctx;
 	ret->size = size;
@@ -42,27 +43,27 @@ static inline io_stream_t *io_stream_get_new(void *ctx, size_t size, size_t pos)
 	return ret;
 }
 
-static inline bool io_open(io_stream_t *s)
+static inline bool io_open(struct io_stream *s)
 {
 	return s && s->ops && s->ops->open ? s->ops->open(s) : true;
 }
 
-static inline ssize_t io_read(io_stream_t *s, void *d, size_t n)
+static inline ssize_t io_read(struct io_stream *s, void *d, size_t n)
 {
 	return s && s->ops && s->ops->read ? s->ops->read(s, d, n) : -1;
 }
 
-static inline ssize_t io_write(io_stream_t *s, const void *d, size_t n)
+static inline ssize_t io_write(struct io_stream *s, const void *d, size_t n)
 {
 	return s && s->ops && s->ops->write ? s->ops->write(s, d, n) : -1;
 }
 
-static inline ssize_t io_seek(io_stream_t *s, ssize_t off, int w)
+static inline ssize_t io_seek(struct io_stream *s, ssize_t off, int w)
 {
 	return s && s->ops && s->ops->seek ? s->ops->seek(s, off, w) : -1;
 }
 
-static inline void io_close(io_stream_t *s)
+static inline void io_close(struct io_stream *s)
 {
 	if (!s)
 		return;

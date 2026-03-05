@@ -48,7 +48,7 @@ static const char *task_state_to_string(enum process_states state)
 	return "UNKNOWN";
 }
 
-static void task_print_section(const char *label, const section_t *sec)
+static void task_print_section(const char *label, const struct section *sec)
 {
 	if (!sec) {
 		vga_printf("  - %s: (null)\n", label);
@@ -74,7 +74,7 @@ struct task *task_get_current_task(void) { return current_task; }
 
 // text and data are used as templates; this function allocates its own internal sections
 // After return, the caller must free the input text and data if they were heap-allocated
-struct task *task_get_new(char *name, bool userspace, section_t *text, section_t *data)
+struct task *task_get_new(char *name, bool userspace, struct section *text, struct section *data)
 {
 	if (!name)
 		return NULL;
@@ -87,21 +87,23 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 		return NULL;
 
 	// kmalloc use slabs caches here
-	char *memory_zone = kmalloc(sizeof(struct task) + name_len + 1 + (sizeof(section_t) * 4),
+	char *memory_zone = kmalloc(sizeof(struct task) + name_len + 1 + (sizeof(struct section) * 4),
 	                            GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
 		return NULL;
 
 	struct task *ret = (struct task *)memory_zone;
 
-	ret->text_sec  = (section_t *)(memory_zone + sizeof(struct task));
-	ret->data_sec  = (section_t *)(memory_zone + sizeof(struct task) + sizeof(section_t));
-	ret->stack_sec = (section_t *)(memory_zone + sizeof(struct task) + sizeof(section_t) * 2);
-	ret->heap_sec  = (section_t *)(memory_zone + sizeof(struct task) + sizeof(section_t) * 3);
+	ret->text_sec = (struct section *)(memory_zone + sizeof(struct task));
+	ret->data_sec = (struct section *)(memory_zone + sizeof(struct task) + sizeof(struct section));
+	ret->stack_sec =
+	    (struct section *)(memory_zone + sizeof(struct task) + sizeof(struct section) * 2);
+	ret->heap_sec =
+	    (struct section *)(memory_zone + sizeof(struct task) + sizeof(struct section) * 3);
 	if (text)
-		ft_memcpy(ret->text_sec, text, sizeof(section_t));
+		ft_memcpy(ret->text_sec, text, sizeof(struct section));
 	if (data)
-		ft_memcpy(ret->data_sec, data, sizeof(section_t));
+		ft_memcpy(ret->data_sec, data, sizeof(struct section));
 
 	ret->pid = id_manager_alloc(pid_manager);
 	if (ret->pid == -1)
@@ -138,7 +140,7 @@ struct task *task_get_new(char *name, bool userspace, section_t *text, section_t
 
 	ret->state = TASK_NEW;
 
-	ret->name = memory_zone + sizeof(struct task) + sizeof(section_t) * 4;
+	ret->name = memory_zone + sizeof(struct task) + sizeof(struct section) * 4;
 	ft_memcpy(ret->name, name, name_len);
 	ret->name[name_len] = 0;
 

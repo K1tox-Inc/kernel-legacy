@@ -2,10 +2,10 @@
 
 #include <types.h>
 
-typedef struct {
+struct registers {
 	uint32_t gs, fs, es, ds;
 	uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
-} __attribute__((packed)) REGISTERS;
+} __attribute__((packed));
 
 static inline void clean_registers(void)
 {

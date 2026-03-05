@@ -30,7 +30,7 @@ struct segment_descriptor {
 
 // Code
 
-gdtr_t                    gdtr;
+struct gdtr               gdtr;
 struct segment_descriptor gdt_entries[GDT_MAX_ENTRIES];
 
 static inline void gdt_set_entry(struct segment_descriptor *gdt_entry, uint32_t base,
@@ -45,7 +45,7 @@ static inline void gdt_set_entry(struct segment_descriptor *gdt_entry, uint32_t 
 	gdt_entry->base_high   = (base >> 24) & 0xFF;
 }
 
-const gdtr_t *get_gdtr(void) { return &gdtr; }
+const struct gdtr *get_gdtr(void) { return &gdtr; }
 
 void set_tss_to_kstack_top(uintptr_t stack_top) { g_tss.esp0 = stack_top; }
 

@@ -7,8 +7,8 @@
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 
-TTY *current_tty;
-TTY  ttys[12];
+struct tty *current_tty;
+struct tty  ttys[12];
 
 static bool ft_strequ(const char *s1, const char *s2);
 static void print_help(void);
@@ -29,7 +29,8 @@ void tty_framebuffer_switch_color(uint8_t mode)
 void tty_framebuffer_clear(void)
 {
 	for (unsigned long i = 0; i < VGA_WIDTH * TTY_HIST_SIZE; i++)
-		current_tty->framebuffer[i] = (vga_entry){.character = 0x00, .mode = current_tty->mode};
+		current_tty->framebuffer[i] =
+		    (struct vga_entry){.character = 0x00, .mode = current_tty->mode};
 	current_tty->top_line_index = 0;
 	current_tty->cursor         = (struct s_cursor){0, 1};
 }
@@ -82,7 +83,7 @@ void tty_framebuffer_scroll_down(void)
 	for (size_t x = 0; x < VGA_WIDTH; x++) {
 		int offset = (bottom_line * VGA_WIDTH) + x;
 		current_tty->framebuffer[offset] =
-		    (vga_entry){.character = 0x00, .mode = current_tty->mode};
+		    (struct vga_entry){.character = 0x00, .mode = current_tty->mode};
 	}
 }
 
@@ -94,7 +95,7 @@ void tty_framebuffer_write(char c)
 		tty_history_disable();
 	uint8_t real_y = (uint8_t)current_tty->top_line_index + (uint8_t)current_tty->cursor.y;
 	int     offset = (real_y * VGA_WIDTH) + current_tty->cursor.x;
-	current_tty->framebuffer[offset] = (vga_entry){c, current_tty->mode};
+	current_tty->framebuffer[offset] = (struct vga_entry){c, current_tty->mode};
 }
 
 static bool ft_strequ(const char *s1, const char *s2)
@@ -149,7 +150,7 @@ void tty_cli_handle_nl(void)
 	ft_bzero(current_tty->cli, 256);
 }
 
-void tty_init(TTY *tty)
+void tty_init(struct tty *tty)
 {
 	tty->top_line_index        = 0;
 	tty->cursor                = (struct s_cursor){0, 1};
@@ -157,7 +158,7 @@ void tty_init(TTY *tty)
 	tty->history.top_line_save = 0;
 	tty->history.stop_scroll   = true;
 	tty->mode                  = VGA_DEFAULT_MODE;
-	tty->framebuffer_size      = (VGA_WIDTH * TTY_HIST_SIZE) * sizeof(vga_entry);
+	tty->framebuffer_size      = (VGA_WIDTH * TTY_HIST_SIZE) * sizeof(struct vga_entry);
 	tty->framebuffer           = NULL;
 	vga_enable_cursor(14, 15);
 	ft_bzero(tty->cli, 256);
@@ -165,12 +166,12 @@ void tty_init(TTY *tty)
 
 void ttys_init(void)
 {
-	for (unsigned long i = 0; i < sizeof(ttys) / sizeof(TTY); i++)
+	for (unsigned long i = 0; i < sizeof(ttys) / sizeof(struct tty); i++)
 		tty_init(ttys + i);
 	tty_switch(&ttys[0]);
 }
 
-void tty_load(TTY *tty)
+void tty_load(struct tty *tty)
 {
 	if (tty->framebuffer == NULL) {
 		tty->framebuffer = kmalloc(tty->framebuffer_size, (GFP_KERNEL | __GFP_ZERO));
@@ -182,7 +183,7 @@ void tty_load(TTY *tty)
 	vga_refresh_screen();
 }
 
-void tty_switch(TTY *tty)
+void tty_switch(struct tty *tty)
 {
 	current_tty = tty;
 	tty_load(tty);

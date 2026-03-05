@@ -70,14 +70,14 @@
 
 enum allocator_state { ACTIVE = 0, FROZEN };
 
-typedef enum { LOWMEM_ZONE = 0, DMA_ZONE, HIGHMEM_ZONE, INVALID_ZONE } zone_type;
+enum zone_type { LOWMEM_ZONE = 0, DMA_ZONE, HIGHMEM_ZONE, INVALID_ZONE };
 
-typedef enum {
+enum migration_type {
 	MIGRATE_MOVABLE = 0,
 	// Not Implemented
 	MIGRATE_UNMOVABLE,
 	MIGRATE_RECLAIMABLE,
-} migration_type;
+};
 
 // Structures
 
@@ -93,7 +93,7 @@ typedef unsigned int gfp_t;
 // EXTERNAL APIs
 // ============================================================================
 
-uintptr_t *buddy_alloc_pages(size_t size, zone_type zone);
+uintptr_t *buddy_alloc_pages(size_t size, enum zone_type zone);
 void       buddy_free_block(void *ptr);
 void       buddy_init(void);
 void       vmm_finalize(void);

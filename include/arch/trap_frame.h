@@ -3,8 +3,8 @@
 #include <arch/register.h>
 #include <types.h>
 
-typedef struct {
-	REGISTERS regs;
+struct trap_frame {
+	struct registers regs;
 
 	uint32_t int_no;
 	uint32_t err_code;
@@ -15,4 +15,4 @@ typedef struct {
 
 	uint32_t user_esp;
 	uint32_t user_ss;
-} __attribute__((packed)) trap_frame_t;
+} __attribute__((packed));

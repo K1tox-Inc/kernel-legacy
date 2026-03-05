@@ -27,7 +27,7 @@
 #define KERN_DEFAULT ""
 #define KERN_CONT    "c"
 
-#define VGA_ENTRY_SIZE (VGA_WIDTH * VGA_HEIGHT) * sizeof(vga_entry)
+#define VGA_ENTRY_SIZE (VGA_WIDTH * VGA_HEIGHT) * sizeof(struct vga_entry)
 
 void vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
 
@@ -150,10 +150,10 @@ void vga_refresh_screen(void)
 		return;
 
 	for (int vga_y = 0; vga_y < VGA_HEIGHT; vga_y++) {
-		uint8_t    line_buffer = (uint8_t)current_tty->top_line_index + (uint8_t)vga_y;
-		vga_entry *src         = &current_tty->framebuffer[line_buffer * VGA_WIDTH];
-		vga_entry *dst         = VGA_ENTRY(0, vga_y);
-		ft_memcpy(dst, src, VGA_WIDTH * sizeof(vga_entry));
+		uint8_t           line_buffer = (uint8_t)current_tty->top_line_index + (uint8_t)vga_y;
+		struct vga_entry *src         = &current_tty->framebuffer[line_buffer * VGA_WIDTH];
+		struct vga_entry *dst         = VGA_ENTRY(0, vga_y);
+		ft_memcpy(dst, src, VGA_WIDTH * sizeof(struct vga_entry));
 	}
 	vga_set_cursor_position(current_tty->cursor.x, current_tty->cursor.y);
 }

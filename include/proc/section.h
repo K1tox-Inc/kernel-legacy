@@ -32,14 +32,14 @@
 // STRUCTS & MACROS
 // ============================================================================
 
-typedef struct section {
+struct section {
 	uintptr_t v_addr;
 	uintptr_t p_addr;
 	uintptr_t data_start;
 	uint32_t  data_size;
 	uint32_t  mapping_size;
 	uint32_t  flags;
-} section_t;
+};
 
 // ============================================================================
 // EXTERNAL APIs
@@ -47,7 +47,7 @@ typedef struct section {
 
 struct io_stream;
 
-bool section_init_from_buffer(section_t *sec, uintptr_t v_addr, const void *buffer, uint32_t size,
-                              uint32_t flags);
+bool section_init_from_buffer(struct section *sec, uintptr_t v_addr, const void *buffer,
+                              uint32_t size, uint32_t flags);
 
-struct io_stream *section_create_reader(section_t *sec);
+struct io_stream *section_create_reader(struct section *sec);

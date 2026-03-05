@@ -28,7 +28,7 @@ uintptr_t kpage_dir = 0;
 
 // External APIs
 
-void page_fault_handler(trap_frame_t *frame)
+void page_fault_handler(struct trap_frame *frame)
 {
 	uint32_t faulting_address;
 

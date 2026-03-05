@@ -51,7 +51,7 @@
 
 // Enums
 
-typedef enum { NEXT = 0, PREV } direction;
+enum direction { NEXT = 0, PREV };
 
 // Structures
 
@@ -61,31 +61,27 @@ struct page {
 	uintptr_t        private_data;
 };
 
-// Typedefs
-
-typedef struct page page_t;
-
 // ============================================================================
 // VARIABLES GLOBALES
 // ============================================================================
 
-extern uint32_t total_pages;
-extern uint32_t total_RAM;
-extern page_t  *page_descriptors;
+extern uint32_t     total_pages;
+extern uint32_t     total_RAM;
+extern struct page *page_descriptors;
 
 // ============================================================================
 // EXTERNAL APIs
 // ============================================================================
 
-void      page_print_info(page_t *page);
-void      page_descriptor_init(void);
-uint32_t  page_to_index(page_t *page);
-uintptr_t page_to_phys(page_t *page);
-page_t   *page_index_to_page(uint32_t idx);
-page_t   *page_addr_to_page(uintptr_t addr);
-page_t   *page_addr_to_usable(uintptr_t addr, bool direction);
-uint32_t  page_get_updated_reserved_count(void);
-uint32_t  page_get_updated_free_count(void);
-uint32_t  page_get_free_count(void);
-uint32_t  page_get_reserved_count(void);
-bool      page_addr_is_same_page(uintptr_t addr1, uintptr_t addr2);
+void         page_print_info(struct page *page);
+void         page_descriptor_init(void);
+uint32_t     page_to_index(struct page *page);
+uintptr_t    page_to_phys(struct page *page);
+struct page *page_index_to_page(uint32_t idx);
+struct page *page_addr_to_page(uintptr_t addr);
+struct page *page_addr_to_usable(uintptr_t addr, enum direction direction);
+uint32_t     page_get_updated_reserved_count(void);
+uint32_t     page_get_updated_free_count(void);
+uint32_t     page_get_free_count(void);
+uint32_t     page_get_reserved_count(void);
+bool         page_addr_is_same_page(uintptr_t addr1, uintptr_t addr2);
