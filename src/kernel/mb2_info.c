@@ -4,7 +4,7 @@
 
 // Globals
 
-multiboot_info_t *mb2info = NULL;
+struct multiboot_info *mb2info = NULL;
 
 // Principal Header
 const struct multiboot_header mb2_header
@@ -35,11 +35,11 @@ const struct multiboot2_header_tag_end mb2_tag_end
 
 // Functions
 
-void mb2_mmap_iter(multiboot_tag_mmap_t *mmap, uint8_t *mmap_end, entry_handler_t handler,
+void mb2_mmap_iter(struct multiboot_tag_mmap *mmap, uint8_t *mmap_end, entry_handler_t handler,
                    bool free)
 {
-	for (multiboot_memory_map_t *entry = mmap->entries; (uint8_t *)entry < mmap_end;
-	     entry                         = next_entry(entry, mmap)) {
+	for (struct multiboot_mmap_entry *entry = mmap->entries; (uint8_t *)entry < mmap_end;
+	     entry                              = next_entry(entry, mmap)) {
 
 		if (entry->type != 1 && free == true)
 			continue;
@@ -62,13 +62,13 @@ void mb2_init(void)
 		kpanic("Invalid magic number: expected 0x%x | used 0x%x\n", MULTIBOOT2_BOOTLOADER_MAGIC,
 		       mb2_magic);
 	int tags_found            = 0;
-	mb2info                   = (multiboot_info_t *)mb2_mbi;
+	mb2info                   = (struct multiboot_info *)mb2_mbi;
 	struct multiboot_tag *tag = (struct multiboot_tag *)&mb2info->tags[0];
 
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
 		switch (tag->type) {
 		case MULTIBOOT_TAG_TYPE_MMAP:
-			multiboot_tag_mmap_t *mmap = (multiboot_tag_mmap_t *)tag;
+			struct multiboot_tag_mmap *mmap = (struct multiboot_tag_mmap *)tag;
 			boot_allocator_init(mmap, (uint8_t *)mmap + mmap->size);
 			tags_found++;
 			break;

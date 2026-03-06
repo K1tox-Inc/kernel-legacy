@@ -27,7 +27,7 @@
 
 // Enums
 
-typedef enum {
+enum order_size {
 	ORDER_4KIB = 0,
 	ORDER_8KIB,
 	ORDER_16KIB,
@@ -40,7 +40,7 @@ typedef enum {
 	ORDER_2MIB,
 	ORDER_4MIB,
 	BAD_ORDER,
-} order_size;
+};
 
 // Structures
 
@@ -54,8 +54,6 @@ struct buddy_allocator {
 };
 
 // Typedefs
-
-typedef struct buddy_allocator buddy_allocator_t;
 
 // Structures
 
@@ -71,4 +69,4 @@ typedef struct buddy_allocator buddy_allocator_t;
 
 void   debug_buddy(void);
 void   buddy_print_summary(void);
-size_t buddy_print(zone_type zone);
+size_t buddy_print(enum zone_type zone);

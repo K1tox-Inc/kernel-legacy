@@ -24,14 +24,14 @@
 
 // Macros
 #define UNDEFINED_KEY                                                                              \
-	((keyboard_key_t){.value      = UNDEFINED,                                                     \
-	                  .alt_value  = UNDEFINED,                                                     \
-	                  .keycode    = UNDEFINED,                                                     \
-	                  .category   = UNDEFINED,                                                     \
-	                  .undergroup = UNDEFINED,                                                     \
-	                  .state_ptr  = NULL})
+	((struct keyboard_key){.value      = UNDEFINED,                                                \
+	                       .alt_value  = UNDEFINED,                                                \
+	                       .keycode    = UNDEFINED,                                                \
+	                       .category   = UNDEFINED,                                                \
+	                       .undergroup = UNDEFINED,                                                \
+	                       .state_ptr  = NULL})
 
-#define UNDEFINED_ROUTINE ((scancode_routine_t){.key = UNDEFINED_KEY, .handler = NULL})
+#define UNDEFINED_ROUTINE ((struct scancode_routine){.key = UNDEFINED_KEY, .handler = NULL})
 
 // ============================================================================
 // STRUCT
@@ -41,12 +41,12 @@
 
 // Structures
 typedef void (*group_init_funs_t)(void);
-typedef void (*key_handler_t)(keyboard_key_t);
+typedef void (*key_handler_t)(struct keyboard_key);
 
-typedef struct scancode_routine {
-	keyboard_key_t key;
-	key_handler_t  handler;
-} scancode_routine_t;
+struct scancode_routine {
+	struct keyboard_key key;
+	key_handler_t       handler;
+};
 
 // Typedefs
 
@@ -54,7 +54,7 @@ typedef struct scancode_routine {
 // VARIABLES GLOBALES
 // ============================================================================
 
-extern scancode_routine_t current_layout[256];
+extern struct scancode_routine current_layout[256];
 
 // ============================================================================
 // EXTERNAL APIs

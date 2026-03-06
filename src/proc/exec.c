@@ -50,7 +50,7 @@ void exec_task(struct task *task, bool userspace)
 
 int exec_fn(void *fn_start, size_t fn_size, char *fn_name, bool userspace)
 {
-	section_t text;
+	struct section text;
 
 	// vaddr and flags are overwritten after by userspace_get_new
 	if (!section_init_from_buffer(&text, 0, fn_start, fn_size, 0))

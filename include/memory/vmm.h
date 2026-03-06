@@ -112,7 +112,7 @@ enum Page_Directory_Entry {
 
 // EXTERNAL APIs
 
-void      page_fault_handler(trap_frame_t *frame);
+void      page_fault_handler(struct trap_frame *frame);
 uintptr_t vmm_get_mapping(uintptr_t page_dir_phys, uintptr_t v_addr);
 bool      vmm_map_page(uintptr_t page_dir_phys, uintptr_t v_addr, uintptr_t p_addr, uint32_t flags);
 bool      vmm_unmap_page(uintptr_t page_dir_phys, uintptr_t v_addr);

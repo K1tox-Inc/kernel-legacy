@@ -56,13 +56,13 @@ typedef enum {
 
 static const size_t cache_sizes[] = {8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
 
-static slab_cache_t slab_caches[MAX_ZONE][NUM_SLAB_CACHES];
+static struct slab_cache slab_caches[MAX_ZONE][NUM_SLAB_CACHES];
 
 // ============================================================================
 // INTERNAL APIs
 // ============================================================================
 
-static size_t slab_print_zone_summary(zone_type zone);
+static size_t slab_print_zone_summary(enum zone_type zone);
 static size_t list_count_nodes(struct list_head *head);
 
 static void list_add_head(struct list_head *new_node, struct list_head *head)
@@ -118,7 +118,7 @@ static cache_size size_to_cache_size(size_t size)
 	return cache_idx;
 }
 
-static void slab_init_intrusive_freelist(slab_t *src, void *first_obj, size_t obj_size,
+static void slab_init_intrusive_freelist(struct slab *src, void *first_obj, size_t obj_size,
                                          size_t available_space)
 {
 	char  *current       = (char *)first_obj;
@@ -133,19 +133,19 @@ static void slab_init_intrusive_freelist(slab_t *src, void *first_obj, size_t ob
 	src->freelist     = first_obj;
 }
 
-static slab_t *slab_create(slab_cache_t *cache, zone_type zone)
+static struct slab *slab_create(struct slab_cache *cache, enum zone_type zone)
 {
 	void *new_page_phy = buddy_alloc_pages(PAGE_SIZE, zone);
 	if (new_page_phy == NULL) {
 		return NULL;
 	}
-	page_t *page = page_addr_to_page((uintptr_t)new_page_phy);
+	struct page *page = page_addr_to_page((uintptr_t)new_page_phy);
 	PAGE_SET_STATE(page, PAGE_STATE_SLAB);
 
-	slab_t *ret;
-	void   *first_object;
-	size_t  available_space;
-	void   *new_page_virt = PHYS_TO_VIRT_LINEAR(new_page_phy);
+	struct slab *ret;
+	void        *first_object;
+	size_t       available_space;
+	void        *new_page_virt = PHYS_TO_VIRT_LINEAR(new_page_phy);
 	if (SLAB_IS_EXTERNAL(cache->object_size)) {
 		gfp_t flags = GFP_KERNEL; // Start with the basic flags
 		if (zone == DMA_ZONE)
@@ -155,7 +155,7 @@ static slab_t *slab_create(slab_cache_t *cache, zone_type zone)
 		 * multi-core (SMP) architecture, concurrency can create race conditions or at least
 		 * deadlocks.
 		 */
-		ret = kmalloc(sizeof(slab_t), flags);
+		ret = kmalloc(sizeof(struct slab), flags);
 		if (!ret) {
 			buddy_free_block(new_page_phy);
 			return NULL;
@@ -164,9 +164,9 @@ static slab_t *slab_create(slab_cache_t *cache, zone_type zone)
 		available_space = PAGE_SIZE;
 
 	} else {
-		ret             = (slab_t *)new_page_virt;
-		first_object    = (void *)((uintptr_t)new_page_virt + sizeof(slab_t));
-		available_space = PAGE_SIZE - sizeof(slab_t);
+		ret             = (struct slab *)new_page_virt;
+		first_object    = (void *)((uintptr_t)new_page_virt + sizeof(struct slab));
+		available_space = PAGE_SIZE - sizeof(struct slab);
 	}
 
 	ret->inuse        = 0;
@@ -180,22 +180,22 @@ static slab_t *slab_create(slab_cache_t *cache, zone_type zone)
 // EXTERNAL APIs
 // ============================================================================
 
-void slab_shrink_caches(zone_type zone)
+void slab_shrink_caches(enum zone_type zone)
 {
 	for (size_t i = 0; i < NUM_SLAB_CACHES; i++) {
-		slab_cache_t *cache = &slab_caches[zone][i];
+		struct slab_cache *cache = &slab_caches[zone][i];
 		if (cache->slabs_empty.next == &cache->slabs_empty)
 			continue;
 		struct list_head *head       = &cache->slabs_empty;
 		struct list_head *empty_list = head->next;
 		while (empty_list != head) {
 			struct list_head *next = empty_list->next;
-			slab_t           *slab = container_of(empty_list, slab_t, list);
+			struct slab      *slab = container_of(empty_list, struct slab, list);
 
 			void *phys_addr_in_page =
 			    (void *)(SLAB_IS_EXTERNAL(cache->object_size) ? VIRT_TO_PHYS_LINEAR(slab->freelist)
 			                                                  : VIRT_TO_PHYS_LINEAR(slab));
-			page_t *page = page_addr_to_page((uintptr_t)phys_addr_in_page);
+			struct page *page = page_addr_to_page((uintptr_t)phys_addr_in_page);
 			PAGE_SET_STATE(page, PAGE_STATE_ALLOCATED);
 			page->private_data = 0;
 			buddy_free_block((void *)page_to_phys(page));
@@ -208,11 +208,11 @@ void slab_shrink_caches(zone_type zone)
 
 void slab_free(void *ptr)
 {
-	page_t *page = page_addr_to_page((uintptr_t)VIRT_TO_PHYS_LINEAR(ptr));
+	struct page *page = page_addr_to_page((uintptr_t)VIRT_TO_PHYS_LINEAR(ptr));
 	if (PAGE_GET_STATE(page) != PAGE_STATE_SLAB)
 		kpanic("Error: %s: try to free memory not handled by slab.\n", __func__);
-	slab_t       *slab  = (slab_t *)page->private_data;
-	slab_cache_t *cache = slab->parent_cache;
+	struct slab       *slab  = (struct slab *)page->private_data;
+	struct slab_cache *cache = slab->parent_cache;
 
 	char *obj      = ptr;
 	*(void **)obj  = slab->freelist;
@@ -227,20 +227,20 @@ void slab_free(void *ptr)
 	}
 }
 
-void *slab_alloc(size_t size, zone_type zone)
+void *slab_alloc(size_t size, enum zone_type zone)
 {
 
 	cache_size slab_size = size_to_cache_size(size);
 	if (slab_size == NUM_SLAB_CACHES || zone > DMA_ZONE)
 		return NULL;
 
-	slab_cache_t *cache = &slab_caches[zone][slab_size];
-	slab_t       *slab;
+	struct slab_cache *cache = &slab_caches[zone][slab_size];
+	struct slab       *slab;
 
 	if (!list_is_empty(&cache->slabs_partial))
-		slab = container_of(list_first_entry(&cache->slabs_partial), slab_t, list);
+		slab = container_of(list_first_entry(&cache->slabs_partial), struct slab, list);
 	else if (!list_is_empty(&cache->slabs_empty)) {
-		slab = container_of(list_first_entry(&cache->slabs_empty), slab_t, list);
+		slab = container_of(list_first_entry(&cache->slabs_empty), struct slab, list);
 		pop_node(&slab->list);
 		list_add_head(&slab->list, &cache->slabs_partial);
 	} else {
@@ -271,7 +271,7 @@ void slab_init(void)
 			INIT_SENTINEL(empty, &slab_caches[zone][i].slabs_empty);
 			slab_caches[zone][i].object_size = cache_sizes[i];
 			slab_caches[zone][i].objects_per_slab =
-			    (SLAB_IS_EXTERNAL(cache_sizes[i]) ? PAGE_SIZE : PAGE_SIZE - sizeof(slab_t)) /
+			    (SLAB_IS_EXTERNAL(cache_sizes[i]) ? PAGE_SIZE : PAGE_SIZE - sizeof(struct slab)) /
 			    cache_sizes[i];
 		}
 	}
@@ -317,7 +317,7 @@ static const char *debug_slab_size_to_str(cache_size size)
 	}
 }
 
-static size_t slab_print_zone_summary(zone_type zone)
+static size_t slab_print_zone_summary(enum zone_type zone)
 {
 	vga_printf("\n--- Slab Caches in Zone: %s ---\n", (zone == DMA_ZONE) ? "DMA" : "LOWMEM");
 
@@ -325,7 +325,7 @@ static size_t slab_print_zone_summary(zone_type zone)
 	bool   has_active_caches   = false;
 
 	for (int i = 0; i < NUM_SLAB_CACHES; i++) {
-		slab_cache_t *cache = &slab_caches[zone][i];
+		struct slab_cache *cache = &slab_caches[zone][i];
 
 		size_t full_slabs    = list_count_nodes(&cache->slabs_full);
 		size_t partial_slabs = list_count_nodes(&cache->slabs_partial);
@@ -344,7 +344,7 @@ static size_t slab_print_zone_summary(zone_type zone)
 		struct list_head *iter;
 		total_inuse += full_slabs * cache->objects_per_slab;
 		for (iter = cache->slabs_partial.next; iter != &cache->slabs_partial; iter = iter->next) {
-			slab_t *s = container_of(iter, slab_t, list);
+			struct slab *s = container_of(iter, struct slab, list);
 			total_inuse += s->inuse;
 		}
 
@@ -378,7 +378,7 @@ void slab_print_summary(void)
 	for (int zone = 0; zone < MAX_ZONE; zone++) {
 		if (zone >= DMA_ZONE + 1)
 			continue;
-		total_mem_held += slab_print_zone_summary((zone_type)zone);
+		total_mem_held += slab_print_zone_summary((enum zone_type)zone);
 	}
 
 	vga_printf("\n------------------------------------------------------------\n");

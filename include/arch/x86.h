@@ -3,15 +3,15 @@
 #include <arch/trap_frame.h>
 #include <types.h>
 
-typedef struct {
+struct gdtr {
 	uint16_t  limit;
 	uintptr_t base;
-} __attribute__((packed)) gdtr_t;
+} __attribute__((packed));
 
-typedef struct {
+struct idtr {
 	uint16_t  limit;
 	uintptr_t base;
-} __attribute__((packed)) idtr_t;
+} __attribute__((packed));
 
 ///////////////////////////////////////////////////
 // Gdt flags
@@ -80,12 +80,12 @@ enum Gdt_Access_Byte {
 ///////////////////////////////////////////////////
 // Others
 
-typedef void (*irqHandler)(trap_frame_t *frame);
+typedef void (*irqHandler)(struct trap_frame *frame);
 
-void          init(void);
-const gdtr_t *get_gdtr(void);
-const idtr_t *get_idtr(void);
-void          gdt_init(void);
-void          idt_init(void);
-void          set_tss_to_kstack_top(uintptr_t stack_top);
-void          idt_register_interrupt_handlers(uint8_t num, irqHandler handler);
+void               init(void);
+const struct gdtr *get_gdtr(void);
+const struct idtr *get_idtr(void);
+void               gdt_init(void);
+void               idt_init(void);
+void               set_tss_to_kstack_top(uintptr_t stack_top);
+void               idt_register_interrupt_handlers(uint8_t num, irqHandler handler);

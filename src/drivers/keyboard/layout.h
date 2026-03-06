@@ -15,9 +15,9 @@ static bool left_alt    = false;
 static bool num_lock    = false;
 static bool scroll_lock = false;
 
-static keyboard_key_t default_key_table[256];
+static struct keyboard_key default_key_table[256];
 
-static keyboard_key_t printable_keys[] = {
+static struct keyboard_key printable_keys[] = {
 
     // letters
     {'a', 'A', 0x1E, KEY_ALPHANUMERIC, LETTER, NULL},
@@ -85,7 +85,7 @@ static keyboard_key_t printable_keys[] = {
  * ---------------------------------------------------------------------------
  * Control Key group
  */
-static keyboard_key_t control_keys[] = {
+static struct keyboard_key control_keys[] = {
     // Press
     {UNDEFINED, UNDEFINED, 0x1D, KEY_CONTROL, PRESS, &left_ctrl},
     {UNDEFINED, UNDEFINED, 0x2A, KEY_CONTROL, PRESS, &left_shift},
@@ -128,9 +128,9 @@ typedef enum {
 	COLOR_INS    = VGA_COLOR(VGA_COLOR_BROWN, VGA_COLOR_WHITE),       // 0x52
 	COLOR_DEL    = VGA_COLOR(VGA_COLOR_RED, VGA_COLOR_YELLOW),        // 0x53
 	COLOR_NONE   = VGA_COLOR(VGA_COLOR_BLACK, VGA_COLOR_LIGHT_GREY)
-} nav_color_t;
+} nav_color;
 
-static keyboard_key_t navigation_keys[] = {
+static struct keyboard_key navigation_keys[] = {
     // Arrow keys
     {COLOR_UP, '8', 0x48, KEY_NAVIGATION, NUM_PAD, &num_lock},    // Pavé num 8 = Flèche Haut
     {COLOR_DOWN, '2', 0x50, KEY_NAVIGATION, NUM_PAD, &num_lock},  // Pavé num 2 = Flèche Bas
@@ -161,7 +161,7 @@ static keyboard_key_t navigation_keys[] = {
  * Function group
  */
 
-static keyboard_key_t function_keys[] = {
+static struct keyboard_key function_keys[] = {
     {0, UNDEFINED, 0x3B, KEY_FUNCTION, NONE, NULL},  // f1
     {1, UNDEFINED, 0x3C, KEY_FUNCTION, NONE, NULL},  // f2
     {2, UNDEFINED, 0x3D, KEY_FUNCTION, NONE, NULL},  // f3
@@ -184,7 +184,7 @@ static keyboard_key_t function_keys[] = {
  * Special group
  */
 
-static keyboard_key_t special_keys[] = {
+static struct keyboard_key special_keys[] = {
     {UNDEFINED, UNDEFINED, 0x0E, KEY_SPECIAL, BACKSPACE, NULL}, // BACKSPACE
     {UNDEFINED, UNDEFINED, 0x1C, KEY_SPECIAL, ENTER, NULL},     // ENTER
     {UNDEFINED, UNDEFINED, 0x01, KEY_SPECIAL, ESCAPE, NULL},    // ESCAPE
@@ -194,7 +194,7 @@ static keyboard_key_t special_keys[] = {
  * Special group
  *///-------------------------------------------------------------------------
 
-keyboard_key_t azerty_layout[] = {
+struct keyboard_key azerty_layout[] = {
     // Top Key
     {'&', '1', 0x02, KEY_ALPHANUMERIC, TOP_KEY, NULL},
     {'e', '2', 0x03, KEY_ALPHANUMERIC, TOP_KEY, NULL},

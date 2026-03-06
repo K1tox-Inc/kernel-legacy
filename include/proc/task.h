@@ -30,10 +30,10 @@ struct task {
 	uintptr_t kernel_stack_pointer;
 	uintptr_t kernel_stack_base;
 
-	section_t *text_sec;
-	section_t *data_sec;
-	section_t *stack_sec;
-	section_t *heap_sec;
+	struct section *text_sec;
+	struct section *data_sec;
+	struct section *stack_sec;
+	struct section *heap_sec;
 
 	/* Scheduling */
 	struct task        *next; // Used for "Round Robin"
@@ -50,12 +50,12 @@ struct task {
 extern void task_launcher(struct task *next);
 extern void task_user_launcher(struct task *next);
 
-static inline section_t *task_text(struct task *new_task) { return new_task->text_sec; }
-static inline section_t *task_data(struct task *new_task) { return new_task->data_sec; }
-static inline section_t *task_heap(struct task *new_task) { return new_task->heap_sec; }
-static inline section_t *task_stack(struct task *new_task) { return new_task->stack_sec; }
+static inline struct section *task_text(struct task *new_task) { return new_task->text_sec; }
+static inline struct section *task_data(struct task *new_task) { return new_task->data_sec; }
+static inline struct section *task_heap(struct task *new_task) { return new_task->heap_sec; }
+static inline struct section *task_stack(struct task *new_task) { return new_task->stack_sec; }
 
 void         task_print_info(const struct task *task);
 void         task_print_stack(const struct task *task);
-struct task *task_get_new(char *name, bool userspace, section_t *text, section_t *data);
+struct task *task_get_new(char *name, bool userspace, struct section *text, struct section *data);
 void         task_init_idle(void);

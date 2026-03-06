@@ -6,9 +6,9 @@
 #include <proc/section.h>
 #include <proc/userspace.h>
 
-static inline void init_heap_section(section_t *prev, section_t *heap)
+static inline void init_heap_section(struct section *prev, struct section *heap)
 {
-	ft_bzero(heap, sizeof(section_t));
+	ft_bzero(heap, sizeof(struct section));
 	heap->v_addr       = get_next_section_start_after_page_guard(prev->v_addr, prev->mapping_size);
 	heap->data_start   = 0;
 	heap->data_size    = 0;
@@ -16,9 +16,9 @@ static inline void init_heap_section(section_t *prev, section_t *heap)
 	heap->flags        = USER_SECTION_RW;
 }
 
-static inline void init_stack_section(section_t *stack)
+static inline void init_stack_section(struct section *stack)
 {
-	ft_bzero(stack, sizeof(section_t));
+	ft_bzero(stack, sizeof(struct section));
 	stack->v_addr       = get_prev_section_start(USER_STACK_START, DEFAULT_STACK_SIZE);
 	stack->data_start   = 0;
 	stack->data_size    = 0;
@@ -40,7 +40,7 @@ static bool userspace_map_kernel(uint32_t uspace_pd_phy)
 	return true;
 }
 
-static bool map_section(uintptr_t uspace_pd_phy, section_t *to_map)
+static bool map_section(uintptr_t uspace_pd_phy, struct section *to_map)
 {
 	if (!to_map || to_map->mapping_size == 0)
 		return true;
@@ -51,7 +51,7 @@ static bool map_section(uintptr_t uspace_pd_phy, section_t *to_map)
 	if (!p_pool_addr)
 		return false;
 
-	io_stream_t *stream = NULL;
+	struct io_stream *stream = NULL;
 	if (to_map->data_start && to_map->data_size > 0)
 		stream = section_create_reader(to_map);
 
@@ -87,8 +87,8 @@ bad:
 
 bool userspace_create_new(struct task *new_task)
 {
-	section_t *text = task_text(new_task);
-	section_t *data = task_data(new_task);
+	struct section *text = task_text(new_task);
+	struct section *data = task_data(new_task);
 	// Section Text
 	if (!text || text->data_size == 0)
 		return false;
@@ -110,11 +110,12 @@ bool userspace_create_new(struct task *new_task)
 	}
 
 	// Section Heap
-	section_t *last_sec = (data && data->data_size > 0) ? task_data(new_task) : task_text(new_task);
+	struct section *last_sec =
+	    (data && data->data_size > 0) ? task_data(new_task) : task_text(new_task);
 	init_heap_section(last_sec, task_heap(new_task));
 
 	// Section Stack
-	section_t *stack = task_stack(new_task);
+	struct section *stack = task_stack(new_task);
 	init_stack_section(stack);
 
 	// Page Directory
@@ -153,7 +154,7 @@ bad:
 // DEBUG APIs
 // ============================================================================
 
-static void print_section_info(const char *label, const section_t *sec)
+static void print_section_info(const char *label, const struct section *sec)
 {
 	if (!sec || (!sec->v_addr && !sec->mapping_size)) {
 		vga_printf("  [%s] (not mapped)\n", label);

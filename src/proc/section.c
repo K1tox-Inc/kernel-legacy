@@ -3,10 +3,10 @@
 #include <memory/kmalloc.h>
 #include <proc/section.h>
 
-static ssize_t fake_read(io_stream_t *stream, void *dest, size_t size)
+static ssize_t fake_read(struct io_stream *stream, void *dest, size_t size)
 {
-	section_t *ctx        = (section_t *)stream->ctx;
-	size_t     bytes_read = 0;
+	struct section *ctx        = (struct section *)stream->ctx;
+	size_t          bytes_read = 0;
 
 	if (!ctx || !ctx->data_start || !dest)
 		return -1;
@@ -28,12 +28,12 @@ static ssize_t fake_read(io_stream_t *stream, void *dest, size_t size)
 	return bytes_read;
 }
 
-io_stream_t *section_create_reader(section_t *sec)
+struct io_stream *section_create_reader(struct section *sec)
 {
 	if (!sec || !sec->data_start || sec->data_size == 0)
 		return NULL;
 
-	io_stream_t *stream = io_stream_get_new((void *)sec, sec->data_size, 0);
+	struct io_stream *stream = io_stream_get_new((void *)sec, sec->data_size, 0);
 	if (!stream)
 		return NULL;
 
@@ -46,8 +46,8 @@ io_stream_t *section_create_reader(section_t *sec)
 	return stream;
 }
 
-bool section_init_from_buffer(section_t *sec, uintptr_t v_addr, const void *start, uint32_t size,
-                              uint32_t flags)
+bool section_init_from_buffer(struct section *sec, uintptr_t v_addr, const void *start,
+                              uint32_t size, uint32_t flags)
 {
 	if (!sec || !start || size == 0)
 		return false;

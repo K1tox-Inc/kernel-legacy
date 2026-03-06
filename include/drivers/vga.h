@@ -16,7 +16,7 @@
 #define VGA_HEIGHT        25
 #define VGA_COLOR(bg, fg) ((bg) << 4 | (fg))
 #define VGA_DEFAULT_MODE  VGA_COLOR(VGA_COLOR_BLUE, VGA_COLOR_WHITE)
-#define VGA_BUFFER        ((vga_entry *)((uintptr_t)0xB8000 + KERNEL_VADDR_BASE))
+#define VGA_BUFFER        ((struct vga_entry *)((uintptr_t)0xB8000 + KERNEL_VADDR_BASE))
 #define VGA_ENTRY(x, y)   (VGA_BUFFER + ((y) * VGA_WIDTH + (x)))
 
 // Macros
@@ -46,10 +46,10 @@ enum vga_color {
 };
 
 // Structures
-typedef struct __attribute__((packed)) {
+struct vga_entry {
 	uint8_t character;
 	uint8_t mode;
-} vga_entry;
+} __attribute__((packed));
 
 struct s_cursor {
 	uint8_t x;

@@ -58,7 +58,7 @@ typedef struct vm_area {
 
 static struct list_head vmalloc_areas;
 
-static const zone_type vmalloc_zonelist[] = {HIGHMEM_ZONE, LOWMEM_ZONE, INVALID_ZONE};
+static const enum zone_type vmalloc_zonelist[] = {HIGHMEM_ZONE, LOWMEM_ZONE, INVALID_ZONE};
 
 // ============================================================================
 // INTERNAL APIs

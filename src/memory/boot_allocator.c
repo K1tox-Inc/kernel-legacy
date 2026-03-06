@@ -10,8 +10,8 @@
 
 // Header
 
-static void     boot_allocator_sort_regions(region_t *reg, uint32_t count);
-static uint32_t boot_allocator_merge_contiguous_regions(region_t *reg, uint32_t count);
+static void     boot_allocator_sort_regions(struct region *reg, uint32_t count);
+static uint32_t boot_allocator_merge_contiguous_regions(struct region *reg, uint32_t count);
 
 // Defines
 
@@ -63,24 +63,24 @@ typedef struct boot_allocator {
 	uint32_t           num_allocations;
 	boot_alloc_entry_t allocations[MAX_REGIONS];
 	uint32_t           count[REGION_TYPE_COUNT];
-	region_t           regions[REGION_TYPE_COUNT][MAX_REGIONS];
+	struct region      regions[REGION_TYPE_COUNT][MAX_REGIONS];
 } boot_allocator_t;
 
-uint32_t free_count[MAX_ZONE];
-region_t free_zones[MAX_ZONE][MAX_REGIONS];
-uint32_t res_count[MAX_ZONE];
-region_t res_zones[MAX_ZONE][MAX_REGIONS];
+uint32_t      free_count[MAX_ZONE];
+struct region free_zones[MAX_ZONE][MAX_REGIONS];
+uint32_t      res_count[MAX_ZONE];
+struct region res_zones[MAX_ZONE][MAX_REGIONS];
 
 // Typedefs
 
-typedef void (*regions_foreach_fn)(region_t *regions);
+typedef void (*regions_foreach_fn)(struct region *regions);
 
 // ============================================================================
 // VARIABLES GLOBALES
 // ============================================================================
 
 extern boot_allocator_t bootmem;
-static region_t         all_reg_g[MAX_REGIONS * REGION_TYPE_COUNT];
+static struct region    all_reg_g[MAX_REGIONS * REGION_TYPE_COUNT];
 
 /*
  * The following APIs are used to store early allocations and to keep a track of every used memory
@@ -98,7 +98,7 @@ extern uint8_t   kernel_stack_top[];
 
 // Code
 
-static zone_type boot_alloc_get_addr_zone(uintptr_t addr)
+static enum zone_type boot_alloc_get_addr_zone(uintptr_t addr)
 {
 	if (addr >= HIGHMEM_START) {
 		return HIGHMEM_ZONE;
@@ -129,18 +129,18 @@ static void boot_allocator_add_region(boot_allocator_t *alloc, uintptr_t start, 
 	}
 
 	uint32_t index              = alloc->count[type];
-	alloc->regions[type][index] = (region_t){start, end};
+	alloc->regions[type][index] = (struct region){start, end};
 	alloc->count[type]++;
 }
-static void boot_allocator_add_to_zones(uint32_t count[MAX_ZONE],
-                                        region_t zones[MAX_ZONE][MAX_REGIONS], uint32_t size,
+static void boot_allocator_add_to_zones(uint32_t      count[MAX_ZONE],
+                                        struct region zones[MAX_ZONE][MAX_REGIONS], uint32_t size,
                                         uintptr_t start)
 {
-	zone_type zone = boot_alloc_get_addr_zone(start);
+	enum zone_type zone = boot_alloc_get_addr_zone(start);
 	if (count[zone] >= MAX_REGIONS) {
 		kpanic("No more space in zone %d to add a new region!", zone);
 	}
-	zones[zone][count[zone]++] = (region_t){start, start + size};
+	zones[zone][count[zone]++] = (struct region){start, start + size};
 	BOOT_ALLOCATOR_SORT_AND_MERGE(zones[zone], count[zone]);
 }
 
@@ -154,11 +154,11 @@ void boot_allocator_reserved_wrapper(uintptr_t start, uintptr_t end)
 	boot_allocator_add_region(&bootmem, start, end, RESERVED_MEMORY);
 }
 
-static void boot_allocator_sort_regions(region_t *reg, uint32_t count)
+static void boot_allocator_sort_regions(struct region *reg, uint32_t count)
 {
 	for (uint32_t i = 1; i < count; i++) {
-		region_t current = reg[i];
-		uint32_t j       = i + 1;
+		struct region current = reg[i];
+		uint32_t      j       = i + 1;
 
 		while (--j > 0 && reg[j - 1].start > current.start)
 			reg[j] = reg[j - 1];
@@ -170,7 +170,7 @@ static void boot_allocator_free_handler(uintptr_t start, uintptr_t end)
 {
 	uintptr_t cur = start;
 	for (uint32_t i = 0; i < BOOT_ALLOC_RESERVED_COUNT(&bootmem); i++) {
-		region_t res = BOOT_ALLOC_RESERVED_REGIONS(&bootmem)[i];
+		struct region res = BOOT_ALLOC_RESERVED_REGIONS(&bootmem)[i];
 
 		if (res.end <= cur || res.start >= end)
 			continue;
@@ -187,15 +187,15 @@ static void boot_allocator_free_handler(uintptr_t start, uintptr_t end)
 	}
 }
 
-static uint32_t boot_allocator_merge_contiguous_regions(region_t *reg, uint32_t count)
+static uint32_t boot_allocator_merge_contiguous_regions(struct region *reg, uint32_t count)
 {
-	region_t cur          = *reg;
-	uint32_t merged_count = 0;
-	region_t merged[MAX_REGIONS];
+	struct region cur          = *reg;
+	uint32_t      merged_count = 0;
+	struct region merged[MAX_REGIONS];
 
 	if (!count)
 		return count;
-	ft_bzero(merged, sizeof(region_t) * MAX_REGIONS);
+	ft_bzero(merged, sizeof(struct region) * MAX_REGIONS);
 	boot_allocator_sort_regions(reg, count);
 	for (uint32_t i = 1; i < count; i++) {
 		if (cur.end == reg[i].start) {
@@ -206,7 +206,7 @@ static uint32_t boot_allocator_merge_contiguous_regions(region_t *reg, uint32_t 
 		}
 	}
 	merged[merged_count++] = cur;
-	ft_memcpy(reg, merged, sizeof(region_t) * MAX_REGIONS);
+	ft_memcpy(reg, merged, sizeof(struct region) * MAX_REGIONS);
 	return merged_count;
 }
 
@@ -217,12 +217,12 @@ static uint32_t boot_allocator_merge_contiguous_regions(region_t *reg, uint32_t 
  * boot_allocator_print_inital_layout
  */
 
-static void boot_allocator_print_region_info(region_t *reg)
+static void boot_allocator_print_region_info(struct region *reg)
 {
 	vga_printf("%p -> %p\n", (void *)reg->start, (void *)reg->end);
 }
 
-static void boot_allocator_for_each_regions(regions_foreach_fn handler, region_t *reg,
+static void boot_allocator_for_each_regions(regions_foreach_fn handler, struct region *reg,
                                             uint32_t count)
 {
 	for (uint32_t i = 0; i < count; i++) {
@@ -230,13 +230,13 @@ static void boot_allocator_for_each_regions(regions_foreach_fn handler, region_t
 	}
 }
 
-static region_t *boot_allocator_get_all_regions(boot_allocator_t *alloc)
+static struct region *boot_allocator_get_all_regions(boot_allocator_t *alloc)
 {
 	uint32_t idx = 0;
 
 	for (uint32_t type = 0; type < REGION_TYPE_COUNT; type++) {
 		for (uint32_t i = 0; i < alloc->count[type]; i++) {
-			ft_memcpy(&all_reg_g[idx++], &alloc->regions[type][i], sizeof(region_t));
+			ft_memcpy(&all_reg_g[idx++], &alloc->regions[type][i], sizeof(struct region));
 		}
 	}
 	return all_reg_g;
@@ -251,7 +251,7 @@ static void boot_allocator_fill_gaps_as_holes(void)
 		return;
 	}
 
-	region_t *all_reg = boot_allocator_get_all_regions(&bootmem);
+	struct region *all_reg = boot_allocator_get_all_regions(&bootmem);
 
 	BOOT_ALLOCATOR_SORT_AND_MERGE(all_reg, total_reg);
 
@@ -281,7 +281,7 @@ static uint32_t boot_allocator_get_total_visibale_ram(boot_allocator_t *alloc)
 		kpanic("Error: %s: this function cannot be called before memory parsing\n", __func__);
 	}
 
-	region_t *all_reg = boot_allocator_get_all_regions(alloc);
+	struct region *all_reg = boot_allocator_get_all_regions(alloc);
 	BOOT_ALLOCATOR_SORT_AND_MERGE(all_reg, total_count);
 	uintptr_t end = all_reg[total_count - 1].end;
 	if (end == 0)
@@ -289,11 +289,12 @@ static uint32_t boot_allocator_get_total_visibale_ram(boot_allocator_t *alloc)
 	return end;
 }
 
-static void boot_allocator_init_zones(uint32_t zcount[MAX_ZONE],
-                                      region_t zones[MAX_ZONE][MAX_REGIONS], enum mem_type type)
+static void boot_allocator_init_zones(uint32_t      zcount[MAX_ZONE],
+                                      struct region zones[MAX_ZONE][MAX_REGIONS],
+                                      enum mem_type type)
 {
-	size_t    reg_count = boot_allocator_get_region_count(type);
-	region_t *reg       = boot_allocator_get_region(type);
+	size_t         reg_count = boot_allocator_get_region_count(type);
+	struct region *reg       = boot_allocator_get_region(type);
 
 	for (size_t i = 0; i < reg_count; i++) {
 		uintptr_t region_start = reg[i].start;
@@ -317,7 +318,7 @@ static void boot_allocator_init_zones(uint32_t zcount[MAX_ZONE],
 
 			uintptr_t sub_end = (region_end < zone_end) ? region_end : zone_end;
 			if (sub_end > cur_start) {
-				zones[zone][zcount[zone]++] = (region_t){cur_start, sub_end};
+				zones[zone][zcount[zone]++] = (struct region){cur_start, sub_end};
 			}
 			cur_start = sub_end;
 		}
@@ -326,15 +327,15 @@ static void boot_allocator_init_zones(uint32_t zcount[MAX_ZONE],
 
 // External APis
 
-region_t *boot_allocator_get_region(enum mem_type type) { return bootmem.regions[type]; }
+struct region *boot_allocator_get_region(enum mem_type type) { return bootmem.regions[type]; }
 
 uint32_t boot_allocator_get_region_count(enum mem_type type) { return bootmem.count[type]; }
 
-region_t *boot_allocator_get_free_zone(int type) { return free_zones[type]; }
+struct region *boot_allocator_get_free_zone(int type) { return free_zones[type]; }
 
 uint32_t boot_allocator_get_free_zones_count(int type) { return free_count[type]; }
 
-region_t *boot_allocator_get_res_zone(int type) { return res_zones[type]; }
+struct region *boot_allocator_get_res_zone(int type) { return res_zones[type]; }
 
 uint32_t boot_allocator_get_res_zones_count(int type) { return res_count[type]; }
 
@@ -346,8 +347,8 @@ void boot_allocator_freeze(void) { bootmem.state = FROZEN; }
 
 bool boot_allocator_range_overlaps(uintptr_t start, uintptr_t end, enum mem_type type)
 {
-	uint32_t  count   = bootmem.count[type];
-	region_t *regions = bootmem.regions[type];
+	uint32_t       count   = bootmem.count[type];
+	struct region *regions = bootmem.regions[type];
 
 	for (uint32_t i = 0; i < count; i++) {
 		if (!(end <= regions[i].start || start >= regions[i].end)) {
@@ -439,7 +440,7 @@ void boot_allocator_res_zones_printer(void)
 	vga_printf("------------------------------------------\n");
 }
 
-void boot_allocator_init(multiboot_tag_mmap_t *mmap, uint8_t *mmap_end)
+void boot_allocator_init(struct multiboot_tag_mmap *mmap, uint8_t *mmap_end)
 {
 	BOOT_ALLOC_FREE_COUNT(&bootmem)     = 0;
 	BOOT_ALLOC_RESERVED_COUNT(&bootmem) = 0;
@@ -448,8 +449,8 @@ void boot_allocator_init(multiboot_tag_mmap_t *mmap, uint8_t *mmap_end)
 	// Zone VGA/BIOS_ROM (0xa0000-0x100000)
 	boot_allocator_add_region(&bootmem, 0xa0000, 0x100000, RESERVED_MEMORY);
 	// Zone Low memory
-	const gdtr_t *gdtr = get_gdtr();
-	const idtr_t *idtr = get_idtr();
+	const struct gdtr *gdtr = get_gdtr();
+	const struct idtr *idtr = get_idtr();
 	boot_allocator_add_region(&bootmem, VIRT_TO_PHYS_LINEAR(gdtr->base),
 	                          VIRT_TO_PHYS_LINEAR(gdtr->base + gdtr->limit + 1), RESERVED_MEMORY);
 	boot_allocator_add_region(&bootmem, VIRT_TO_PHYS_LINEAR(idtr->base),
@@ -485,7 +486,7 @@ void boot_allocator_init(multiboot_tag_mmap_t *mmap, uint8_t *mmap_end)
 }
 
 // Be careful Only DMA/LOWMEM is USABLE otherwise you need to do a temporary mapping
-void *boot_alloc(uint32_t size, zone_type zone, bool freeable)
+void *boot_alloc(uint32_t size, enum zone_type zone, bool freeable)
 {
 	if (bootmem.state == FROZEN) {
 		vga_printf("Error: boot allocator is frozen\n");
@@ -493,8 +494,8 @@ void *boot_alloc(uint32_t size, zone_type zone, bool freeable)
 	}
 
 	for (int i = free_count[zone] - 1; i >= 0; i--) {
-		region_t *reg         = &free_zones[zone][i];
-		uint32_t  region_size = reg->end - reg->start;
+		struct region *reg         = &free_zones[zone][i];
+		uint32_t       region_size = reg->end - reg->start;
 
 		if (region_size >= size) {
 			if (reg->end - size < reg->start) {
@@ -521,8 +522,8 @@ void *boot_alloc(uint32_t size, zone_type zone, bool freeable)
 	return NULL;
 }
 
-void *boot_alloc_at(uint32_t size, zone_type zone, bool freeable, uintptr_t start, uintptr_t end,
-                    int align)
+void *boot_alloc_at(uint32_t size, enum zone_type zone, bool freeable, uintptr_t start,
+                    uintptr_t end, int align)
 {
 	if (bootmem.state == FROZEN || size == 0 || start + size > end) {
 		vga_printf("Error: %s: Invalid parameters or allocator frozen.\n", __func__);
@@ -530,7 +531,7 @@ void *boot_alloc_at(uint32_t size, zone_type zone, bool freeable, uintptr_t star
 	}
 
 	for (uint32_t i = 0; i < free_count[zone]; i++) {
-		region_t *reg = &free_zones[zone][i];
+		struct region *reg = &free_zones[zone][i];
 
 		if (reg->start >= end || reg->end <= start)
 			continue;
@@ -556,7 +557,7 @@ void *boot_alloc_at(uint32_t size, zone_type zone, bool freeable, uintptr_t star
 			if (alloc_end < original_reg_end) {
 				if (free_count[zone] >= MAX_REGIONS)
 					kpanic("No more space for free regions!");
-				free_zones[zone][free_count[zone]++] = (region_t){alloc_end, original_reg_end};
+				free_zones[zone][free_count[zone]++] = (struct region){alloc_end, original_reg_end};
 			}
 
 			reg->end = alloc_start;

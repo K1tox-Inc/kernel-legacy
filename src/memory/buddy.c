@@ -8,7 +8,7 @@
 #include <utils/kmacro.h>
 
 // Defines
-static const char *debug_buddy_zone_to_str(zone_type zone);
+static const char *debug_buddy_zone_to_str(enum zone_type zone);
 
 // Macros
 
@@ -19,7 +19,7 @@ static const char *debug_buddy_zone_to_str(zone_type zone);
 
 // VARIABLES GLOBALES
 
-static buddy_allocator_t buddy[MAX_ZONE];
+static struct buddy_allocator buddy[MAX_ZONE];
 
 // Internals APIs
 static const char *debug_buddy_order_to_string(int order)
@@ -56,15 +56,15 @@ static inline bool order_is_valid(int order) { return order >= 0 && order <= MAX
 
 static inline uintptr_t *page_node_to_phys(struct list_head *page_node)
 {
-	return (uintptr_t *)page_to_phys(container_of(page_node, page_t, node));
+	return (uintptr_t *)page_to_phys(container_of(page_node, struct page, node));
 }
 
-static inline struct list_head *order_to_free_list(size_t order, zone_type zone)
+static inline struct list_head *order_to_free_list(size_t order, enum zone_type zone)
 {
 	return &buddy[zone].areas[order].free_list[MIGRATE_MOVABLE];
 }
 
-static inline size_t order_to_nrFree(size_t order, zone_type zone)
+static inline size_t order_to_nrFree(size_t order, enum zone_type zone)
 {
 	return buddy[zone].areas[order].nr_free;
 }
@@ -97,7 +97,7 @@ static void pop_node(struct list_head *node)
 	node->prev       = NULL;
 }
 
-static uintptr_t *pop_first_block(size_t order, zone_type zone)
+static uintptr_t *pop_first_block(size_t order, enum zone_type zone)
 {
 	struct list_head *head        = order_to_free_list(order, zone);
 	struct list_head *first_block = head->next;
@@ -109,7 +109,7 @@ static uintptr_t *pop_first_block(size_t order, zone_type zone)
 	return page_node_to_phys(first_block);
 }
 
-static void set_block_metadata(page_t *first_page, size_t block_order, uint32_t state_flags)
+static void set_block_metadata(struct page *first_page, size_t block_order, uint32_t state_flags)
 {
 	size_t pages_in_block    = PAGE_BY_ORDER(block_order);
 	first_page->private_data = block_order;
@@ -123,7 +123,7 @@ static void set_block_metadata(page_t *first_page, size_t block_order, uint32_t 
 }
 
 static uintptr_t *split_block_to_order(size_t order_needed, size_t cur_order, uintptr_t *ptr,
-                                       zone_type zone)
+                                       enum zone_type zone)
 {
 	if (!order_is_valid(order_needed) || !order_is_valid(cur_order))
 		kpanic("Error: %s: Invalid Order\n", __func__);
@@ -134,8 +134,8 @@ static uintptr_t *split_block_to_order(size_t order_needed, size_t cur_order, ui
 	cur_order--;
 	size_t pages_by_block = PAGE_BY_ORDER(cur_order);
 
-	page_t *first_page      = page_addr_to_page((uintptr_t)ptr);
-	page_t *buddy_page_head = first_page + pages_by_block;
+	struct page *first_page      = page_addr_to_page((uintptr_t)ptr);
+	struct page *buddy_page_head = first_page + pages_by_block;
 
 	set_block_metadata(buddy_page_head, cur_order, PAGE_STATE_FREE);
 
@@ -145,7 +145,7 @@ static uintptr_t *split_block_to_order(size_t order_needed, size_t cur_order, ui
 	return split_block_to_order(order_needed, cur_order, ptr, zone);
 }
 
-static inline zone_type page_zone_flags_to_zone_type(uint32_t zone_flags)
+static inline enum zone_type page_zone_flags_to_zone_type(uint32_t zone_flags)
 {
 	switch (zone_flags) {
 	case PAGE_ZONE_DMA:
@@ -160,7 +160,7 @@ static inline zone_type page_zone_flags_to_zone_type(uint32_t zone_flags)
 }
 
 // Refactor
-static uintptr_t get_buddy_base(zone_type zone)
+static uintptr_t get_buddy_base(enum zone_type zone)
 {
 	switch (zone) {
 	case DMA_ZONE:
@@ -176,10 +176,10 @@ static uintptr_t get_buddy_base(zone_type zone)
 }
 
 // Refactor
-static page_t *get_buddy_page(void *block, size_t order, zone_type zone)
+static struct page *get_buddy_page(void *block, size_t order, enum zone_type zone)
 {
-	uintptr_t buddy_phys_addr = WHO_IS_MY_BUDDY((uintptr_t)block, order, get_buddy_base(zone));
-	page_t   *buddy_page      = page_addr_to_page(buddy_phys_addr);
+	uintptr_t    buddy_phys_addr = WHO_IS_MY_BUDDY((uintptr_t)block, order, get_buddy_base(zone));
+	struct page *buddy_page      = page_addr_to_page(buddy_phys_addr);
 
 	if (!buddy_page)
 		return NULL;
@@ -190,7 +190,7 @@ static page_t *get_buddy_page(void *block, size_t order, zone_type zone)
 
 // Externals APIs
 
-size_t buddy_print(zone_type zone)
+size_t buddy_print(enum zone_type zone)
 {
 	vga_printf("\n--- Buddy Free Blocks in Zone: %s ---\n", debug_buddy_zone_to_str(zone));
 
@@ -225,7 +225,7 @@ void buddy_print_summary(void)
 	size_t total_free_memory = 0;
 
 	for (int zone = 0; zone < MAX_ZONE; zone++) {
-		total_free_memory += buddy_print((zone_type)zone);
+		total_free_memory += buddy_print((enum zone_type)zone);
 	}
 
 	vga_printf("\n-------------------------------------------------------\n");
@@ -236,13 +236,13 @@ void buddy_print_summary(void)
 
 size_t buddy_get_var_size(void *var)
 {
-	page_t *page = page_addr_to_page((uintptr_t)var);
+	struct page *page = page_addr_to_page((uintptr_t)var);
 	if (PAGE_DATA_IS_MAGIC(page))
 		return 0;
 	return PAGE_BY_ORDER(page->private_data) * PAGE_SIZE;
 }
 
-uintptr_t *buddy_alloc_pages(size_t size, zone_type zone)
+uintptr_t *buddy_alloc_pages(size_t size, enum zone_type zone)
 {
 	size_t order_needed = size_to_order(size);
 	if (!order_is_valid(order_needed))
@@ -262,7 +262,7 @@ uintptr_t *buddy_alloc_pages(size_t size, zone_type zone)
 
 	void *ret = split_block_to_order(order_needed, cur_order, block, zone);
 
-	page_t *first_page = page_addr_to_page((uintptr_t)ret);
+	struct page *first_page = page_addr_to_page((uintptr_t)ret);
 	set_block_metadata(first_page, order_needed, PAGE_STATE_ALLOCATED);
 	return (uintptr_t *)ret;
 }
@@ -270,9 +270,9 @@ uintptr_t *buddy_alloc_pages(size_t size, zone_type zone)
 // TODO : Compound page
 void buddy_free_block(void *ptr)
 {
-	page_t  *page          = page_addr_to_page((uintptr_t)ptr);
-	size_t   block_order   = (size_t)page->private_data;
-	uint32_t current_state = PAGE_GET_STATE(page);
+	struct page *page          = page_addr_to_page((uintptr_t)ptr);
+	size_t       block_order   = (size_t)page->private_data;
+	uint32_t     current_state = PAGE_GET_STATE(page);
 
 	if (current_state == PAGE_STATE_FREE)
 		kpanic("Error: %s: Double free detected on address %p\n", __func__, ptr);
@@ -283,9 +283,9 @@ void buddy_free_block(void *ptr)
 		kpanic("Error: buddy_free_block: incorrect block order: %x\n", block_order);
 	}
 
-	zone_type zone = page_zone_flags_to_zone_type(PAGE_GET_ZONE(page));
+	enum zone_type zone = page_zone_flags_to_zone_type(PAGE_GET_ZONE(page));
 	while (block_order < MAX_ORDER) {
-		page_t *buddy_page = get_buddy_page(ptr, block_order, zone);
+		struct page *buddy_page = get_buddy_page(ptr, block_order, zone);
 		if (!buddy_page)
 			break;
 		pop_node(&buddy_page->node);
@@ -294,7 +294,7 @@ void buddy_free_block(void *ptr)
 		block_order++;
 	}
 
-	page_t *final_page = page_addr_to_page((uintptr_t)ptr);
+	struct page *final_page = page_addr_to_page((uintptr_t)ptr);
 
 	set_block_metadata(final_page, block_order, PAGE_STATE_FREE);
 	buddy_list_add_head(&final_page->node, order_to_free_list(block_order, zone));
@@ -312,7 +312,7 @@ void buddy_init(void)
 		}
 	}
 	for (uint32_t i = 0; i < total_pages; i++) {
-		page_t *page = &page_descriptors[i];
+		struct page *page = &page_descriptors[i];
 
 		if (PAGE_GET_STATE(page) == PAGE_STATE_AVAILABLE) {
 			page->private_data = 0;
@@ -324,7 +324,7 @@ void buddy_init(void)
 
 // DEBUG
 
-static const char *debug_buddy_zone_to_str(zone_type zone)
+static const char *debug_buddy_zone_to_str(enum zone_type zone)
 {
 	switch (zone) {
 	case 0:
@@ -356,7 +356,7 @@ static void debug_buddy_print_node_info(struct list_head *node)
 		vga_printf("        -> node->next->prev: %p (should be %p)\n", node->next->prev, node);
 }
 
-static void debug_buddy_corrupted_list(size_t order, zone_type zone)
+static void debug_buddy_corrupted_list(size_t order, enum zone_type zone)
 {
 	struct list_head *cur;
 	size_t            count = 0;
@@ -387,7 +387,7 @@ static void debug_buddy_corrupted_list(size_t order, zone_type zone)
 	}
 }
 
-static void print_buddy_free_list(size_t order, zone_type zone)
+static void print_buddy_free_list(size_t order, enum zone_type zone)
 {
 	struct list_head *head     = &buddy[zone].areas[order].free_list[MIGRATE_MOVABLE];
 	struct list_head *cur      = head->next;
@@ -407,10 +407,10 @@ static void print_buddy_free_list(size_t order, zone_type zone)
 // refactor
 static void debug_buddy_check_lost_pages(void)
 {
-	size_t    lost        = 0;
-	size_t    total_buddy = 0;
-	size_t    free_count  = boot_allocator_get_region_count(FREE_MEMORY);
-	region_t *free_reg    = boot_allocator_get_region(FREE_MEMORY);
+	size_t         lost        = 0;
+	size_t         total_buddy = 0;
+	size_t         free_count  = boot_allocator_get_region_count(FREE_MEMORY);
+	struct region *free_reg    = boot_allocator_get_region(FREE_MEMORY);
 
 	for (uint32_t i = 0; i < total_pages; i++) {
 		if (PAGE_IS_FREE(&page_descriptors[i])) {
@@ -438,7 +438,7 @@ static void debug_buddy_check_lost_pages(void)
 	}
 }
 
-static void debug_buddy_alloc_still_free(size_t order, void *phys, zone_type zone)
+static void debug_buddy_alloc_still_free(size_t order, void *phys, enum zone_type zone)
 {
 	struct list_head *head = order_to_free_list(order, zone);
 	for (struct list_head *cur = head->next; cur != head; cur = cur->next) {
@@ -451,12 +451,12 @@ static void debug_buddy_alloc_still_free(size_t order, void *phys, zone_type zon
 	}
 }
 
-static inline uintptr_t *alloc_block_with_order(size_t order, zone_type zone)
+static inline uintptr_t *alloc_block_with_order(size_t order, enum zone_type zone)
 {
 	return buddy_alloc_pages(PAGE_BY_ORDER(order) * PAGE_SIZE, zone);
 }
 
-static void buddy_drain_lower_orders(zone_type zone)
+static void buddy_drain_lower_orders(enum zone_type zone)
 {
 	for (int order = 0; order < MAX_ORDER; order++) {
 		while (buddy[zone].areas[order].nr_free > 0) {
@@ -475,7 +475,7 @@ static void buddy_drain_lower_orders(zone_type zone)
 	}
 }
 
-static void debug_buddy_simple_alloc(zone_type zone)
+static void debug_buddy_simple_alloc(enum zone_type zone)
 {
 	for (int i = MAX_ORDER; i >= 0; i--) {
 		if (order_to_nrFree(i, zone) > 0) {
@@ -485,13 +485,13 @@ static void debug_buddy_simple_alloc(zone_type zone)
 	}
 }
 
-static void debug_buddy_check_all_list_corrumption(zone_type zone)
+static void debug_buddy_check_all_list_corrumption(enum zone_type zone)
 {
 	for (size_t order = 0; order <= MAX_ORDER; order++)
 		debug_buddy_corrupted_list(order, zone);
 }
 
-static void debug_buddy_split_block(zone_type zone)
+static void debug_buddy_split_block(enum zone_type zone)
 {
 	buddy_drain_lower_orders(zone);
 	for (int order = MAX_ORDER - 1; order >= 0; order--) {
@@ -516,7 +516,7 @@ static void debug_buddy_split_block(zone_type zone)
 	}
 }
 
-static void debug_buddy_free_block(zone_type zone)
+static void debug_buddy_free_block(enum zone_type zone)
 {
 	buddy_drain_lower_orders(zone);
 
