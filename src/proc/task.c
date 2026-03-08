@@ -23,13 +23,13 @@
 		name->prev             = name;                                                             \
 	} while (0)
 
-static t_id_manager *pid_manager = NULL;
+static struct id_manager *pid_manager  = NULL;
+static struct task       *current_task = NULL;
 
 __attribute__((constructor)) static void init_pid_manager(void)
 {
 	pid_manager = id_manager_create(PID_MAX);
 }
-static struct task *current_task = NULL;
 
 // ============================================================================
 // INTERNAL APIs
@@ -62,7 +62,7 @@ static void task_print_section(const char *label, const struct section *sec)
 static void cpu_idle_loop(void)
 {
 	vga_printf(" Welcome from our first process ! :) ");
-	while (true) // hang
+	while (true)
 		__asm__ volatile("hlt");
 }
 
@@ -72,21 +72,20 @@ static void cpu_idle_loop(void)
 
 struct task *task_get_current_task(void) { return current_task; }
 
-// text and data are used as templates; this function allocates its own internal sections
+// Text and data are used as templates; this function allocates its own internal sections
 // After return, the caller must free the input text and data if they were heap-allocated
 struct task *task_get_new(char *name, bool userspace, struct section *text, struct section *data)
 {
 	if (!name)
 		return NULL;
 
-	size_t name_len = ft_strlen(name);
-	name_len        = name_len > 15 ? 15 : name_len;
+	size_t name_len = ft_strlen(name) & 0b1111;
 
 	// Ensure PID manager is initialized before allocating a PID
 	if (!pid_manager)
 		return NULL;
 
-	// kmalloc use slabs caches here
+	// `kmalloc` use slabs caches here
 	char *memory_zone = kmalloc(sizeof(struct task) + name_len + 1 + (sizeof(struct section) * 4),
 	                            GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
@@ -112,7 +111,7 @@ struct task *task_get_new(char *name, bool userspace, struct section *text, stru
 	INIT_SENTINEL(children, &ret->children);
 	INIT_SENTINEL(siblings, &ret->siblings);
 
-	// kmalloc use buddy allocator here
+	// `kmalloc` use buddy allocator here
 	void *kstack = kmalloc(DEFAULT_STACK_SIZE, GFP_KERNEL | __GFP_ZERO);
 	if (!kstack)
 		goto free_pid;
@@ -148,12 +147,11 @@ struct task *task_get_new(char *name, bool userspace, struct section *text, stru
 	 * All these fields are zeroed by kmalloc with __GFP_ZERO
 	 * and must be initialized by the caller if needed (like fork) :
 	 *
-	 *	uid_t uid;
-	 *	gid_t gid;
-	 *	struct task *real_parent;
-	 *	struct task *parent;
-	 *	struct task  *prev;
-	 *	struct task  *next; // Used for "Round Robin"
+	 *  uid_t uid;
+	 *  gid_t gid;
+	 *  struct task *real_parent;
+	 *  struct task *parent;
+	 *  struct task  *next, *prev; // Used for "Round Robin"
 	 *
 	 */
 
