@@ -37,8 +37,7 @@ struct task {
 	struct section *heap_sec;
 
 	/* Scheduling */
-	struct task        *next; // Used for "Round Robin"
-	struct task        *prev;
+	struct task        *next, *prev; // Used for "Round Robin"
 	enum process_states state;
 
 	/* Signals */

@@ -46,7 +46,7 @@ void print_stack_frame(void)
 	__asm__ volatile("mov %%ebp, %0" : "=r"(ebp));
 	__asm__ volatile("mov %%esp, %0" : "=r"(esp));
 
-	vga_printf("\nStack trace:\n");
+	vga_printf("Stack trace:\n");
 	memory_dump((uint32_t)esp, (uint32_t)ebp);
 
 	vga_printf("ESP = %p | EBP = %p\n", esp, ebp);

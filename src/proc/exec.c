@@ -1,4 +1,4 @@
-#include <arch/x86.h>
+#include <arch/x86.h> // Should be removed or conditional preprocessing
 #include <drivers/vga.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
@@ -13,28 +13,33 @@ static void flush_registers(uint32_t **kstack, size_t it)
 		*(--(*kstack)) = 0;
 }
 
-void hello_kproc(void) { vga_printf("Hello from our Kernel process !"); }
-
-// look here for futur wiki https://wiki.osdev.org/Getting_to_Ring_3
-// carefull here the kstack must be fully zeroed
+// Look here for futur wiki https://wiki.osdev.org/Getting_to_Ring_3
+// Carefull here the kstack must be fully zeroed
 void exec_task(struct task *task, bool userspace)
 {
+	uint32_t *kstack;
+	uintptr_t code_start;
+
 	if (!task || !task->text_sec || !task->stack_sec)
 		return;
-	uint32_t *kstack = (uint32_t *)task->kernel_stack_base;
-	uintptr_t code_start;
+
+	kstack = (uint32_t *)task->kernel_stack_base;
 
 	if (userspace) {
 		code_start          = (uintptr_t)task->text_sec->v_addr;
 		uintptr_t stack_top = task->stack_sec->v_addr + task->stack_sec->mapping_size;
-		// those value are the only ones restored by iret
+
+		// Those value are the only ones restored by iret
 		*(--kstack) = USER_DS;             // Stack segment
 		*(--kstack) = stack_top;           // ESP
 		*(--kstack) = EFLAGS_USER_DEFAULT; // Eflags
 		*(--kstack) = USER_CS;             // CS
 		*(--kstack) = code_start;          // EIP
+
 		flush_registers(&kstack, 4);
-	} else {
+	}
+
+	else {
 		code_start  = (uintptr_t)task->text_sec->data_start;
 		*(--kstack) = code_start;
 		flush_registers(&kstack, 4);
@@ -52,7 +57,7 @@ int exec_fn(void *fn_start, size_t fn_size, char *fn_name, bool userspace)
 {
 	struct section text;
 
-	// vaddr and flags are overwritten after by userspace_get_new
+	// `vaddr` and `flags` are overwritten after by `userspace_get_new`
 	if (!section_init_from_buffer(&text, 0, fn_start, fn_size, 0))
 		return -EFAULT;
 
@@ -87,9 +92,12 @@ int exec_mok(const char *name)
 {
 	if (!name)
 		return -EINVAL;
+
 	size_t name_len = ft_strlen(name);
+
 	for (int i = 0; mok_registry[i].name != NULL; i++) {
 		size_t reg_name_len = ft_strlen(mok_registry[i].name);
+
 		if (reg_name_len == name_len && !ft_memcmp(mok_registry[i].name, name, name_len)) {
 			size_t fn_size = (uintptr_t)mok_registry[i].end - (uintptr_t)mok_registry[i].start;
 			if (i < 2)
@@ -98,5 +106,6 @@ int exec_mok(const char *name)
 			               mok_registry[i].is_user);
 		}
 	}
+
 	return -ENOENT;
 }

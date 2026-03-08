@@ -9,6 +9,7 @@
 #include <memory/vmm.h>
 #include <proc/task.h>
 #include <proc/userspace.h>
+#include <types.h>
 #include <utils/error.h>
 #include <utils/id_manager.h>
 
@@ -93,14 +94,14 @@ struct task *task_get_new(char *name, bool userspace, struct section *text, stru
 
 	struct task *ret = (struct task *)memory_zone;
 
-	ret->text_sec = (struct section *)(memory_zone + sizeof(struct task));
-	ret->data_sec = (struct section *)(memory_zone + sizeof(struct task) + sizeof(struct section));
-	ret->stack_sec =
-	    (struct section *)(memory_zone + sizeof(struct task) + sizeof(struct section) * 2);
-	ret->heap_sec =
-	    (struct section *)(memory_zone + sizeof(struct task) + sizeof(struct section) * 3);
+	ret->text_sec  = (struct section *)(ret + 1);
+	ret->data_sec  = ret->text_sec + 1;
+	ret->stack_sec = ret->data_sec + 1;
+	ret->heap_sec  = ret->stack_sec + 1;
+
 	if (text)
 		ft_memcpy(ret->text_sec, text, sizeof(struct section));
+
 	if (data)
 		ft_memcpy(ret->data_sec, data, sizeof(struct section));
 
@@ -132,14 +133,16 @@ struct task *task_get_new(char *name, bool userspace, struct section *text, stru
 		if (!userspace_create_new(ret))
 			goto free_kstack;
 		ret->ring = 3;
-	} else {
+	}
+
+	else {
 		ret->cr3  = vmm_get_kernel_directory();
 		ret->ring = 0;
 	}
 
 	ret->state = TASK_NEW;
 
-	ret->name = memory_zone + sizeof(struct task) + sizeof(struct section) * 4;
+	ret->name = (char *)(ret->heap_sec + 1);
 	ft_memcpy(ret->name, name, name_len);
 	ret->name[name_len] = 0;
 

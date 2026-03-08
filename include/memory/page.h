@@ -11,8 +11,6 @@
 // DEFINE AND MACRO
 // ============================================================================
 
-// Defines
-
 #define MAX_PAGES  (1UL << 20)
 #define PAGE_MAGIC 0xDEADBEEF
 
@@ -20,7 +18,7 @@
 #define PAGE_STATE_MASK 0b00000111 // Bits 0-2 For page state
 #define PAGE_ZONE_MASK  0b00111000 // Bits 3-5 for memory zone
 
-// Satate
+// States
 #define PAGE_STATE_UNUSABLE  0b00000000 // Hole
 #define PAGE_STATE_RESERVED  0b00000001 // Reserved by bootstrap allocator
 #define PAGE_STATE_AVAILABLE 0b00000010 // Usable not claimed
@@ -42,8 +40,6 @@
 // Checkers
 #define PAGE_IS_FREE(page)      (PAGE_GET_STATE(page) == PAGE_STATE_FREE)
 #define PAGE_IS_ALLOCATED(page) (PAGE_GET_STATE(page) == PAGE_STATE_ALLOCATED)
-
-// Macros
 
 // ============================================================================
 // STRUCT

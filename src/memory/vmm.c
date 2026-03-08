@@ -36,12 +36,8 @@ void page_fault_handler(struct trap_frame *frame)
 
 	vga_printf("Faulting address: 0x%x\n", faulting_address);
 	vga_printf("Error code: 0x%x\n", frame->err_code);
+	vga_printf("Cause: %s\n", (frame->err_code & 1) ? "Protection violation" : "Page not present");
 
-	if (frame->err_code & 0x1) {
-		vga_printf("Cause: Protection violation\n");
-	} else {
-		vga_printf("Cause: Page not present\n");
-	}
 	kpanic("Page fault");
 }
 
@@ -76,6 +72,7 @@ void vmm_finalize(void)
 			current_pt_ptr[j] = p_addr | PTE_PRESENT_BIT | PTE_RW_BIT;
 		}
 	}
+
 	kpage_dir = page_dir_phys;
 	paging_reload_cr3(page_dir_phys);
 }
