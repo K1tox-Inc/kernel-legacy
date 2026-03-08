@@ -1,6 +1,7 @@
 #ifndef SIGNAL_H
 #define SIGNAL_H
 
+#include <list.h>
 #include <types.h>
 
 struct signal_node {

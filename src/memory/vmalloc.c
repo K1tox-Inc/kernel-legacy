@@ -64,37 +64,11 @@ static const enum zone_type vmalloc_zonelist[] = {HIGHMEM_ZONE, LOWMEM_ZONE, INV
 // INTERNAL APIs
 // ============================================================================
 
-static void list_add_head(struct list_head *new_node, struct list_head *head)
-{
-	struct list_head *old_next = head->next;
-
-	new_node->next = old_next;
-	new_node->prev = head;
-	old_next->prev = new_node;
-	head->next     = new_node;
-}
-
-static void list_insert(struct list_head *new, struct list_head *prev, struct list_head *next)
-{
-	next->prev = new;
-	new->next  = next;
-	new->prev  = prev;
-	prev->next = new;
-}
-
-static void pop_node(struct list_head *node)
-{
-	node->prev->next = node->next;
-	node->next->prev = node->prev;
-	node->next       = NULL;
-	node->prev       = NULL;
-}
-
 static vm_area_t *first_fit_alloc(size_t size)
 {
 	struct list_head *start = vmalloc_areas.next;
 	while (start != &vmalloc_areas) {
-		vm_area_t *area = container_of(start, vm_area_t, list);
+		vm_area_t *area = list_entry(start, vm_area_t, list);
 		if (area->size >= size && area->state == VM_AREA_FREE)
 			return area;
 		start = start->next;
@@ -137,7 +111,7 @@ static void merge_area(vm_area_t *area)
 	struct list_head *next_node = area->list.next;
 
 	if (next_node != &vmalloc_areas) {
-		vm_area_t *next_area = container_of(next_node, vm_area_t, list);
+		vm_area_t *next_area = list_entry(next_node, vm_area_t, list);
 
 		if (next_area->state == VM_AREA_FREE &&
 		    area->start_vaddr + area->size == next_area->start_vaddr) {
@@ -150,7 +124,7 @@ static void merge_area(vm_area_t *area)
 	struct list_head *prev_node = area->list.prev;
 
 	if (prev_node != &vmalloc_areas) {
-		vm_area_t *prev_area = container_of(prev_node, vm_area_t, list);
+		vm_area_t *prev_area = list_entry(prev_node, vm_area_t, list);
 
 		if (prev_area->state == VM_AREA_FREE &&
 		    prev_area->start_vaddr + prev_area->size == area->start_vaddr) {
@@ -170,7 +144,7 @@ size_t vsize(void *ptr)
 	if (!ptr)
 		return 0;
 	for (struct list_head *head = vmalloc_areas.next; head != &vmalloc_areas; head = head->next) {
-		vm_area_t *area = container_of(head, vm_area_t, list);
+		vm_area_t *area = list_entry(head, vm_area_t, list);
 		if (area->start_vaddr == (uintptr_t)ptr)
 			return area->size;
 	}
@@ -193,7 +167,7 @@ void vfree(void *ptr)
 		return;
 	vm_area_t *area = NULL;
 	for (struct list_head *head = vmalloc_areas.next; head != &vmalloc_areas; head = head->next) {
-		vm_area_t *tmp_area = container_of(head, vm_area_t, list);
+		vm_area_t *tmp_area = list_entry(head, vm_area_t, list);
 		if (tmp_area->start_vaddr == (uintptr_t)ptr) {
 			area = tmp_area;
 			break;
