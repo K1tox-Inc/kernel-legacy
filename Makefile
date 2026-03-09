@@ -13,6 +13,9 @@ endif
 BINDIR=$(BUILDDIR)/bin
 ISODIR=$(BUILDDIR)/iso
 
+SCRIPTS_DIR=scripts
+
+
 TOOLSDIR=tools
 
 AS=i686-linux-gnu-as
@@ -62,11 +65,15 @@ endef
 ifeq ($(IN_DOCKER),1)
 
 .PHONY: all
-all: $(BUILDDIR)/boot.iso
+all: gen_systable $(BUILDDIR)/boot.iso
 
 .PHONY: format
 format:
 	@clang-format --verbose --Werror -i $(shell find ./src ./include ./lib -regex '.*\.\(c\|h\|cpp\|hpp\)')
+
+.PHONY: all
+gen_systable:
+	python3 $(SCRIPTS_DIR)/generate_table.py
 
 .PHONY: clean
 clean:
