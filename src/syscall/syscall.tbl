@@ -1,0 +1,2 @@
+0 write sys_write
+1 fork  sys_fork
