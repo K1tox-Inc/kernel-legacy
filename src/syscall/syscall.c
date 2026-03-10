@@ -3,16 +3,20 @@
 
 void do_syscall(struct trap_frame *tf)
 {
-	if (!tf) {
-		tf->regs.eax = -ENOSYS;
-		return;
-	}
-	long           sys_id  = tf->regs.eax;
-	syscallHandler handler = syscall_table[sys_id];
+	if (!tf)
+		goto bad;
 
-	if (sys_id > MAX_SYSCALL || !handler) {
-		tf->regs.eax = -ENOSYS;
-		return;
-	}
-	tf->regs.eax = handler(tf);
+	long           sys_id  = tf->regs.eax;
+	if (sys_id > MAX_SYSCALL)
+		goto bad;
+	
+	syscallHandler handler = syscall_table[sys_id];
+	if (!handler)
+		goto bad;
+	tf->regs.eax = handler(tf->regs.ebx, tf->regs.ecx, tf->regs.edx, tf->regs.esi, tf->regs.edi);
+	return;
+
+bad:
+	tf->regs.eax = -ENOSYS;
+	return;
 }

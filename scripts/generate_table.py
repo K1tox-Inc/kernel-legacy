@@ -43,7 +43,7 @@ def main():
 
             for syscall_id in sorted(syscalls.keys()):
                 sys_entry = syscalls[syscall_id]['sys_entry']
-                sys_table.write(f"extern long wrap_{sys_entry}(struct trap_frame *tf);\n")
+                sys_table.write(f"extern long {sys_entry}(struct trap_frame *tf);\n")
             
             sys_table.write("\n")
 
@@ -58,7 +58,7 @@ def main():
             
             for syscall_id in sorted(syscalls.keys()):
                 sys_entry = syscalls[syscall_id]['sys_entry']
-                sys_table.write(f"    [{syscall_id}] = wrap_{sys_entry},\n")
+                sys_table.write(f"    [{syscall_id}] = {sys_entry},\n")
 
             sys_table.write("};\n")
             
