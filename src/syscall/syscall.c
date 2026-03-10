@@ -6,10 +6,10 @@ void do_syscall(struct trap_frame *tf)
 	if (!tf)
 		goto bad;
 
-	long           sys_id  = tf->regs.eax;
+	long sys_id = tf->regs.eax;
 	if (sys_id > MAX_SYSCALL)
 		goto bad;
-	
+
 	syscallHandler handler = syscall_table[sys_id];
 	if (!handler)
 		goto bad;

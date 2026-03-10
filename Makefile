@@ -65,19 +65,21 @@ endef
 ifeq ($(IN_DOCKER),1)
 
 .PHONY: all
-all: gen_systable $(BUILDDIR)/boot.iso
+all: gen_systable
+	$(MAKE) $(BUILDDIR)/boot.iso
 
 .PHONY: format
 format:
 	@clang-format --verbose --Werror -i $(shell find ./src ./include ./lib -regex '.*\.\(c\|h\|cpp\|hpp\)')
 
-.PHONY: all
+.PHONY: gen_systable
 gen_systable:
 	python3 $(SCRIPTS_DIR)/generate_table.py
 
 .PHONY: clean
 clean:
 	$(RM) -r $(BUILDDIR)
+	$(RM) -r src/generated
 	@make -C lib/libk clean
 	@make -C lib/data_structs clean
 	@make -C lib/libutils clean
