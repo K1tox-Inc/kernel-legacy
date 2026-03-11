@@ -401,8 +401,8 @@ static void debug_buddy_check_lost_pages(void)
 {
 	size_t         lost        = 0;
 	size_t         total_buddy = 0;
-	size_t         free_count  = boot_allocator_get_region_count(FREE_MEMORY);
-	struct region *free_reg    = boot_allocator_get_region(FREE_MEMORY);
+	size_t         free_count  = boot_allocator_get_regions_count(FREE_MEMORY);
+	struct region *free_reg    = boot_allocator_get_regions(FREE_MEMORY);
 
 	for (uint32_t i = 0; i < total_pages; i++) {
 		if (PAGE_IS_FREE(&page_descriptors[i])) {

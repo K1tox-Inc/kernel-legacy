@@ -17,12 +17,7 @@
 // DEFINE AND MACRO
 // ============================================================================
 
-#define INIT_SENTINEL(name, ptr)                                                                   \
-	do {                                                                                           \
-		struct list_head *name = ptr;                                                              \
-		name->next             = name;                                                             \
-		name->prev             = name;                                                             \
-	} while (0)
+#define INIT_SENTINEL(ptr) (*(ptr) = (struct list_head){.next = ptr, .prev = ptr})
 
 static struct id_manager *pid_manager  = NULL;
 static struct task       *current_task = NULL;
@@ -55,14 +50,14 @@ static void task_print_section(const char *label, const struct section *sec)
 		vga_printf("  - %s: (null)\n", label);
 		return;
 	}
+
 	vga_printf("  - %s: vaddr=%p | paddr=%p | data=%p | size=%u | map=%u | flags=0x%x\n", label,
-	           (void *)sec->v_addr, (void *)sec->p_addr, (void *)sec->data_start, sec->data_size,
-	           sec->mapping_size, sec->flags);
+	           sec->v_addr, sec->p_addr, sec->data_start, sec->data_size, sec->mapping_size,
+	           sec->flags);
 }
 
 static void cpu_idle_loop(void)
 {
-	vga_printf(" Welcome from our first process ! :) ");
 	while (true)
 		__asm__ volatile("hlt");
 }
@@ -73,6 +68,14 @@ static void cpu_idle_loop(void)
 
 struct task *task_get_current_task(void) { return current_task; }
 
+void task_append_child(struct task *parent, struct task *child)
+{
+	list_add_head(&child->siblings, &parent->children);
+
+	child->parent      = parent;
+	child->real_parent = parent;
+}
+
 // Text and data are used as templates; this function allocates its own internal sections
 // After return, the caller must free the input text and data if they were heap-allocated
 struct task *task_get_new(char *name, bool userspace, struct section *text, struct section *data)
@@ -80,7 +83,8 @@ struct task *task_get_new(char *name, bool userspace, struct section *text, stru
 	if (!name)
 		return NULL;
 
-	size_t name_len = ft_strlen(name) & 0b1111;
+	size_t name_len = ft_strlen(name);
+	name_len        = name_len > 15 ? 15 : name_len;
 
 	// Ensure PID manager is initialized before allocating a PID
 	if (!pid_manager)
@@ -109,8 +113,8 @@ struct task *task_get_new(char *name, bool userspace, struct section *text, stru
 	if (ret->pid == -1)
 		goto free_task;
 
-	INIT_SENTINEL(children, &ret->children);
-	INIT_SENTINEL(siblings, &ret->siblings);
+	INIT_SENTINEL(&ret->children);
+	INIT_SENTINEL(&ret->siblings);
 
 	// `kmalloc` use buddy allocator here
 	void *kstack = kmalloc(DEFAULT_STACK_SIZE, GFP_KERNEL | __GFP_ZERO);
@@ -147,8 +151,8 @@ struct task *task_get_new(char *name, bool userspace, struct section *text, stru
 	ret->name[name_len] = 0;
 
 	/*
-	 * All these fields are zeroed by kmalloc with __GFP_ZERO
-	 * and must be initialized by the caller if needed (like fork) :
+	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
+	 * and must be initialized by the caller if needed (like `fork`) :
 	 *
 	 *  uid_t uid;
 	 *  gid_t gid;
@@ -202,7 +206,7 @@ void task_print_info(const struct task *task)
 	}
 
 	vga_printf("Task Info (PID %d)\n", task->pid);
-	vga_printf("  - Name: %s\n", task->name ? task->name : "(null)");
+	vga_printf("  - Name: %s\n", task->name);
 	vga_printf("  - UID: %d | GID: %d\n", task->uid, task->gid);
 	vga_printf("  - State: %s\n", task_state_to_string(task->state));
 	vga_printf("  - Parent: %p | Real Parent: %p\n", task->parent, task->real_parent);
@@ -210,6 +214,7 @@ void task_print_info(const struct task *task)
 	vga_printf("  - CPU: esp=%p | cr3=%p\n", (void *)task->esp, (void *)task->cr3);
 	vga_printf("  - Kernel Stack: base=%p | ptr=%p\n", (void *)task->kernel_stack_base,
 	           (void *)task->kernel_stack_pointer);
+
 	task_print_section("Text", task->text_sec);
 	task_print_section("Data", task->data_sec);
 	task_print_section("Stack", task->stack_sec);
@@ -226,8 +231,7 @@ void task_print_stack(const struct task *task)
 	uintptr_t esp  = task->esp;
 	uintptr_t base = task->kernel_stack_base;
 
-	vga_printf("=== Stack dump for task '%s' (PID %d) ===\n", task->name ? task->name : "(null)",
-	           task->pid);
+	vga_printf("=== Stack dump for task '%s' (PID %d) ===\n", task->name, task->pid);
 	vga_printf("  esp  = %p\n", (void *)esp);
 	vga_printf("  base = %p  (top of stack)\n", (void *)base);
 

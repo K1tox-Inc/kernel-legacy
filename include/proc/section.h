@@ -18,11 +18,11 @@
 #define USER_HEAP_MAX  (USER_STACK_END - PAGE_SIZE)
 #define USER_HEAP_SIZE 0
 
-// #define USER_HEAP_DEFAULT_START     0x0804A000       twice is not use bcof get_next_section_start
-// #define USER_DATA_DEFAULT_START     0x08049000                       macro can handle it
-// dynamicaly
+// Neither is not used because the `get_next_section_start` macro can handle them dynamically
+// #define USER_HEAP_DEFAULT_START     0x0804A000
+// #define USER_DATA_DEFAULT_START     0x08049000
 
-#define USER_TEXT_START 0x08048000 // legacy for ABI system
+#define USER_TEXT_START 0x08048000 // Legacy for ABI system
 #define USERSPACE_START 0x00000000
 
 #define USER_SECTION_RO (PTE_PRESENT_BIT | PTE_US_BIT)

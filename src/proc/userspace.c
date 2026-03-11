@@ -180,8 +180,7 @@ void userspace_print(const struct task *task)
 	}
 
 	vga_printf("========================================\n");
-	vga_printf(" Userspace layout: '%s' (PID %d, ring %u)\n", task->name ? task->name : "(null)",
-	           task->pid, (unsigned)task->ring);
+	vga_printf(" Userspace layout: '%s' (PID %d, ring %u)\n", task->name, task->pid, task->ring);
 	vga_printf("========================================\n");
 
 	vga_printf("  cr3 (page dir) = %p\n", (void *)task->cr3);

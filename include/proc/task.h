@@ -42,6 +42,7 @@ struct task {
 
 	/* Signals */
 	struct signal_queue signals;
+
 	/* Info */
 	char  *name;
 	size_t ring;
@@ -57,5 +58,8 @@ static inline struct section *task_stack(struct task *new_task) { return new_tas
 
 void         task_print_info(const struct task *task);
 void         task_print_stack(const struct task *task);
-struct task *task_get_new(char *name, bool userspace, struct section *text, struct section *data);
+struct task *task_get_current_task(void);
 void         task_init_idle(void);
+
+struct task *task_get_new(const char *name, bool userspace, struct section *text,
+                          struct section *data);
