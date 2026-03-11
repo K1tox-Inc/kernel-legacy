@@ -58,6 +58,7 @@ static inline struct section *task_stack(struct task *new_task) { return new_tas
 
 void         task_print_info(const struct task *task);
 void         task_print_stack(const struct task *task);
+void         task_append_child(struct task *parent, struct task *child);
 struct task *task_get_current_task(void);
 void         task_init_idle(void);
 

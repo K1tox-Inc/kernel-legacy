@@ -6,6 +6,7 @@
 #include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
+#include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <types.h>
 
@@ -32,7 +33,7 @@ enum IDTTypeAttributes {
 	PresentBit = 0x01 << 7
 };
 
-typedef void (*syscallHandler)(struct trap_frame *frame);
+typedef long (*syscallHandler)(struct trap_frame *);
 
 #define IDT_SIZE        256
 #define IDT_ENTRY(indx) (idt_entries + (indx))
@@ -120,7 +121,42 @@ irqHandler interrupt_handlers[256] = {
     [0x80] = syscall_dispatcher,
 };
 
-syscallHandler syscall_handlers[256] = {};
+extern long do_fork(void);
+
+long do_write(int fd, const char *str, size_t size)
+{
+	(void)fd;
+
+	char *dup = kmalloc(size, __GFP_KERNEL);
+	ft_memcpy(dup, str, size);
+	dup[size] = 0;
+
+	vga_printf("%s", dup);
+
+	kfree(dup);
+
+	return 0;
+}
+
+long sys_fork(struct trap_frame *frame)
+{
+	(void)frame;
+	return do_fork();
+}
+
+long sys_write(struct trap_frame *frame)
+{
+	int         fd   = frame->regs.ebx;
+	const char *str  = (char *)frame->regs.ecx;
+	size_t      size = frame->regs.edx;
+
+	return do_write(fd, str, size);
+}
+
+syscallHandler syscall_handlers[256] = {
+    [0x02] = sys_fork,
+    [0x04] = sys_write,
+};
 
 const char *interrupt_names[] = {"Divide Error",
                                  "Debug Exception",
@@ -259,7 +295,7 @@ void idt_init(void)
 	idt_set_entry(IDT_ENTRY(0x2e), 0x08, PresentBit | IntGate_32 | CPU_Ring0, (uint32_t)irq_46);
 	idt_set_entry(IDT_ENTRY(0x2f), 0x08, PresentBit | IntGate_32 | CPU_Ring0, (uint32_t)irq_47);
 	// [...]
-	idt_set_entry(IDT_ENTRY(0x80), 0x08, PresentBit | IntGate_32 | CPU_Ring0, (uint32_t)irq_128);
+	idt_set_entry(IDT_ENTRY(0x80), 0x08, PresentBit | IntGate_32 | CPU_Ring3, (uint32_t)irq_128);
 
 	__asm__ volatile("lidt %0; sti" : : "m"(idtr));
 }

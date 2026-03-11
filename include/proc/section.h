@@ -18,7 +18,7 @@
 #define USER_HEAP_MAX  (USER_STACK_END - PAGE_SIZE)
 #define USER_HEAP_SIZE 0
 
-// Neither is not used because the `get_next_section_start` macro can handle them dynamically
+// Neither is used because the `get_next_section_start` macro can handle them dynamically
 // #define USER_HEAP_DEFAULT_START     0x0804A000
 // #define USER_DATA_DEFAULT_START     0x08049000
 
