@@ -26,12 +26,10 @@ struct tty {
 void ttys_init(void);
 void tty_init(struct tty *tty);
 void tty_load(struct tty *tty);
-void tty_switch(struct tty *tty);
-void tty_framebuffer_switch_color(uint8_t mode);
 void tty_cli_handle_nl(void);
-void tty_framebuffer_set_screen_mode(enum vga_color mode);
-void tty_framebuffer_clear(void);
-void tty_framebuffer_write(char c);
+void tty_framebuffer_set_screen_mode(struct tty *tty, enum vga_color mode);
+void tty_framebuffer_clear(struct tty *tty);
+void tty_framebuffer_write(struct tty *tty, char c);
 void tty_framebuffer_scroll_down(void);
 
 void tty_history_enable(void);

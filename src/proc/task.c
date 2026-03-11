@@ -78,7 +78,8 @@ void task_append_child(struct task *parent, struct task *child)
 
 // Text and data are used as templates; this function allocates its own internal sections
 // After return, the caller must free the input text and data if they were heap-allocated
-struct task *task_get_new(char *name, bool userspace, struct section *text, struct section *data)
+struct task *task_get_new(const char *name, bool userspace, struct section *text,
+                          struct section *data)
 {
 	if (!name)
 		return NULL;

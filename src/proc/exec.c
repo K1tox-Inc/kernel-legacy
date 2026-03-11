@@ -53,7 +53,7 @@ void exec_task(struct task *task, bool userspace)
 		task_launcher(task);
 }
 
-int exec_fn(void *fn_start, size_t fn_size, char *fn_name, bool userspace)
+int exec_fn(void *fn_start, size_t fn_size, const char *fn_name, bool userspace)
 {
 	struct section text;
 
@@ -72,9 +72,11 @@ int exec_fn(void *fn_start, size_t fn_size, char *fn_name, bool userspace)
 //////////////////////////////////////////////
 // Mok need to be delete when we got an elf loader + fs (ps: sa me degoute)
 
+#define iter_over_array(p, a)                                                                      \
+	for (p = a; (uintptr_t)p - (uintptr_t)a <= sizeof(a) - sizeof(typeof(*a)); p++)
+
 extern char user_cafe_start[], user_cafe_end[];
 extern char user_dead_start[], user_dead_end[];
-extern char kernel_task_start[], kernel_task_end[];
 
 struct exec_fn_mok {
 	const char *name;
@@ -83,29 +85,31 @@ struct exec_fn_mok {
 	bool        is_user;
 };
 
-struct exec_fn_mok mok_registry[] = {{"cafe", user_cafe_start, user_cafe_end, true},
-                                     {"dead", user_dead_start, user_dead_end, true},
-                                     {"hello", kernel_task_start, kernel_task_end, false},
-                                     {NULL, NULL, NULL, false}};
+const struct exec_fn_mok mok_registry[] = {
+    {"cafe", user_cafe_start, user_cafe_end, true},
+    {"dead", user_dead_start, user_dead_end, true},
+};
 
 int exec_mok(const char *name)
 {
+	const struct exec_fn_mok *ptr;
+
 	if (!name)
 		return -EINVAL;
 
 	size_t name_len = ft_strlen(name);
-
-	for (int i = 0; mok_registry[i].name != NULL; i++) {
-		size_t reg_name_len = ft_strlen(mok_registry[i].name);
-
-		if (reg_name_len == name_len && !ft_memcmp(mok_registry[i].name, name, name_len)) {
-			size_t fn_size = (uintptr_t)mok_registry[i].end - (uintptr_t)mok_registry[i].start;
-			if (i < 2)
-				vga_printf("Use Ctrl + Alt + 2 for monitor qemu + info register :)\n");
-			return exec_fn(mok_registry[i].start, fn_size, (char *)mok_registry[i].name,
-			               mok_registry[i].is_user);
+	iter_over_array(ptr, mok_registry)
+	{
+		if (ft_memcmp(ptr->name, name, name_len) == 0) {
+			vga_printf("[exec_mok] Executing `%s`...\n", name);
+			size_t fn_size = (uintptr_t)ptr->end - (uintptr_t)ptr->start;
+			long   value   = exec_fn(ptr->start, fn_size, name, ptr->is_user);
+			vga_printf("[exec_mok]: Resulting value = %x\n", value);
+			return value;
 		}
 	}
+
+	vga_printf("[exec_mok]: No mok named `%s` found\n", name);
 
 	return -ENOENT;
 }

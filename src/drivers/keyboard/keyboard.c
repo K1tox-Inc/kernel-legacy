@@ -1,6 +1,7 @@
 #include "keyboard.h"
 #include "layout.h"
 #include <arch/trap_frame.h>
+#include <drivers/tty.h>
 
 enum layout             current_layout_type = QWERTY;
 struct scancode_routine current_layout[256] = {0};
@@ -82,7 +83,7 @@ static void keyboard_navigation_handler(struct keyboard_key key)
 		else if (key.value == COLOR_PGDN || key.value == COLOR_DOWN)
 			tty_history_scroll_down();
 	} else if (!*(key.state_ptr))
-		tty_framebuffer_switch_color(key.value);
+		tty_framebuffer_set_screen_mode(current_tty, key.value);
 	else
 		keyboard_printable_handler(key);
 }
@@ -91,7 +92,7 @@ static void keyboard_navigation_handler(struct keyboard_key key)
 
 // Function Group
 
-static void keyboard_function_handler(struct keyboard_key key) { tty_switch(ttys + key.value); }
+static void keyboard_function_handler(struct keyboard_key key) { tty_load(ttys + key.value); }
 
 // Function Group
 
