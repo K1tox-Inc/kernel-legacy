@@ -169,15 +169,14 @@ static key_handler_t keyboard_get_default_key_handler(struct keyboard_key key)
 	case KEY_SPECIAL:
 		return keyboard_get_special_handler(key.undergroup);
 	default:
-		break;
+		return NULL;
 	}
-	return NULL;
 }
 
 static void keyboard_init_default_table(void)
 {
-	struct keyboard_key *groups[] = {printable_keys, control_keys, navigation_keys,
-	                                 function_keys,  special_keys, NULL};
+	static struct keyboard_key *groups[] = {printable_keys, control_keys, navigation_keys,
+	                                        function_keys,  special_keys, NULL};
 
 	for (uint32_t g = 0; groups[g] != NULL; g++) {
 		for (uint32_t i = 0; groups[g][i].keycode != UNDEFINED; i++) {
@@ -192,26 +191,29 @@ static void keyboard_init_default_table(void)
 void keyboard_switch_layout(enum layout new_layout)
 {
 	if (current_layout_type == new_layout) {
-		vga_printf("\nkeyboard: Layout already set");
+		log("Layout already set.");
 		return;
-	} else if (new_layout == QWERTY) {
-		vga_printf("\nkeyboard: Switching layout to QWERTY");
+	}
+
+	switch (new_layout) {
+	case QWERTY:
+		log("Switching layout to QWERTY.");
 		keyboard_remap_layout(default_key_table, 256);
-	} else if (new_layout == AZERTY) {
-		vga_printf("\nkeyboard: Switching layout to AZERTY");
+
+	case AZERTY:
+		log("Switching layout to AZERTY.");
 		keyboard_remap_layout(azerty_layout, STOP_WHEN_UNDEFINED);
 	}
+
 	current_layout_type = new_layout;
 }
 
 void keyboard_remap_layout(struct keyboard_key *table, uint32_t size)
 {
 	if (size == STOP_WHEN_UNDEFINED) {
-		uint32_t i = 0;
-		while (table[i].keycode != UNDEFINED) {
+		for (uint32_t i = 0; table[i].keycode != UNDEFINED; i++) {
 			key_handler_t handler = keyboard_get_default_key_handler(table[i]);
 			keyboard_bind_key(handler, table[i]);
-			i++;
 		}
 	} else {
 		for (uint32_t i = 0; i <= size; i++) {
@@ -223,21 +225,21 @@ void keyboard_remap_layout(struct keyboard_key *table, uint32_t size)
 	}
 }
 
-// TODO : register dimamically when memory is implemented
+// TODO: Register dynamically when memory is implemented
 void keyboard_bind_key(key_handler_t handler, struct keyboard_key key)
 {
 	current_layout[key.keycode] = (struct scancode_routine){.handler = handler, .key = key};
 }
 
-// TODO : use free when memory
+// TODO: Use free when memory
 void keyboard_unbind_key(uint8_t keycode) { current_layout[keycode] = UNDEFINED_ROUTINE; }
 
-// TODO : improve to add statement handling + init dynamically when memory is implemented
+// TODO: Improve to add statement handling + init dynamically when memory is implemented
 void keyboard_handle(struct trap_frame *frame)
 {
 	(void)frame;
-	if (inb(0x64) & 0x01) {          // read status
-		uint8_t keycode = inb(0x60); // read data
+	if (inb(0x64) & 0x01) {          // Read status
+		uint8_t keycode = inb(0x60); // Read data
 		if (current_layout[keycode].handler) {
 			struct keyboard_key key = current_layout[keycode].key;
 			current_layout[keycode].handler(key);
@@ -250,6 +252,7 @@ void keyboard_init(void)
 {
 	for (int i = 0; i < 256; ++i)
 		current_layout[i] = UNDEFINED_ROUTINE;
+
 	keyboard_init_default_table();
 	keyboard_remap_layout(default_key_table, KEY_MAX);
 	idt_register_interrupt_handlers(33, (irqHandler)keyboard_handle);

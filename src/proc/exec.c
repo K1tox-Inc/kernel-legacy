@@ -6,6 +6,7 @@
 #include <proc/section.h>
 #include <proc/userspace.h>
 #include <utils/error.h>
+#include <utils/kmacro.h>
 
 static void flush_registers(uint32_t **kstack, size_t it)
 {
@@ -101,15 +102,13 @@ int exec_mok(const char *name)
 	iter_over_array(ptr, mok_registry)
 	{
 		if (ft_memcmp(ptr->name, name, name_len) == 0) {
-			vga_printf("[exec_mok] Executing `%s`...\n", name);
+			log("Executing `%s` in %s space...", name, ptr->is_user ? "user" : "kernel");
 			size_t fn_size = (uintptr_t)ptr->end - (uintptr_t)ptr->start;
-			long   value   = exec_fn(ptr->start, fn_size, name, ptr->is_user);
-			vga_printf("[exec_mok]: Resulting value = %x\n", value);
-			return value;
+			return dbg(exec_fn(ptr->start, fn_size, name, ptr->is_user));
 		}
 	}
 
-	vga_printf("[exec_mok]: No mok named `%s` found\n", name);
+	log("No mok named `%s` found.", name);
 
 	return -ENOENT;
 }

@@ -31,7 +31,7 @@ user_cafe_start:
     mov eax, 0xCAFEBABE
 
 1:
-    jmp user_cafe_start
+    jmp 1b
 
 user_cafe_end:
 
