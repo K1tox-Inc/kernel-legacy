@@ -20,7 +20,7 @@
 #define INIT_SENTINEL(ptr) (*(ptr) = (struct list_head){.next = ptr, .prev = ptr})
 
 static struct id_manager *pid_manager  = NULL;
-static struct task       *current_task = NULL;
+struct task              *current_task = NULL;
 
 __attribute__((constructor)) static void init_pid_manager(void)
 {

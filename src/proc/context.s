@@ -4,6 +4,7 @@
 .section .text
 
 .extern g_tss
+.extern current_task
 .global switch_to
 .global task_launcher
 .global task_user_launcher
@@ -69,7 +70,8 @@ switch_to:
 task_launcher:
   # get task *next into ebx
   mov ebx, [esp + 4]
-  
+  mov current_task, ebx
+
   # reload cr3
   mov eax, [ebx + 40]
   mov cr3, eax
@@ -91,6 +93,8 @@ task_launcher:
 
 task_user_launcher:
     mov ebx, [esp + 4]
+    mov current_task, ebx
+
     mov eax, [ebx + 40]
     mov cr3, eax
 
@@ -98,7 +102,7 @@ task_user_launcher:
     mov [g_tss + 4], eax
 
     mov esp, [ebx + 36]
-    
+
     # set segs as UserDS
     mov ax, 0x23  # UserDS = 0x23
     mov ds, ax
