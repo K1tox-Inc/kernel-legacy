@@ -91,19 +91,19 @@ static struct keyboard_key control_keys[] = {
     {UNDEFINED, UNDEFINED, 0x2A, KEY_CONTROL, PRESS, &left_shift},
     {UNDEFINED, UNDEFINED, 0x36, KEY_CONTROL, PRESS, &right_shift},
     {UNDEFINED, UNDEFINED, 0x38, KEY_CONTROL, PRESS, &left_alt},
+
     // Release
     {UNDEFINED, UNDEFINED, 0x9D, KEY_CONTROL, RELEASE, &left_ctrl},
     {UNDEFINED, UNDEFINED, 0xAA, KEY_CONTROL, RELEASE, &left_shift},
     {UNDEFINED, UNDEFINED, 0xB6, KEY_CONTROL, RELEASE, &right_shift},
     {UNDEFINED, UNDEFINED, 0xB8, KEY_CONTROL, RELEASE, &left_alt},
+
     // Toggle
-    /* TODO :
-     * Actually Lock key are toggled on release but need to improve the logic the file doc/idea.md
-     * contain a good way to start
-     */
+    // TODO: Actually Lock key are toggled on release but need to improve the logic
     {UNDEFINED, UNDEFINED, 0xBA, KEY_CONTROL, TOGGLE, &caps_lock},
     {UNDEFINED, UNDEFINED, 0xC5, KEY_CONTROL, TOGGLE, &num_lock},
     {UNDEFINED, UNDEFINED, 0xC6, KEY_CONTROL, TOGGLE, &scroll_lock},
+
     UNDEFINED_KEY, // Endof array
 };
 
