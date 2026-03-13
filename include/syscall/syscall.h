@@ -9,7 +9,7 @@
 
 typedef asmlinkage long (*syscallHandler)(long, long, long, long, long);
 
-extern const void *syscall_table[MAX_SYSCALL + 1];
+extern const syscallHandler syscall_table[MAX_SYSCALL + 1];
 
 #define SYSCALL_DEFINE0(name) asmlinkage long sys_##name(void)
 

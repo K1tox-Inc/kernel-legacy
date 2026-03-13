@@ -1,4 +1,5 @@
 import os
+import sys
 
 script_dir   = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(script_dir)
@@ -14,31 +15,31 @@ def main():
         os.makedirs(user_headers, exist_ok=True)
         
         syscalls = {}
-        file = open(tbl_path)
-        content = file.readlines()
-        for line in content:
-            clean_line = line.strip()
-            if clean_line:
-                parts = clean_line.split()
-                if len(parts) != 3:
-                    raise ValueError('Bad format: syscall.tbl')
-                syscall_id, name, sys_entry = parts
-
-                if not syscall_id.isdigit():
-                    raise ValueError("Bad value: syscall.tbl: syscall id must be an integer")
-                elif int(syscall_id) > 200:
-                    raise ValueError("Bad value: syscall.tbl: syscall id must be lower than 200")
-
-                if not name.isidentifier():
-                    raise ValueError("Bad value: syscall.tbl: name id must be a valid identifier in C")
+        with open(tbl_path, "r") as file:
+            content = file.readlines()
+            for line in content:
+                clean_line = line.strip()
+                if clean_line and not clean_line.startswith("#"): # Optionnel: ignorer les commentaires
+                    parts = clean_line.split()
+                    if len(parts) != 3:
+                        raise ValueError(f'Bad format in syscall.tbl: {clean_line}')
                     
-                if not sys_entry.isidentifier():
-                    raise ValueError("Bad value: syscall.tbl: sys_entry id must be a valid identifier in C")
-                
-                syscalls[int(syscall_id)] = {
-                    'name': name,
-                    'sys_entry': sys_entry
-                }
+                    syscall_id, name, sys_entry = parts
+
+                    if not syscall_id.isdigit():
+                        raise ValueError(f"ID must be an integer: {syscall_id}")
+                    
+                    id_int = int(syscall_id)
+                    if id_int > 200:
+                        raise ValueError(f"ID must be < 200: {id_int}")
+
+                    if not name.isidentifier() or not sys_entry.isidentifier():
+                        raise ValueError(f"Invalid C identifier: {name} or {sys_entry}")
+                    
+                    syscalls[id_int] = {
+                        'name': name,
+                        'sys_entry': sys_entry
+                    }
         
         with open(f"{kernel_generated}/syscall_table.c", "w") as sys_table, \
              open(f"{user_headers}/syscall.h", "w") as sys_user_header:
@@ -50,7 +51,7 @@ def main():
 
             for syscall_id in sorted(syscalls.keys()):
                 sys_entry = syscalls[syscall_id]['sys_entry']
-                sys_table.write(f"extern long {sys_entry}(struct trap_frame *tf);\n")
+                sys_table.write(f"extern long {sys_entry}();\n")
             
             sys_table.write("\n")
 
@@ -61,20 +62,24 @@ def main():
                 sys_entry = syscalls[syscall_id]['sys_entry']
                 sys_user_header.write(f"#define {sys_entry} {syscall_id}\n")
 
-            sys_table.write("const void *syscall_table[MAX_SYSCALL + 1] = {\n")
+            sys_table.write("const syscallHandler syscall_table[MAX_SYSCALL + 1] = {\n")
             
             for syscall_id in sorted(syscalls.keys()):
                 sys_entry = syscalls[syscall_id]['sys_entry']
-                sys_table.write(f"    [{syscall_id}] = {sys_entry},\n")
+                sys_table.write(f"    [{syscall_id}] = (syscallHandler){sys_entry},\n")
 
             sys_table.write("};\n")
-            
+        sys.exit(0)
     except FileNotFoundError as e:
-        print(f"FileNotFoundError: {str(e)}")
-    except TypeError as e:
-        print(f"TypeError: {str(e)}")
-    except BaseException as e:
-        print(f"An exception has been caught: {type(e).__name__} - {str(e)}")
+        sys.stderr.write(f"Error: Configuration file not found: {e}\n")
+    except ValueError as e:
+        sys.stderr.write(f"Error: Invalid data in syscall.tbl: {e}\n")
+    except PermissionError as e:
+        sys.stderr.write(f"Error: Permission denied during file generation: {e}\n")
+    except Exception as e:
+        sys.stderr.write(f"Error: Unexpected failure: {type(e).__name__} - {e}\n")
+    
+    sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -59,7 +59,7 @@ $(BINDIR)/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 define docker_run
-	docker run --rm -t --user $(shell id -u):$(shell id -g) -v .:/kfs -e IN_DOCKER=1 -e MAKEBUILDTYPE="$(MAKEBUILDTYPE)" $(DOCKERIMAGENAME):$(DOCKERIMAGETAG) $(1)
+	docker run --rm -t -v .:/kfs -e IN_DOCKER=1 -e MAKEBUILDTYPE="$(MAKEBUILDTYPE)" $(DOCKERIMAGENAME):$(DOCKERIMAGETAG) $(1)
 endef
 
 ifeq ($(IN_DOCKER),1)
@@ -80,6 +80,7 @@ gen_systable:
 clean:
 	$(RM) -r $(BUILDDIR)
 	$(RM) -r src/generated
+	$(RM) -r lib/includes/generated
 	@make -C lib/libk clean
 	@make -C lib/data_structs clean
 	@make -C lib/libutils clean

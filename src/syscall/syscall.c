@@ -4,9 +4,9 @@
 void do_syscall(struct trap_frame *tf)
 {
 	if (!tf)
-		goto bad;
+		return;
 
-	long sys_id = tf->regs.eax;
+	uint32_t sys_id = tf->regs.eax;
 	if (sys_id > MAX_SYSCALL)
 		goto bad;
 
