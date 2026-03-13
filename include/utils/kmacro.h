@@ -8,6 +8,21 @@
 	 } while (0) /* fallthrough */
 #endif // __fallthrough__
 
+#ifndef NDEBUG
+# define log(msg, ...) vga_printf("[" __FILE__ ":%i]: " msg "\n", __LINE__, ##__VA_ARGS__)
+
+# define dbg(variable_name)                                                                        \
+	 ({                                                                                            \
+	  __typeof__(variable_name) _v = (variable_name);                                              \
+	  log(#variable_name " = $%X", _v);                                                            \
+	  _v;                                                                                          \
+	 })
+
+#else
+# define log(msg, ...)
+# define dbg(variable_name) (variable_name)
+#endif
+
 // Macro
 #define ALIGN(x, a)              __ALIGN_MASK(x, (typeof(x))(a) - 1)
 #define __ALIGN_MASK(x, mask)    (((x) + (mask)) & ~(mask))
