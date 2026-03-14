@@ -6,10 +6,11 @@
 #include <memory/memory.h>
 #include <memory/vmm.h>
 #include <proc/task.h>
+#include <syscalls/syscalls.h>
 #include <utils/error.h>
 #include <utils/kmacro.h>
 
-long do_fork(void)
+SYSCALL_DEFINE0(fork)
 {
 	struct task *current = task_get_current_task(), *new;
 

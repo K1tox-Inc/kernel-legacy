@@ -45,3 +45,5 @@ scripts/generated/*
 # Ignore tools directory
 tools/
 _codeql_detected_source_root
+
+generated

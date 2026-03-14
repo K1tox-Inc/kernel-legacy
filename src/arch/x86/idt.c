@@ -8,6 +8,7 @@
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
+#include <syscalls/syscalls.h>
 #include <types.h>
 
 struct idt_entry {
@@ -32,8 +33,6 @@ enum IDTTypeAttributes {
 
 	PresentBit = 0x01 << 7
 };
-
-typedef long (*syscallHandler)(struct trap_frame *);
 
 #define IDT_SIZE        256
 #define IDT_ENTRY(indx) (idt_entries + (indx))
@@ -118,45 +117,10 @@ struct idtr      idtr = {.limit = sizeof(struct idt_entry) * IDT_SIZE - 1,
                          .base  = (uintptr_t)&idt_entries};
 
 irqHandler interrupt_handlers[256] = {
-    [0x80] = syscall_dispatcher,
+    [SYS_INT] = do_syscall,
 };
 
-extern long do_fork(void);
-
-long do_write(int fd, const char *str, size_t size)
-{
-	(void)fd;
-
-	char *dup = kmalloc(size, __GFP_KERNEL);
-	ft_memcpy(dup, str, size);
-	dup[size] = 0;
-
-	vga_printf("%s", dup);
-
-	kfree(dup);
-
-	return 0;
-}
-
-long sys_fork(struct trap_frame *frame)
-{
-	(void)frame;
-	return do_fork();
-}
-
-long sys_write(struct trap_frame *frame)
-{
-	int         fd   = frame->regs.ebx;
-	const char *str  = (char *)frame->regs.ecx;
-	size_t      size = frame->regs.edx;
-
-	return do_write(fd, str, size);
-}
-
-syscallHandler syscall_handlers[256] = {
-    [0x02] = sys_fork,
-    [0x04] = sys_write,
-};
+syscallHandler syscall_handlers[256] = {};
 
 const char *interrupt_names[] = {"Divide Error",
                                  "Debug Exception",
