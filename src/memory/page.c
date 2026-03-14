@@ -28,9 +28,9 @@ static uint32_t page_get_state_flag(uintptr_t addr_start)
 	for (int zone_idx = 0; zone_idx < MAX_ZONE; zone_idx++) {
 
 		uint32_t       free_count = boot_allocator_get_free_zones_count(zone_idx);
-		struct region *free_reg   = boot_allocator_get_free_zone(zone_idx);
-		uint32_t       res_count  = boot_allocator_get_res_zones_count(zone_idx);
-		struct region *res_reg    = boot_allocator_get_res_zone(zone_idx);
+		struct region *free_reg   = boot_allocator_get_free_zones(zone_idx);
+		uint32_t       res_count  = boot_allocator_get_reserved_zones_count(zone_idx);
+		struct region *res_reg    = boot_allocator_get_reserved_zones(zone_idx);
 
 		if (page_addr_is_in_reg(free_reg, free_count, addr_start))
 			return (PAGE_STATE_AVAILABLE);

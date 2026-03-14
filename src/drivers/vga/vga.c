@@ -1,4 +1,3 @@
-#include "drivers/keyboard.h"
 #include <arch/io.h>
 #include <drivers/tty.h>
 #include <drivers/vga.h>
@@ -7,6 +6,7 @@
 #include <utils/kmacro.h>
 
 #define KERNEL_BANNER                                                                              \
+	"\n"                                                                                           \
 	"  /$$   /$$   /$$   /$$               /$$   /$$\n"                                            \
 	" | $$  /$$/ /$$$$  | $$              | $$  / $$\n"                                            \
 	" | $$ /$$/ |_  $$ /$$$$$$    /$$$$$$ |  $$/ $$/\n"                                            \
@@ -14,7 +14,8 @@
 	" | $$  $$    | $$  | $$    | $$  \\ $$  >$$  $$ \n"                                           \
 	" | $$\\  $$   | $$  | $$ /$$| $$  | $$ /$$/\\  $$\n"                                          \
 	" | $$ \\  $$ /$$$$$$|  $$$$/|  $$$$$$/| $$  \\ $$\n"                                          \
-	" |__/  \\__/|______/ \\___/   \\______/ |__/  |__/\n"
+	" |__/  \\__/|______/ \\___/   \\______/ |__/  |__/\n"                                         \
+	"\n"
 
 #define KERN_EMERG   "0"
 #define KERN_ALERT   "1"
@@ -49,7 +50,7 @@ static int ft_putchar(char c)
 		break;
 
 	default:
-		tty_framebuffer_write(c);
+		tty_framebuffer_write(current_tty, c);
 		current_tty->cursor.x++;
 	}
 
@@ -74,6 +75,7 @@ static int ft_putstr(char *str)
 		return (ft_putstr("(null)"));
 	while (str[++i])
 		ft_putchar(str[i]);
+
 	return (i);
 }
 
@@ -113,11 +115,7 @@ static int ft_puthexa(unsigned long nb, bool upper, bool addr)
 
 // External APIs
 
-void vga_setup_default_screen(void)
-{
-	tty_framebuffer_clear();
-	vga_printf(KERNEL_BANNER "\n" TTY_PROMPT);
-}
+void vga_setup_default_screen(void) { vga_printf("%s", KERNEL_BANNER); }
 
 void vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
 {
@@ -155,6 +153,7 @@ void vga_refresh_screen(void)
 		struct vga_entry *dst         = VGA_ENTRY(0, vga_y);
 		ft_memcpy(dst, src, VGA_WIDTH * sizeof(struct vga_entry));
 	}
+
 	vga_set_cursor_position(current_tty->cursor.x, current_tty->cursor.y);
 }
 
@@ -195,11 +194,16 @@ void vga_printf(const char *fmt, ...)
 				ft_putchar(va_arg(ap, uint32_t));
 				break;
 
+			case '%':
+				ft_putchar('%');
+				break;
+
 			default:
 				break;
 			}
 		} else
 			ft_putchar(fmt[i]);
 	}
+
 	vga_refresh_screen();
 }

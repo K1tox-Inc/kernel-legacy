@@ -214,7 +214,7 @@ static uint32_t boot_allocator_merge_contiguous_regions(struct region *reg, uint
  * Tools for debug :
  * boot_allocator_print_region_info
  * boot_allocator_for_each_regions
- * boot_allocator_print_inital_layout
+ * boot_allocator_print_initial_layout
  */
 
 static void boot_allocator_print_region_info(struct region *reg)
@@ -293,8 +293,8 @@ static void boot_allocator_init_zones(uint32_t      zcount[MAX_ZONE],
                                       struct region zones[MAX_ZONE][MAX_REGIONS],
                                       enum mem_type type)
 {
-	size_t         reg_count = boot_allocator_get_region_count(type);
-	struct region *reg       = boot_allocator_get_region(type);
+	size_t         reg_count = boot_allocator_get_regions_count(type);
+	struct region *reg       = boot_allocator_get_regions(type);
 
 	for (size_t i = 0; i < reg_count; i++) {
 		uintptr_t region_start = reg[i].start;
@@ -327,17 +327,17 @@ static void boot_allocator_init_zones(uint32_t      zcount[MAX_ZONE],
 
 // External APis
 
-struct region *boot_allocator_get_region(enum mem_type type) { return bootmem.regions[type]; }
+struct region *boot_allocator_get_regions(enum mem_type type) { return bootmem.regions[type]; }
 
-uint32_t boot_allocator_get_region_count(enum mem_type type) { return bootmem.count[type]; }
+uint32_t boot_allocator_get_regions_count(enum mem_type type) { return bootmem.count[type]; }
 
-struct region *boot_allocator_get_free_zone(int type) { return free_zones[type]; }
+struct region *boot_allocator_get_free_zones(int type) { return free_zones[type]; }
 
 uint32_t boot_allocator_get_free_zones_count(int type) { return free_count[type]; }
 
-struct region *boot_allocator_get_res_zone(int type) { return res_zones[type]; }
+struct region *boot_allocator_get_reserved_zones(int type) { return res_zones[type]; }
 
-uint32_t boot_allocator_get_res_zones_count(int type) { return res_count[type]; }
+uint32_t boot_allocator_get_reserved_zones_count(int type) { return res_count[type]; }
 
 void boot_allocator_freeze(void) { bootmem.state = FROZEN; }
 
@@ -358,7 +358,7 @@ bool boot_allocator_range_overlaps(uintptr_t start, uintptr_t end, enum mem_type
 	return false;
 }
 
-void boot_allocator_print_inital_layout(void)
+void boot_allocator_print_initial_layout(void)
 {
 	vga_printf("----------Boot Allocator Printer----------\n");
 	vga_printf("Reserved Areas : \n");
@@ -378,7 +378,7 @@ void boot_allocator_print_inital_layout(void)
 	vga_printf("------------------------------------------\n");
 }
 
-void boot_allocator_free_zones_printer(void)
+void boot_allocator_print_free_zones(void)
 {
 	vga_printf("----------Boot Allocator Free Zones Printer----------\n");
 	vga_printf("Dma Zone : \n");
@@ -423,7 +423,7 @@ void boot_allocator_print_allocations(void)
 	vga_printf("----------------------------------------------------------\n");
 }
 
-void boot_allocator_res_zones_printer(void)
+void boot_allocator_print_reserved_zones(void)
 {
 	vga_printf("----------Boot Allocator Reserved Zones Printer----------\n");
 	vga_printf("Dma Zone : \n");

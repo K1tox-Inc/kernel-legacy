@@ -87,15 +87,15 @@ bad:
 
 bool userspace_create_new(struct task *new_task)
 {
-	struct section *text = task_text(new_task);
-	struct section *data = task_data(new_task);
+	struct section *text = task_text(new_task), *data = task_data(new_task), *last_sec, *stack;
+
 	// Section Text
-	if (!text || text->data_size == 0)
+	if (!text || text->data_size == 0 || text->v_addr >= KERNEL_START)
 		return false;
-	else if (text->v_addr >= KERNEL_START)
-		return false;
-	else if (!text->v_addr)
+
+	if (!text->v_addr)
 		text->v_addr = USER_TEXT_START;
+
 	text->flags        = USER_SECTION_RO;
 	text->mapping_size = ALIGN(text->data_size, PAGE_SIZE);
 
@@ -105,17 +105,17 @@ bool userspace_create_new(struct task *new_task)
 			data->v_addr = get_next_section_start(text->v_addr, text->mapping_size);
 		else if (data->v_addr >= KERNEL_START)
 			return false;
+
 		data->mapping_size = ALIGN(data->data_size, PAGE_SIZE);
 		data->flags        = USER_SECTION_RW;
 	}
 
 	// Section Heap
-	struct section *last_sec =
-	    (data && data->data_size > 0) ? task_data(new_task) : task_text(new_task);
+	last_sec = (data && data->data_size > 0) ? task_data(new_task) : task_text(new_task);
 	init_heap_section(last_sec, task_heap(new_task));
 
 	// Section Stack
-	struct section *stack = task_stack(new_task);
+	stack = task_stack(new_task);
 	init_stack_section(stack);
 
 	// Page Directory
@@ -130,15 +130,13 @@ bool userspace_create_new(struct task *new_task)
 		goto bad;
 	else if (!map_section(uspace_pd_phy, task_stack(new_task)))
 		goto bad;
-	else {
-		if (data && data->data_size > 0)
-			if (!map_section(uspace_pd_phy, task_data(new_task)))
-				goto bad;
-	}
+	else if ((data && data->data_size > 0) && !map_section(uspace_pd_phy, task_data(new_task)))
+		goto bad;
 
 	new_task->cr3 = uspace_pd_phy;
 
 	return true;
+
 bad:
 	if (text && text->p_addr)
 		buddy_free_block((void *)text->p_addr);
@@ -146,6 +144,7 @@ bad:
 		buddy_free_block((void *)data->p_addr);
 	if (stack && stack->p_addr)
 		buddy_free_block((void *)stack->p_addr);
+
 	vmm_destroy_user_pd(uspace_pd_phy);
 	return false;
 }
@@ -181,8 +180,7 @@ void userspace_print(const struct task *task)
 	}
 
 	vga_printf("========================================\n");
-	vga_printf(" Userspace layout: '%s' (PID %d, ring %u)\n", task->name ? task->name : "(null)",
-	           task->pid, (unsigned)task->ring);
+	vga_printf(" Userspace layout: '%s' (PID %d, ring %u)\n", task->name, task->pid, task->ring);
 	vga_printf("========================================\n");
 
 	vga_printf("  cr3 (page dir) = %p\n", (void *)task->cr3);

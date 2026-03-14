@@ -96,9 +96,9 @@ enum Page_Directory_Entry {
 
 // Macros
 
-#define GET_PDE_INDEX(vaddr)  (vaddr >> 22)
-#define GET_PTE_INDEX(vaddr)  ((vaddr >> 12) & 0x3FF)
-#define GET_ENTRY_ADDR(entry) ((entry & ~0xFFF))
+#define GET_PDE_INDEX(vaddr)  ((vaddr) >> 22)
+#define GET_PTE_INDEX(vaddr)  (((vaddr) >> 12) & 0x3FF)
+#define GET_ENTRY_ADDR(entry) ((entry) & ~0xFFF)
 
 // STRUCT
 
@@ -125,13 +125,13 @@ void      vmm_destroy_user_pd(uintptr_t pd_phys);
 static inline uintptr_t get_current_page_directory_phys(void)
 {
 	uintptr_t pd_phys;
-	asm volatile("mov %%cr3, %0" : "=r"(pd_phys));
+	__asm__ volatile("mov %%cr3, %0" : "=r"(pd_phys));
 	return pd_phys;
 }
 
 static inline void paging_reload_cr3(uintptr_t pd_phys_addr)
 {
-	asm volatile("mov %0, %%cr3" : : "r"(pd_phys_addr) : "memory");
+	__asm__ volatile("mov %0, %%cr3" : : "r"(pd_phys_addr) : "memory");
 }
 
 static inline void paging_invalid_TLB_addr(uint32_t addr)
@@ -149,13 +149,13 @@ static inline void paging_flush_TLB(void)
 static inline void paging_disable_ro(void)
 {
 	uint32_t cr0;
-	asm volatile("mov %%cr0, %0" : "=r"(cr0));
-	asm volatile("mov %0, %%cr0" ::"r"(cr0 & ~0x10000));
+	__asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
+	__asm__ volatile("mov %0, %%cr0" ::"r"(cr0 & ~0x10000));
 }
 
 static inline void paging_enable_ro(void)
 {
 	uint32_t cr0;
-	asm volatile("mov %%cr0, %0" : "=r"(cr0));
-	asm volatile("mov %0, %%cr0" ::"r"(cr0 | 0x10000));
+	__asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
+	__asm__ volatile("mov %0, %%cr0" ::"r"(cr0 | 0x10000));
 }

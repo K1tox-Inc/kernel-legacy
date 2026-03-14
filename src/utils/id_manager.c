@@ -2,11 +2,11 @@
 #include <memory/memory.h>
 #include <utils/id_manager.h>
 
-t_id_manager *id_manager_create(size_t max_id)
+struct id_manager *id_manager_create(size_t max_id)
 {
 	size_t nb_of_bytes = BITS_TO_BYTES(max_id);
 
-	t_id_manager *ret = kmalloc(sizeof(t_id_manager) + nb_of_bytes, GFP_KERNEL);
+	struct id_manager *ret = kmalloc(sizeof(struct id_manager) + nb_of_bytes, GFP_KERNEL);
 	if (!ret)
 		return NULL;
 
@@ -19,13 +19,13 @@ t_id_manager *id_manager_create(size_t max_id)
 	return ret;
 }
 
-void id_manager_destroy(t_id_manager *mgr)
+void id_manager_destroy(struct id_manager *mgr)
 {
 	if (mgr)
 		kfree(mgr);
 }
 
-ssize_t id_manager_alloc(t_id_manager *mgr)
+ssize_t id_manager_alloc(struct id_manager *mgr)
 {
 	if (!mgr || mgr->next_free == -1)
 		return -1;
@@ -40,7 +40,7 @@ ssize_t id_manager_alloc(t_id_manager *mgr)
 	}
 }
 
-void id_manager_free(t_id_manager *mgr, size_t id)
+void id_manager_free(struct id_manager *mgr, size_t id)
 {
 	if (mgr) {
 		bitmap_unset(&mgr->bitmap, id);
@@ -49,7 +49,7 @@ void id_manager_free(t_id_manager *mgr, size_t id)
 	}
 }
 
-bool id_manager_reserve_id(t_id_manager *mgr, size_t id)
+bool id_manager_reserve_id(struct id_manager *mgr, size_t id)
 {
 	if (!mgr || bitmap_check(&mgr->bitmap, id) || id >= mgr->bitmap.nb_bits)
 		return false;

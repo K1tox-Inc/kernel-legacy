@@ -6,33 +6,29 @@
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
+#include <proc/exec.h>
 
-struct tty *current_tty;
-struct tty  ttys[12];
+struct tty ttys[12], *current_tty = ttys;
 
 static bool ft_strequ(const char *s1, const char *s2);
 static void print_help(void);
 
-void tty_framebuffer_set_screen_mode(enum vga_color mode)
+void tty_framebuffer_set_screen_mode(struct tty *tty, enum vga_color mode)
 {
-	current_tty->mode = mode;
+	tty->mode = mode;
 	for (unsigned long i = 0; i < VGA_WIDTH * TTY_HIST_SIZE; i++)
-		current_tty->framebuffer[i].mode = mode;
+		tty->framebuffer[i].mode = mode;
 }
 
-void tty_framebuffer_switch_color(uint8_t mode)
-{
-	current_tty->mode = mode;
-	tty_framebuffer_set_screen_mode(current_tty->mode);
-}
+static inline void tty_print_prompt(void) { vga_printf("%s", TTY_PROMPT); }
 
-void tty_framebuffer_clear(void)
+void tty_framebuffer_clear(struct tty *tty)
 {
 	for (unsigned long i = 0; i < VGA_WIDTH * TTY_HIST_SIZE; i++)
-		current_tty->framebuffer[i] =
-		    (struct vga_entry){.character = 0x00, .mode = current_tty->mode};
-	current_tty->top_line_index = 0;
-	current_tty->cursor         = (struct s_cursor){0, 1};
+		tty->framebuffer[i] = (struct vga_entry){.character = 0x00, .mode = tty->mode};
+
+	tty->top_line_index = 0;
+	tty->cursor         = (struct s_cursor){0, 0};
 }
 
 void tty_history_enable(void)
@@ -87,104 +83,115 @@ void tty_framebuffer_scroll_down(void)
 	}
 }
 
-void tty_framebuffer_write(char c)
+void tty_framebuffer_write(struct tty *tty, char c)
 {
-	if (!current_tty || !current_tty->framebuffer)
+	if (!tty || !tty->framebuffer)
 		return;
-	if (current_tty->history.status)
+
+	if (tty->history.status)
 		tty_history_disable();
-	uint8_t real_y = (uint8_t)current_tty->top_line_index + (uint8_t)current_tty->cursor.y;
-	int     offset = (real_y * VGA_WIDTH) + current_tty->cursor.x;
-	current_tty->framebuffer[offset] = (struct vga_entry){c, current_tty->mode};
+
+	uint8_t real_y           = (uint8_t)tty->top_line_index + (uint8_t)tty->cursor.y;
+	int     offset           = (real_y * VGA_WIDTH) + tty->cursor.x;
+	tty->framebuffer[offset] = (struct vga_entry){c, tty->mode};
 }
 
-static bool ft_strequ(const char *s1, const char *s2)
+static void tty_current_tty_clear(void) { tty_framebuffer_clear(current_tty); }
+
+static void exec_mok_cafe() { exec_mok("cafe"); }
+
+static inline bool ft_strequ(const char *s1, const char *s2)
 {
-	if (ft_strlen(s1) != ft_strlen(s2))
-		return false;
-	for (int i = 0; s1[i]; i++) {
-		if (s1[i] != s2[i])
-			return false;
-	}
-	return true;
+	return ft_memcmp(s1, s2, ft_strlen(s1)) == 0;
 }
+
+struct shell_command {
+	const char *cmd;
+	const char *descr;
+	void (*func)(void);
+};
+
+struct shell_command shell_commands[] = {{"poweroff", "Power off the system.", shutdown},
+                                         {"reboot", "Reboot the system.", reboot},
+                                         {"halt", "Halt the system.", halt},
+                                         {"clear", "Clear the current tty.", tty_current_tty_clear},
+                                         {"cafe", "Run the mok process: cafe.", exec_mok_cafe},
+                                         {"help", "Print this help message.", print_help}};
+
+#define iter_over_array(p, a)                                                                      \
+	for (p = a; (uintptr_t)p - (uintptr_t)a <= sizeof(a) - sizeof(typeof(*a)); p++)
 
 static void print_help(void)
 {
-	vga_printf("\nUsage: [command] [options]\n\n"
-	           "Available commands:\n"
-	           "  shutdown   Shut down the system\n"
-	           "  poweroff   Shut down the system\n"
-	           "  halt       Halt the system\n"
-	           "  reboot     Reboot the system\n"
-	           "  clear      Clear display\n"
-	           "  azerty     Switch layout to azerty\n"
-	           "  qwerty     Switch layout to qwerty\n"
-	           "  help       Display this help message\n");
+	struct shell_command *cmd;
+	vga_printf("Usage: [command] [options]\n\nAvailable commands:\n");
+	iter_over_array(cmd, shell_commands) { vga_printf("\t%s\t\t%s\n", cmd->cmd, cmd->descr); }
 }
 
 void tty_cli_handle_nl(void)
 {
-	size_t cmd_len = ft_strlen(current_tty->cli);
-	if (ft_strequ(current_tty->cli, "shutdown") || ft_strequ(current_tty->cli, "poweroff")) {
-		shutdown();
-	} else if (ft_strequ(current_tty->cli, "reboot")) {
-		reboot();
-	} else if (ft_strequ(current_tty->cli, "halt")) {
-		halt();
-	} else if (ft_strequ(current_tty->cli, "help")) {
-		print_help();
-	} else if (ft_strequ(current_tty->cli, "clear")) {
-		vga_setup_default_screen();
-		current_tty->cli[0] = 0;
-		return;
-	} else if (ft_strequ(current_tty->cli, "azerty")) {
-		keyboard_switch_layout(AZERTY);
-	} else if (ft_strequ(current_tty->cli, "qwerty")) {
-		keyboard_switch_layout(QWERTY);
-	} else if (cmd_len) {
-		vga_printf("\nk1tOS: command not found: %s", current_tty->cli);
+	void (*func)(void) = NULL;
+
+	vga_printf("\n");
+
+	if (*current_tty->cli) {
+		struct shell_command *cmd;
+		iter_over_array(cmd, shell_commands)
+		{
+			if (ft_strequ(cmd->cmd, current_tty->cli)) {
+				func = cmd->func;
+				break;
+			}
+		}
+
+		func ? func() : vga_printf("k1tOS: command not found: %s\n", current_tty->cli);
+
+		ft_bzero(current_tty->cli, 256);
 	}
 
-	vga_printf("\n%s", TTY_PROMPT);
-	ft_bzero(current_tty->cli, 256);
+	tty_print_prompt();
 }
 
 void tty_init(struct tty *tty)
 {
 	tty->top_line_index        = 0;
-	tty->cursor                = (struct s_cursor){0, 1};
+	tty->cursor                = (struct s_cursor){0, 0};
 	tty->history.status        = false;
 	tty->history.top_line_save = 0;
 	tty->history.stop_scroll   = true;
 	tty->mode                  = VGA_DEFAULT_MODE;
 	tty->framebuffer_size      = (VGA_WIDTH * TTY_HIST_SIZE) * sizeof(struct vga_entry);
 	tty->framebuffer           = NULL;
-	vga_enable_cursor(14, 15);
+
 	ft_bzero(tty->cli, 256);
 }
 
 void ttys_init(void)
 {
-	for (unsigned long i = 0; i < sizeof(ttys) / sizeof(struct tty); i++)
-		tty_init(ttys + i);
-	tty_switch(&ttys[0]);
+	struct tty *tty;
+	iter_over_array(tty, ttys) { tty_init(tty); }
+	tty_load(ttys);
+	vga_enable_cursor(14, 15);
+}
+
+static void tty_framebuffer_init(struct tty *tty)
+{
+	tty->framebuffer = kmalloc(tty->framebuffer_size, (GFP_KERNEL | __GFP_ZERO));
+	if (tty->framebuffer == NULL)
+		kpanic("No space left to init ttys.");
+
+	tty_framebuffer_set_screen_mode(tty, tty->mode);
+	tty_framebuffer_clear(tty);
 }
 
 void tty_load(struct tty *tty)
 {
 	if (tty->framebuffer == NULL) {
-		tty->framebuffer = kmalloc(tty->framebuffer_size, (GFP_KERNEL | __GFP_ZERO));
-		if (tty->framebuffer == NULL)
-			kpanic("No space left to init ttys.");
-		tty_framebuffer_set_screen_mode(tty->mode);
+		tty_framebuffer_init(tty);
 		vga_setup_default_screen();
+		tty_print_prompt();
 	}
-	vga_refresh_screen();
-}
 
-void tty_switch(struct tty *tty)
-{
 	current_tty = tty;
-	tty_load(tty);
+	vga_refresh_screen();
 }

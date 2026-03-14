@@ -21,6 +21,9 @@ docs/
 *.iml
 *.sublime-workspace
 *.sublime-project
+compile_commands.json
+.cache/
+.clangd/
 
 # Ignore OS-specific files
 .DS_Store
@@ -42,3 +45,5 @@ scripts/generated/*
 # Ignore tools directory
 tools/
 _codeql_detected_source_root
+
+generated

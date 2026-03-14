@@ -13,6 +13,9 @@ endif
 BINDIR=$(BUILDDIR)/bin
 ISODIR=$(BUILDDIR)/iso
 
+SCRIPTS_DIR=scripts
+
+
 TOOLSDIR=tools
 
 AS=i686-linux-gnu-as
@@ -56,21 +59,28 @@ $(BINDIR)/%.o: src/%.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 define docker_run
-	docker run --rm -t --user $(shell id -u):$(shell id -g) -v .:/kfs -e IN_DOCKER=1 -e MAKEBUILDTYPE="$(MAKEBUILDTYPE)" $(DOCKERIMAGENAME):$(DOCKERIMAGETAG) $(1)
+	docker run --rm -t -v .:/kfs -e IN_DOCKER=1 -e MAKEBUILDTYPE="$(MAKEBUILDTYPE)" $(DOCKERIMAGENAME):$(DOCKERIMAGETAG) $(1)
 endef
 
 ifeq ($(IN_DOCKER),1)
 
 .PHONY: all
-all: $(BUILDDIR)/boot.iso
+all: gen_systable
+	$(MAKE) $(BUILDDIR)/boot.iso
 
 .PHONY: format
 format:
 	@clang-format --verbose --Werror -i $(shell find ./src ./include ./lib -regex '.*\.\(c\|h\|cpp\|hpp\)')
 
+.PHONY: gen_systable
+gen_systable:
+	python3 $(SCRIPTS_DIR)/generate_table.py
+
 .PHONY: clean
 clean:
 	$(RM) -r $(BUILDDIR)
+	$(RM) -r src/generated
+	$(RM) -r lib/includes/generated
 	@make -C lib/libk clean
 	@make -C lib/data_structs clean
 	@make -C lib/libutils clean

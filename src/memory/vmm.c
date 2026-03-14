@@ -32,16 +32,12 @@ void page_fault_handler(struct trap_frame *frame)
 {
 	uint32_t faulting_address;
 
-	asm volatile("mov %%cr2, %0" : "=r"(faulting_address));
+	__asm__ volatile("mov %%cr2, %0" : "=r"(faulting_address));
 
 	vga_printf("Faulting address: 0x%x\n", faulting_address);
 	vga_printf("Error code: 0x%x\n", frame->err_code);
+	vga_printf("Cause: %s\n", (frame->err_code & 1) ? "Protection violation" : "Page not present");
 
-	if (frame->err_code & 0x1) {
-		vga_printf("Cause: Protection violation\n");
-	} else {
-		vga_printf("Cause: Page not present\n");
-	}
 	kpanic("Page fault");
 }
 
@@ -76,6 +72,7 @@ void vmm_finalize(void)
 			current_pt_ptr[j] = p_addr | PTE_PRESENT_BIT | PTE_RW_BIT;
 		}
 	}
+
 	kpage_dir = page_dir_phys;
 	paging_reload_cr3(page_dir_phys);
 }
@@ -89,28 +86,32 @@ bool vmm_map_page(uintptr_t page_dir_phys, uintptr_t v_addr, uintptr_t p_addr, u
 	uint32_t  pde     = pd_virt[pde_idx];
 
 	uint32_t *pt_virt;
+	uintptr_t pt_phys;
 	bool      needs_cr3_reload = false;
 
 	if (!(pde & PDE_PRESENT_BIT)) {
-		uintptr_t pt_phys = (uintptr_t)buddy_alloc_pages(PAGE_SIZE, LOWMEM_ZONE);
+		pt_phys = (uintptr_t)buddy_alloc_pages(PAGE_SIZE, LOWMEM_ZONE);
 		if (!pt_phys)
 			return false;
 
 		pt_virt = (uint32_t *)PHYS_TO_VIRT_LINEAR(pt_phys);
 		ft_bzero(pt_virt, PAGE_SIZE);
 
-		pd_virt[pde_idx] = pt_phys | PDE_PRESENT_BIT | PDE_RW_BIT;
-		if (flags & PDE_US_BIT)
-			pd_virt[pde_idx] |= PDE_US_BIT;
+		pd_virt[pde_idx] = pt_phys | PDE_PRESENT_BIT | PDE_RW_BIT | (flags & PDE_US_BIT);
+
 		needs_cr3_reload = true;
-	} else {
+	}
+
+	else {
 		if ((flags & PDE_US_BIT) && !(pde & PDE_US_BIT)) {
 			pd_virt[pde_idx] |= PDE_US_BIT;
 			needs_cr3_reload = true;
 		}
-		uintptr_t pt_phys = GET_ENTRY_ADDR(pde);
-		pt_virt           = (uint32_t *)PHYS_TO_VIRT_LINEAR(pt_phys);
+
+		pt_phys = GET_ENTRY_ADDR(pde);
+		pt_virt = (uint32_t *)PHYS_TO_VIRT_LINEAR(pt_phys);
 	}
+
 	pt_virt[pte_idx] = p_addr | flags;
 
 	uintptr_t current_pd = get_current_page_directory_phys();
