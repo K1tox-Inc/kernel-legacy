@@ -7,6 +7,7 @@
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/memory.h>
+#include <syscall/syscall.h>
 #include <types.h>
 
 struct idt_entry {
@@ -31,8 +32,6 @@ enum IDTTypeAttributes {
 
 	PresentBit = 0x01 << 7
 };
-
-typedef void (*syscallHandler)(struct trap_frame *frame);
 
 #define IDT_SIZE        256
 #define IDT_ENTRY(indx) (idt_entries + (indx))
@@ -110,16 +109,13 @@ extern void irq_47(void);
 // [...]
 extern void irq_128(void);
 
-extern void syscall_dispatcher(struct trap_frame *frame);
-
 struct idt_entry idt_entries[IDT_SIZE];
 struct idtr      idtr = {.limit = sizeof(struct idt_entry) * IDT_SIZE - 1,
                          .base  = (uintptr_t)&idt_entries};
 
 irqHandler interrupt_handlers[256] = {
-    [0x80] = syscall_dispatcher,
+    [SYS_INT] = do_syscall,
 };
-
 syscallHandler syscall_handlers[256] = {};
 
 const char *interrupt_names[] = {"Divide Error",
@@ -259,7 +255,7 @@ void idt_init(void)
 	idt_set_entry(IDT_ENTRY(0x2e), 0x08, PresentBit | IntGate_32 | CPU_Ring0, (uint32_t)irq_46);
 	idt_set_entry(IDT_ENTRY(0x2f), 0x08, PresentBit | IntGate_32 | CPU_Ring0, (uint32_t)irq_47);
 	// [...]
-	idt_set_entry(IDT_ENTRY(0x80), 0x08, PresentBit | IntGate_32 | CPU_Ring0, (uint32_t)irq_128);
+	idt_set_entry(IDT_ENTRY(0x80), 0x08, PresentBit | IntGate_32 | CPU_Ring3, (uint32_t)irq_128);
 
 	__asm__ volatile("lidt %0; sti" : : "m"(idtr));
 }

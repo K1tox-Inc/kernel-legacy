@@ -13,6 +13,10 @@
 # --- USER : CAFEBABE ---
 .align 4
 user_cafe_start:
+    mov $0, %eax
+    mov $0x41, %ebx
+    int $0x80
+    
     mov $0xCAFEBABE, %eax
 1:
     jmp 1b

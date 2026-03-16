@@ -13,6 +13,8 @@ endif
 BINDIR=$(BUILDDIR)/bin
 ISODIR=$(BUILDDIR)/iso
 
+SCRIPTS_DIR=scripts
+
 TOOLSDIR=tools
 
 AS=i686-linux-gnu-as
@@ -45,7 +47,8 @@ QEMUFLAGS=-m 4G -smp 4 -cpu host -enable-kvm -net nic -net user -s -daemonize
 DOCKERIMAGENAME=noalexan/cross-compiler
 DOCKERIMAGETAG=ubuntu
 
-OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\(\.c\|\.cpp\|\.s\)' | sed 's/\(\.c\|\.cpp\|\.s\)/.o/g'))
+OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\(\.c\|\.cpp\|\.s\)' -not -path "src/generated/*" | sed 's/\(\.c\|\.cpp\|\.s\)/.o/g'))
+OBJ+=$(BINDIR)/generated/syscall_table.o
 
 $(BINDIR)/%.o: src/%.s
 	@mkdir -pv $(@D)
@@ -66,11 +69,17 @@ all: $(BUILDDIR)/boot.iso
 
 .PHONY: format
 format:
-	@clang-format --verbose --Werror -i $(shell find ./src ./include ./lib -regex '.*\.\(c\|h\|cpp\|hpp\)')
+	@clang-format --verbose --Werror -i $(shell find src include -regex '.*\.\(c\|h\|cpp\|hpp\)' -not \( -path 'src/generated/*' -o -path 'include/generated/*' \))
+
+.PHONY: gen_systable
+gen_systable:
+	python3 $(SCRIPTS_DIR)/generate_table.py
 
 .PHONY: clean
 clean:
 	$(RM) -r $(BUILDDIR)
+	$(RM) -r src/generated
+	$(RM) -r include/generated
 	@make -C lib/libk clean
 	@make -C lib/data_structs clean
 	@make -C lib/libutils clean
@@ -83,7 +92,7 @@ $(ISODIR)/boot/grub/grub.cfg: grub.cfg
 	@mkdir -pv $(@D)
 	cp grub.cfg $@
 
-$(ISODIR)/boot/kernel: $(OBJ) linker.ld | libs
+$(ISODIR)/boot/kernel: gen_systable $(OBJ) linker.ld | libs
 	@mkdir -pv $(@D)
 	$(LD) -T linker.ld $(LDFLAGS) -o $@ $(OBJ) $(LDLIBS)
 
