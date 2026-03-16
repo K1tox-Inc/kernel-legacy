@@ -44,3 +44,4 @@ tools/
 _codeql_detected_source_root
 
 generated
+include/uapi/syscall.h

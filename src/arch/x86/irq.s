@@ -2,21 +2,9 @@
 .code32
 
 .section .text
-	.global syscall_dispatcher
 	.global interrupt_dispatcher
 	.extern syscall_handlers
 	.extern interrupt_handlers
-
-syscall_dispatcher:
-	mov eax, [esp+4]
-	mov eax, [eax+44]
-	shl eax, 2
-	mov eax, [syscall_handlers+eax]
-	test eax, eax
-	jz .no_sys_handler
-	jmp eax
-.no_sys_handler:
-	ret
 
 interrupt_dispatcher:
 	mov eax, [esp+4]

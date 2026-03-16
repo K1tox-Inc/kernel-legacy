@@ -109,8 +109,6 @@ extern void irq_47(void);
 // [...]
 extern void irq_128(void);
 
-extern void syscall_dispatcher(struct trap_frame *frame);
-
 struct idt_entry idt_entries[IDT_SIZE];
 struct idtr      idtr = {.limit = sizeof(struct idt_entry) * IDT_SIZE - 1,
                          .base  = (uintptr_t)&idt_entries};
@@ -118,7 +116,6 @@ struct idtr      idtr = {.limit = sizeof(struct idt_entry) * IDT_SIZE - 1,
 irqHandler interrupt_handlers[256] = {
     [SYS_INT] = do_syscall,
 };
-
 syscallHandler syscall_handlers[256] = {};
 
 const char *interrupt_names[] = {"Divide Error",
