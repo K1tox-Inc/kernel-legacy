@@ -20,17 +20,17 @@ SYSCALL_DEFINE0(fork)
 
 	task_append_child(current, new);
 
-	uint32_t *current_pde = PHYS_TO_VIRT_LINEAR((uint32_t *)current->cr3);
-	uint32_t *new_pde     = PHYS_TO_VIRT_LINEAR((uint32_t *)new->cr3);
+	uint32_t *current_pde = PHYS_TO_VIRT_LINEAR(current->cr3);
+	uint32_t *new_pde     = PHYS_TO_VIRT_LINEAR(new->cr3);
 
 	for (int i = 0; i < 1024; i++, current_pde++, new_pde++) {
 		if ((*current_pde & PDE_PRESENT_BIT) == 0)
 			continue;
 
-		*new_pde = (*new_pde & ~0xFFF) | (*current_pde & 0xFFF);
+		*new_pde = GET_ENTRY_ADDR(*new_pde) | (*current_pde & ENTRY_FLAGS_MASK);
 
-		uint32_t *current_pte = PHYS_TO_VIRT_LINEAR((uint32_t *)(*current_pde & ~0xFFF));
-		uint32_t *new_pte     = PHYS_TO_VIRT_LINEAR((uint32_t *)(*new_pde & ~0xFFF));
+		uint32_t *current_pte = PHYS_TO_VIRT_LINEAR(GET_ENTRY_ADDR(*current_pde));
+		uint32_t *new_pte     = PHYS_TO_VIRT_LINEAR(GET_ENTRY_ADDR(*new_pde));
 
 		for (int j = 0; j < 1024; j++, current_pte++, new_pte++) {
 			if ((*current_pte & PTE_PRESENT_BIT) == 0)
