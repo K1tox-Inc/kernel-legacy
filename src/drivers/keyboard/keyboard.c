@@ -198,7 +198,7 @@ void keyboard_switch_layout(enum layout new_layout)
 	switch (new_layout) {
 	case QWERTY:
 		log("Switching layout to QWERTY.");
-		keyboard_remap_layout(default_key_table, 256);
+		keyboard_remap_layout(default_key_table, KEY_MAX);
 		break;
 
 	case AZERTY:

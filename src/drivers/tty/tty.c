@@ -10,8 +10,18 @@
 
 struct tty ttys[12], *current_tty = ttys;
 
-static bool ft_strequ(const char *s1, const char *s2);
 static void print_help(void);
+
+static inline bool ft_strequ(const char *s1, const char *s2)
+{
+	size_t len1 = ft_strlen(s1);
+	size_t len2 = ft_strlen(s2);
+
+	if (len1 != len2)
+		return false;
+
+	return ft_memcmp(s1, s2, len1 + 1) == 0;
+}
 
 void tty_framebuffer_set_screen_mode(struct tty *tty, enum vga_color mode)
 {
@@ -99,18 +109,6 @@ void tty_framebuffer_write(struct tty *tty, char c)
 static void tty_current_tty_clear(void) { tty_framebuffer_clear(current_tty); }
 
 static void exec_mok_cafe() { exec_mok("cafe"); }
-
-static inline bool ft_strequ(const char *s1, const char *s2)
-{
-	size_t len1 = ft_strlen(s1);
-	size_t len2 = ft_strlen(s2);
-
-	if (len1 != len2)
-		return false;
-
-	/* Compare including the terminating NUL to ensure full equality */
-	return ft_memcmp(s1, s2, len1 + 1) == 0;
-}
 
 struct shell_command {
 	const char *cmd;

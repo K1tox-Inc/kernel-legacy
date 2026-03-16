@@ -7,7 +7,7 @@ SYSCALL_DEFINE3(write, int, fd, const char *, str, size_t, size)
 {
 	(void)fd;
 
-	char *dup = kmalloc(size, __GFP_KERNEL);
+	char *dup = kmalloc(size + 1, __GFP_KERNEL);
 	ft_memcpy(dup, str, size);
 	dup[size] = 0;
 
