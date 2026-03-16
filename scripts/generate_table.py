@@ -7,7 +7,7 @@ project_root = os.path.dirname(script_dir)
 syscall_dir     = os.path.join(project_root, "src", "syscalls")
 tbl_path        = os.path.join(syscall_dir, "syscall.tbl")
 kernel_generated = os.path.join(project_root, "src", "generated")
-user_headers    = os.path.join(project_root, "lib", "includes", "generated")
+user_headers    = os.path.join(project_root, "include", "uapi")
 
 def main():
     try:
@@ -45,8 +45,8 @@ def main():
              open(f"{user_headers}/syscalls.h", "w") as sys_user_header:
 
             sys_table.write("/* auto-generated FILE - do not edit */\n\n")
-            sys_table.write("#include <arch/trap_frame.h> \n")
-            sys_table.write("#include <syscalls/syscalls.h> \n\n")
+            sys_table.write("#include <arch/trap_frame.h>\n")
+            sys_table.write("#include <syscalls/syscalls.h>\n\n")
 
             for syscall_id in sorted(syscalls.keys()):
                 sys_entry = syscalls[syscall_id]['sys_entry']
@@ -58,10 +58,10 @@ def main():
             sys_user_header.write("#pragma once\n\n")
 
             for syscall_id in sorted(syscalls.keys()):
-                sys_entry = syscalls[syscall_id]['sys_entry']
-                sys_user_header.write(f"#define {sys_entry} {syscall_id}\n")
+                sys_name = syscalls[syscall_id]['name']
+                sys_user_header.write(f"#define __NR_{sys_name} {syscall_id}\n")
 
-            sys_table.write("const syscallHandler syscall_table[MAX_SYSCALL + 1] = {\n")
+            sys_table.write("const syscallHandler syscall_table[MAX_SYSCALL] = {\n")
 
             for syscall_id in sorted(syscalls.keys()):
                 sys_entry = syscalls[syscall_id]['sys_entry']

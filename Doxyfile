@@ -6,10 +6,9 @@ PROJECT_BRIEF          = "A custom kernel and filesystem implementation with mem
 OUTPUT_DIRECTORY       = docs
 
 # Input
-INPUT                  = src include doc/
+INPUT                  = src include
 FILE_PATTERNS          = *.c *.cpp *.h *.hpp *.md
 RECURSIVE              = YES
-USE_MDFILE_AS_MAINPAGE = doc/Roadmap.md
 
 # Output formats
 GENERATE_HTML          = YES
