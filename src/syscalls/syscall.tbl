@@ -1,2 +1,4 @@
-2 fork sys_fork
-4 write sys_write
+2       fork    sys_fork
+4       write   sys_write
+39      getpid  sys_getpid
+102 	getuid  sys_getuid
