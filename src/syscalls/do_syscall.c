@@ -1,4 +1,4 @@
-#include <syscall/syscall.h>
+#include <syscalls/syscalls.h>
 #include <utils/error.h>
 
 void do_syscall(struct trap_frame *tf)
@@ -13,6 +13,7 @@ void do_syscall(struct trap_frame *tf)
 	syscallHandler handler = syscall_table[sys_id];
 	if (!handler)
 		goto bad;
+
 	tf->regs.eax = handler(tf->regs.ebx, tf->regs.ecx, tf->regs.edx, tf->regs.esi, tf->regs.edi);
 	return;
 

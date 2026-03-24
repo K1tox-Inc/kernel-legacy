@@ -56,7 +56,7 @@ static inline bool order_is_valid(int order) { return order >= 0 && order <= MAX
 
 static inline uintptr_t *page_node_to_phys(struct list_head *page_node)
 {
-	return (uintptr_t *)page_to_phys(container_of(page_node, struct page, node));
+	return (uintptr_t *)page_to_phys(list_entry(page_node, struct page, node));
 }
 
 static inline struct list_head *order_to_free_list(size_t order, enum zone_type zone)
@@ -87,14 +87,6 @@ static size_t size_to_order(size_t size)
 			return order;
 	}
 	return BAD_ORDER;
-}
-
-static void pop_node(struct list_head *node)
-{
-	node->prev->next = node->next;
-	node->next->prev = node->prev;
-	node->next       = NULL;
-	node->prev       = NULL;
 }
 
 static uintptr_t *pop_first_block(size_t order, enum zone_type zone)
@@ -409,8 +401,8 @@ static void debug_buddy_check_lost_pages(void)
 {
 	size_t         lost        = 0;
 	size_t         total_buddy = 0;
-	size_t         free_count  = boot_allocator_get_region_count(FREE_MEMORY);
-	struct region *free_reg    = boot_allocator_get_region(FREE_MEMORY);
+	size_t         free_count  = boot_allocator_get_regions_count(FREE_MEMORY);
+	struct region *free_reg    = boot_allocator_get_regions(FREE_MEMORY);
 
 	for (uint32_t i = 0; i < total_pages; i++) {
 		if (PAGE_IS_FREE(&page_descriptors[i])) {

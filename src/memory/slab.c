@@ -12,6 +12,8 @@
 // INCLUDES
 // ============================================================================
 
+#include <list.h>
+
 // ============================================================================
 // DEFINE AND MACRO
 // ============================================================================
@@ -19,14 +21,9 @@
 // Defines
 
 // Macros
+
 #define SLAB_INTRUSIVE_THRESHOLD 512
-#define INIT_SENTINEL(name, ptr)                                                                   \
-	do {                                                                                           \
-		struct list_head *name = ptr;                                                              \
-		name->next             = name;                                                             \
-		name->prev             = name;                                                             \
-	} while (0)
-#define SLAB_IS_EXTERNAL(size) ((size) > SLAB_INTRUSIVE_THRESHOLD)
+#define SLAB_IS_EXTERNAL(size)   ((size) > SLAB_INTRUSIVE_THRESHOLD)
 
 // ============================================================================
 // STRUCT
@@ -63,41 +60,6 @@ static struct slab_cache slab_caches[MAX_ZONE][NUM_SLAB_CACHES];
 // ============================================================================
 
 static size_t slab_print_zone_summary(enum zone_type zone);
-static size_t list_count_nodes(struct list_head *head);
-
-static void list_add_head(struct list_head *new_node, struct list_head *head)
-{
-	struct list_head *old_next = head->next;
-
-	new_node->next = old_next;
-	new_node->prev = head;
-	old_next->prev = new_node;
-	head->next     = new_node;
-}
-
-static bool list_is_empty(struct list_head *lst)
-{
-	if (!lst)
-		return true;
-	else if (lst == lst->next)
-		return true;
-	return false;
-}
-
-static void pop_node(struct list_head *node)
-{
-	node->prev->next = node->next;
-	node->next->prev = node->prev;
-	node->next       = NULL;
-	node->prev       = NULL;
-}
-
-static struct list_head *list_first_entry(struct list_head *lst)
-{
-	if (!list_is_empty(lst))
-		return lst->next;
-	return NULL;
-}
 
 static cache_size size_to_cache_size(size_t size)
 {
@@ -184,23 +146,29 @@ void slab_shrink_caches(enum zone_type zone)
 {
 	for (size_t i = 0; i < NUM_SLAB_CACHES; i++) {
 		struct slab_cache *cache = &slab_caches[zone][i];
+
 		if (cache->slabs_empty.next == &cache->slabs_empty)
 			continue;
+
 		struct list_head *head       = &cache->slabs_empty;
 		struct list_head *empty_list = head->next;
+
 		while (empty_list != head) {
 			struct list_head *next = empty_list->next;
-			struct slab      *slab = container_of(empty_list, struct slab, list);
+			struct slab      *slab = list_entry(empty_list, struct slab, list);
 
 			void *phys_addr_in_page =
 			    (void *)(SLAB_IS_EXTERNAL(cache->object_size) ? VIRT_TO_PHYS_LINEAR(slab->freelist)
 			                                                  : VIRT_TO_PHYS_LINEAR(slab));
+
 			struct page *page = page_addr_to_page((uintptr_t)phys_addr_in_page);
 			PAGE_SET_STATE(page, PAGE_STATE_ALLOCATED);
 			page->private_data = 0;
 			buddy_free_block((void *)page_to_phys(page));
+
 			if (SLAB_IS_EXTERNAL(cache->object_size))
 				kfree(slab);
+
 			empty_list = next;
 		}
 	}
@@ -209,8 +177,10 @@ void slab_shrink_caches(enum zone_type zone)
 void slab_free(void *ptr)
 {
 	struct page *page = page_addr_to_page((uintptr_t)VIRT_TO_PHYS_LINEAR(ptr));
+
 	if (PAGE_GET_STATE(page) != PAGE_STATE_SLAB)
 		kpanic("Error: %s: try to free memory not handled by slab.\n", __func__);
+
 	struct slab       *slab  = (struct slab *)page->private_data;
 	struct slab_cache *cache = slab->parent_cache;
 
@@ -218,10 +188,13 @@ void slab_free(void *ptr)
 	*(void **)obj  = slab->freelist;
 	slab->freelist = obj;
 	slab->inuse--;
+
 	if (slab->inuse == cache->objects_per_slab - 1) {
 		pop_node(&slab->list);
 		list_add_head(&slab->list, &cache->slabs_partial);
-	} else if (slab->inuse == 0) {
+	}
+
+	else if (slab->inuse == 0) {
 		pop_node(&slab->list);
 		list_add_head(&slab->list, &cache->slabs_empty);
 	}
@@ -238,9 +211,9 @@ void *slab_alloc(size_t size, enum zone_type zone)
 	struct slab       *slab;
 
 	if (!list_is_empty(&cache->slabs_partial))
-		slab = container_of(list_first_entry(&cache->slabs_partial), struct slab, list);
+		slab = list_first_entry(&cache->slabs_partial, struct slab, list);
 	else if (!list_is_empty(&cache->slabs_empty)) {
-		slab = container_of(list_first_entry(&cache->slabs_empty), struct slab, list);
+		slab = list_first_entry(&cache->slabs_empty, struct slab, list);
 		pop_node(&slab->list);
 		list_add_head(&slab->list, &cache->slabs_partial);
 	} else {
@@ -266,9 +239,9 @@ void slab_init(void)
 {
 	for (size_t zone = 0; zone < MAX_ZONE; zone++) {
 		for (int i = 0; i < NUM_SLAB_CACHES; i++) {
-			INIT_SENTINEL(full, &slab_caches[zone][i].slabs_full);
-			INIT_SENTINEL(partial, &slab_caches[zone][i].slabs_partial);
-			INIT_SENTINEL(empty, &slab_caches[zone][i].slabs_empty);
+			INIT_SENTINEL(&slab_caches[zone][i].slabs_full);
+			INIT_SENTINEL(&slab_caches[zone][i].slabs_partial);
+			INIT_SENTINEL(&slab_caches[zone][i].slabs_empty);
 			slab_caches[zone][i].object_size = cache_sizes[i];
 			slab_caches[zone][i].objects_per_slab =
 			    (SLAB_IS_EXTERNAL(cache_sizes[i]) ? PAGE_SIZE : PAGE_SIZE - sizeof(struct slab)) /
@@ -344,7 +317,7 @@ static size_t slab_print_zone_summary(enum zone_type zone)
 		struct list_head *iter;
 		total_inuse += full_slabs * cache->objects_per_slab;
 		for (iter = cache->slabs_partial.next; iter != &cache->slabs_partial; iter = iter->next) {
-			struct slab *s = container_of(iter, struct slab, list);
+			struct slab *s = list_entry(iter, struct slab, list);
 			total_inuse += s->inuse;
 		}
 

@@ -6,8 +6,9 @@
 #include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
+#include <memory/kmalloc.h>
 #include <memory/memory.h>
-#include <syscall/syscall.h>
+#include <syscalls/syscalls.h>
 #include <types.h>
 
 struct idt_entry {

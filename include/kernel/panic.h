@@ -8,7 +8,7 @@
 #define kpanic(msg, ...)                                                                           \
 	do {                                                                                           \
 		lock_irq();                                                                                \
-		tty_framebuffer_set_screen_mode(VGA_COLOR(VGA_COLOR_RED, VGA_COLOR_WHITE));                \
+		tty_framebuffer_set_screen_mode(current_tty, VGA_COLOR(VGA_COLOR_RED, VGA_COLOR_WHITE));   \
 		vga_disable_cursor();                                                                      \
 		vga_printf("\n------------------------------------\n");                                    \
 		print_stack_frame();                                                                       \
@@ -18,5 +18,4 @@
 		halt();                                                                                    \
 	} while (0)
 
-void __assert_fail(const char *expr, const char *file, size_t line);
 void print_stack_frame(void);

@@ -21,8 +21,4 @@ typedef int pid_t;
 typedef int uid_t;
 typedef int gid_t;
 
-struct list_head {
-	struct list_head *next, *prev;
-};
-
 #endif

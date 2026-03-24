@@ -1,5 +1,6 @@
 #pragma once
 
+#include <list.h>
 #include <proc/section.h>
 #include <proc/signal.h>
 #include <types.h>
@@ -36,12 +37,12 @@ struct task {
 	struct section *heap_sec;
 
 	/* Scheduling */
-	struct task        *next; // Used for "Round Robin"
-	struct task        *prev;
+	struct task        *next, *prev; // Used for "Round Robin"
 	enum process_states state;
 
 	/* Signals */
 	struct signal_queue signals;
+
 	/* Info */
 	char  *name;
 	size_t ring;
@@ -57,5 +58,9 @@ static inline struct section *task_stack(struct task *new_task) { return new_tas
 
 void         task_print_info(const struct task *task);
 void         task_print_stack(const struct task *task);
-struct task *task_get_new(char *name, bool userspace, struct section *text, struct section *data);
+void         task_append_child(struct task *parent, struct task *child);
+struct task *task_get_current_task(void);
 void         task_init_idle(void);
+
+struct task *task_get_new(const char *name, bool userspace, struct section *text,
+                          struct section *data);

@@ -1,4 +1,4 @@
-#include <arch/x86.h>
+#include <arch/x86.h> // Should be removed or conditional preprocessing
 #include <drivers/vga.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
@@ -6,6 +6,7 @@
 #include <proc/section.h>
 #include <proc/userspace.h>
 #include <utils/error.h>
+#include <utils/kmacro.h>
 
 static void flush_registers(uint32_t **kstack, size_t it)
 {
@@ -13,28 +14,33 @@ static void flush_registers(uint32_t **kstack, size_t it)
 		*(--(*kstack)) = 0;
 }
 
-void hello_kproc(void) { vga_printf("Hello from our Kernel process !"); }
-
-// look here for futur wiki https://wiki.osdev.org/Getting_to_Ring_3
-// carefull here the kstack must be fully zeroed
+// Look here for futur wiki https://wiki.osdev.org/Getting_to_Ring_3
+// Carefull here the kstack must be fully zeroed
 void exec_task(struct task *task, bool userspace)
 {
+	uint32_t *kstack;
+	uintptr_t code_start;
+
 	if (!task || !task->text_sec || !task->stack_sec)
 		return;
-	uint32_t *kstack = (uint32_t *)task->kernel_stack_base;
-	uintptr_t code_start;
+
+	kstack = (uint32_t *)task->kernel_stack_base;
 
 	if (userspace) {
 		code_start          = (uintptr_t)task->text_sec->v_addr;
 		uintptr_t stack_top = task->stack_sec->v_addr + task->stack_sec->mapping_size;
-		// those value are the only ones restored by iret
+
+		// Those value are the only ones restored by iret
 		*(--kstack) = USER_DS;             // Stack segment
 		*(--kstack) = stack_top;           // ESP
 		*(--kstack) = EFLAGS_USER_DEFAULT; // Eflags
 		*(--kstack) = USER_CS;             // CS
 		*(--kstack) = code_start;          // EIP
+
 		flush_registers(&kstack, 4);
-	} else {
+	}
+
+	else {
 		code_start  = (uintptr_t)task->text_sec->data_start;
 		*(--kstack) = code_start;
 		flush_registers(&kstack, 4);
@@ -48,11 +54,11 @@ void exec_task(struct task *task, bool userspace)
 		task_launcher(task);
 }
 
-int exec_fn(void *fn_start, size_t fn_size, char *fn_name, bool userspace)
+int exec_fn(void *fn_start, size_t fn_size, const char *fn_name, bool userspace)
 {
 	struct section text;
 
-	// vaddr and flags are overwritten after by userspace_get_new
+	// `vaddr` and `flags` are overwritten after by `userspace_get_new`
 	if (!section_init_from_buffer(&text, 0, fn_start, fn_size, 0))
 		return -EFAULT;
 
@@ -67,9 +73,11 @@ int exec_fn(void *fn_start, size_t fn_size, char *fn_name, bool userspace)
 //////////////////////////////////////////////
 // Mok need to be delete when we got an elf loader + fs (ps: sa me degoute)
 
+#define iter_over_array(p, a)                                                                      \
+	for (p = a; (uintptr_t)p - (uintptr_t)a <= sizeof(a) - sizeof(typeof(*a)); p++)
+
 extern char user_cafe_start[], user_cafe_end[];
 extern char user_dead_start[], user_dead_end[];
-extern char kernel_task_start[], kernel_task_end[];
 
 struct exec_fn_mok {
 	const char *name;
@@ -78,25 +86,39 @@ struct exec_fn_mok {
 	bool        is_user;
 };
 
-struct exec_fn_mok mok_registry[] = {{"cafe", user_cafe_start, user_cafe_end, true},
-                                     {"dead", user_dead_start, user_dead_end, true},
-                                     {"hello", kernel_task_start, kernel_task_end, false},
-                                     {NULL, NULL, NULL, false}};
+const struct exec_fn_mok mok_registry[] = {
+    {"cafe", user_cafe_start, user_cafe_end, true},
+    {"dead", user_dead_start, user_dead_end, true},
+};
+
+static inline bool ft_strequ(const char *s1, const char *s2)
+{
+	size_t len1 = ft_strlen(s1);
+	size_t len2 = ft_strlen(s2);
+
+	if (len1 != len2)
+		return false;
+
+	return ft_memcmp(s1, s2, len1 + 1) == 0;
+}
 
 int exec_mok(const char *name)
 {
+	const struct exec_fn_mok *ptr;
+
 	if (!name)
 		return -EINVAL;
-	size_t name_len = ft_strlen(name);
-	for (int i = 0; mok_registry[i].name != NULL; i++) {
-		size_t reg_name_len = ft_strlen(mok_registry[i].name);
-		if (reg_name_len == name_len && !ft_memcmp(mok_registry[i].name, name, name_len)) {
-			size_t fn_size = (uintptr_t)mok_registry[i].end - (uintptr_t)mok_registry[i].start;
-			if (i < 2)
-				vga_printf("Use Ctrl + Alt + 2 for monitor qemu + info register :)\n");
-			return exec_fn(mok_registry[i].start, fn_size, (char *)mok_registry[i].name,
-			               mok_registry[i].is_user);
+
+	iter_over_array(ptr, mok_registry)
+	{
+		if (ft_strequ(ptr->name, name)) {
+			log("Executing `%s` in %s space...", name, ptr->is_user ? "user" : "kernel");
+			size_t fn_size = (uintptr_t)ptr->end - (uintptr_t)ptr->start;
+			return dbg(exec_fn(ptr->start, fn_size, name, ptr->is_user));
 		}
 	}
+
+	log("No mok named `%s` found.", name);
+
 	return -ENOENT;
 }
