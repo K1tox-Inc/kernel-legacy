@@ -17,8 +17,6 @@
 // DEFINE AND MACRO
 // ============================================================================
 
-#define INIT_SENTINEL(ptr) (*(ptr) = (struct list_head){.next = ptr, .prev = ptr})
-
 static struct id_manager *pid_manager  = NULL;
 struct task              *current_task = NULL;
 

@@ -8,6 +8,8 @@ struct list_head {
 	struct list_head *next, *prev;
 };
 
+#define INIT_SENTINEL(ptr) (*(ptr) = (struct list_head){.next = ptr, .prev = ptr})
+
 #define list_is_empty(head) (!(head) || (head) == (head)->next)
 
 #define list_entry(ptr, type, member) container_of(ptr, type, member)
