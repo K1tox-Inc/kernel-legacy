@@ -60,17 +60,14 @@ static bool map_section(uintptr_t uspace_pd_phy, struct section *to_map)
 	for (size_t i = 0; i < pt_count; i++) {
 		uintptr_t v_addr = to_map->v_addr + (i * PAGE_SIZE);
 		uintptr_t p_addr = p_pool_addr + (i * PAGE_SIZE);
-		kmap_window      = vmm_kmap(p_addr);
-		if (!kmap_window)
-			goto bad;
-		if (!vmm_map_page(uspace_pd_phy, v_addr, p_addr, to_map->flags))
+
+		kmap_window = vmm_kmap(p_addr);
+		if (!kmap_window || !vmm_map_page(uspace_pd_phy, v_addr, p_addr, to_map->flags))
 			goto bad;
 
 		ft_bzero(kmap_window, PAGE_SIZE);
-		if (stream) {
-			if (io_read(stream, kmap_window, PAGE_SIZE) < 0)
-				goto bad;
-		}
+		if (stream && io_read(stream, kmap_window, PAGE_SIZE) < 0)
+			goto bad;
 	}
 	to_map->p_addr = p_pool_addr;
 	io_close(stream);

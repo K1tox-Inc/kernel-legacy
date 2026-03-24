@@ -4,6 +4,7 @@
 .section .text
 	.global interrupt_dispatcher
 	.extern interrupt_handlers
+	.global interrupt_exit
 
 interrupt_dispatcher:
 	mov eax, [esp+4]
@@ -48,6 +49,7 @@ interrupt_routine:
 	call interrupt_dispatcher
 	add esp, 4
 
+interrupt_exit:
 	pop eax
 	mov gs, ax
 	pop eax
