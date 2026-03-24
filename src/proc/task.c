@@ -19,6 +19,7 @@
 
 static struct id_manager *pid_manager  = NULL;
 struct task              *current_task = NULL;
+struct task              *idle_task    = NULL;
 
 __attribute__((constructor)) static void init_pid_manager(void)
 {
@@ -64,7 +65,8 @@ static void cpu_idle_loop(void)
 // EXTERNAL APIs
 // ============================================================================
 
-struct task *task_get_current_task(void) { return current_task; }
+const struct task *task_get_current_task(void) { return current_task; }
+void               task_set_current_task(struct task *src) { current_task = src; }
 
 void task_append_child(struct task *parent, struct task *child)
 {
@@ -174,7 +176,7 @@ free_task:
 
 void task_init_idle(void)
 {
-	struct task *idle_task = task_get_new("Idle", false, NULL, NULL);
+	idle_task = task_get_new("Idle", false, NULL, NULL);
 	if (!idle_task)
 		kpanic("Failed to init Idle :(\n");
 

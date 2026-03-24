@@ -47,6 +47,7 @@ void exec_task(struct task *task, bool userspace)
 	}
 
 	task->esp = (uintptr_t)kstack;
+	task_set_current_task(task);
 
 	if (userspace)
 		task_user_launcher(task);

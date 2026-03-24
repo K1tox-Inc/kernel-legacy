@@ -56,11 +56,12 @@ static inline struct section *task_data(struct task *new_task) { return new_task
 static inline struct section *task_heap(struct task *new_task) { return new_task->heap_sec; }
 static inline struct section *task_stack(struct task *new_task) { return new_task->stack_sec; }
 
-void         task_print_info(const struct task *task);
-void         task_print_stack(const struct task *task);
-void         task_append_child(struct task *parent, struct task *child);
-struct task *task_get_current_task(void);
-void         task_init_idle(void);
+void               task_print_info(const struct task *task);
+void               task_print_stack(const struct task *task);
+void               task_append_child(struct task *parent, struct task *child);
+void               task_init_idle(void);
+void               task_set_current_task(struct task *src);
+const struct task *task_get_current_task(void);
 
 struct task *task_get_new(const char *name, bool userspace, struct section *text,
                           struct section *data);
