@@ -4,6 +4,7 @@
 
 #include <kernel/panic.h>
 #include <libk.h>
+#include <list.h>
 #include <memory/buddy.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
@@ -20,13 +21,6 @@
 #define MIN_VMALLOC_SIZE PAGE_SIZE
 
 // Macros
-
-#define INIT_SENTINEL(name, ptr)                                                                   \
-	do {                                                                                           \
-		struct list_head *name = ptr;                                                              \
-		name->next             = name;                                                             \
-		name->prev             = name;                                                             \
-	} while (0)
 
 // ============================================================================
 // STRUCT
@@ -257,6 +251,6 @@ void vmalloc_init(void)
 	initial_hole->nr_pages    = 0;
 	initial_hole->pages       = NULL;
 
-	INIT_SENTINEL(sentinel, &vmalloc_areas);
+	INIT_SENTINEL(&vmalloc_areas);
 	list_add_head(&initial_hole->list, &vmalloc_areas);
 }

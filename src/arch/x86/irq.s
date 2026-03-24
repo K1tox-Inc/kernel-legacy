@@ -3,7 +3,6 @@
 
 .section .text
 	.global interrupt_dispatcher
-	.extern syscall_handlers
 	.extern interrupt_handlers
 
 interrupt_dispatcher:

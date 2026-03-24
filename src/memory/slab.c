@@ -21,14 +21,9 @@
 // Defines
 
 // Macros
+
 #define SLAB_INTRUSIVE_THRESHOLD 512
-#define INIT_SENTINEL(name, ptr)                                                                   \
-	do {                                                                                           \
-		struct list_head *name = ptr;                                                              \
-		name->next             = name;                                                             \
-		name->prev             = name;                                                             \
-	} while (0)
-#define SLAB_IS_EXTERNAL(size) ((size) > SLAB_INTRUSIVE_THRESHOLD)
+#define SLAB_IS_EXTERNAL(size)   ((size) > SLAB_INTRUSIVE_THRESHOLD)
 
 // ============================================================================
 // STRUCT
@@ -244,9 +239,9 @@ void slab_init(void)
 {
 	for (size_t zone = 0; zone < MAX_ZONE; zone++) {
 		for (int i = 0; i < NUM_SLAB_CACHES; i++) {
-			INIT_SENTINEL(full, &slab_caches[zone][i].slabs_full);
-			INIT_SENTINEL(partial, &slab_caches[zone][i].slabs_partial);
-			INIT_SENTINEL(empty, &slab_caches[zone][i].slabs_empty);
+			INIT_SENTINEL(&slab_caches[zone][i].slabs_full);
+			INIT_SENTINEL(&slab_caches[zone][i].slabs_partial);
+			INIT_SENTINEL(&slab_caches[zone][i].slabs_empty);
 			slab_caches[zone][i].object_size = cache_sizes[i];
 			slab_caches[zone][i].objects_per_slab =
 			    (SLAB_IS_EXTERNAL(cache_sizes[i]) ? PAGE_SIZE : PAGE_SIZE - sizeof(struct slab)) /
