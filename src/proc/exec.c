@@ -79,6 +79,7 @@ int exec_fn(void *fn_start, size_t fn_size, const char *fn_name, bool userspace)
 
 extern char user_cafe_start[], user_cafe_end[];
 extern char user_dead_start[], user_dead_end[];
+extern char mok_sys_get_start[], mok_sys_get_end[];
 
 struct exec_fn_mok {
 	const char *name;
@@ -90,6 +91,8 @@ struct exec_fn_mok {
 const struct exec_fn_mok mok_registry[] = {
     {"cafe", user_cafe_start, user_cafe_end, true},
     {"dead", user_dead_start, user_dead_end, true},
+    {"sys_get", mok_sys_get_start, mok_sys_get_end, true},
+
 };
 
 static inline bool ft_strequ(const char *s1, const char *s2)
