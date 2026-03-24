@@ -12,6 +12,8 @@ hello_from_cafe:
 .global user_cafe_end
 .global user_dead_start
 .global user_dead_end
+.global mok_sys_get_start
+.global mok_sys_get_end
 
 # --- USER : CAFEBABE ---
 .align 4
@@ -46,3 +48,13 @@ user_dead_start:
     jmp 2b
 
 user_dead_end:
+
+# --- USER : SYS_GET ---
+.align 4
+mok_sys_get_start:
+    mov eax, 39
+    int 0x80
+    mov edi, eax 
+1:
+    jmp 1b
+mok_sys_get_end:
