@@ -18,5 +18,4 @@
 		halt();                                                                                    \
 	} while (0)
 
-void __assert_fail(const char *expr, const char *file, size_t line);
 void print_stack_frame(void);

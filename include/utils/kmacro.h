@@ -9,6 +9,7 @@
 #endif // __fallthrough__
 
 #ifndef NDEBUG
+
 # define log(msg, ...) vga_printf("[" __FILE__ ":%i]: " msg "\n", __LINE__, ##__VA_ARGS__)
 
 # define dbg(variable_name)                                                                        \
@@ -19,8 +20,10 @@
 	 })
 
 #else
+
 # define log(msg, ...)
 # define dbg(variable_name) (variable_name)
+
 #endif
 
 // Macro
