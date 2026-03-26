@@ -44,7 +44,7 @@ QEMU=qemu-system-i386
 QEMUFLAGS=-m 4G -smp 4 -cpu host -enable-kvm -net nic -net user -s -daemonize
 
 DOCKERIMAGENAME=noalexan/cross-compiler
-DOCKERIMAGETAG=ubuntu
+DOCKERIMAGETAG=685b705
 
 OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\(\.c\|\.cpp\|\.s\)' -not -path "src/generated/*" | sed 's/\(\.c\|\.cpp\|\.s\)/.o/g'))
 OBJ+=$(BINDIR)/generated/syscall_table.o
