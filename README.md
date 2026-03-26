@@ -1,16 +1,16 @@
-# kfs — Kernel From Scratch (x86_32)
+# kfs — Kernel From Scratch (x86)
 
 ![Language](https://img.shields.io/badge/language-C%20%2F%20ASM-blue)
 ![Arch](https://img.shields.io/badge/arch-x86__32-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-> A monolithic x86_32 kernel built from scratch — actively developed, from bare-metal boot to preemptive multitasking, virtual memory, and syscalls.
+> A monolithic x86 kernel built from scratch — actively developed, from bare-metal boot to preemptive multitasking, virtual memory, and syscalls.
 
 ---
 
 ## What is this?
 
-**kfs** is an educational kernel targeting the **x86_32** architecture. The goal: understand how a real OS works by building one — no shortcuts, no abstractions hiding the hardware. Every layer is implemented from scratch, from the bootloader handoff to the scheduler.
+**kfs** is an educational kernel targeting the **x86** architecture. The goal: understand how a real OS works by building one — no shortcuts, no abstractions hiding the hardware. Every layer is implemented from scratch, from the bootloader handoff to the scheduler.
 
 ---
 
