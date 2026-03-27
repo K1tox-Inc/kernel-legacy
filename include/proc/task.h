@@ -26,6 +26,7 @@ struct task {
 
 	/* Context */
 	uintptr_t esp;
+	/* Phy addr */
 	uintptr_t cr3;
 
 	uintptr_t kernel_stack_pointer;
