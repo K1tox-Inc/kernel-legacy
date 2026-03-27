@@ -3,6 +3,9 @@
 #include <memory/memory.h>
 #include <types.h>
 
+unsigned long copy_from_user(void *to, void *from, unsigned long n);
+unsigned long copy_to_user(void *to, void *from, unsigned long n);
+
 static inline bool access_ok(const void *ptr, size_t size)
 {
 	uintptr_t start = (uintptr_t)ptr;

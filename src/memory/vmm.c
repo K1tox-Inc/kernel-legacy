@@ -220,3 +220,32 @@ void vmm_destroy_user_pd(uintptr_t pd_phys)
 	vmm_free_pt_range(pd_phys, 0, 768);
 	buddy_free_block((void *)pd_phys);
 }
+
+int vmm_verify_range_flags(uint32_t *pd_virt, const void *vaddr, unsigned long n,
+                           uint32_t pde_flags, uint32_t pte_flags)
+{
+	uint32_t pde_idx         = GET_PDE_INDEX((uintptr_t)vaddr);
+	size_t   pde_range       = GET_PD_RANGE_SIZE(n);
+	size_t   pages_to_verify = DIV_ROUND_UP(n, PAGE_SIZE);
+	size_t   remaining_page  = pages_to_verify;
+
+	for (size_t i = 0; i < pde_range; i++) {
+
+		uint32_t pde = pd_virt[pde_idx + i];
+		if (!(pde & pde_flags))
+			return pages_to_verify - remaining_page;
+
+		uintptr_t cur_vaddr = (uintptr_t)(vaddr + (i * (1024 * PAGE_SIZE)));
+		uint32_t *pt_virt   = PHYS_TO_VIRT_LINEAR(GET_ENTRY_ADDR(pde));
+
+		size_t j = (i == 0) ? GET_PTE_INDEX(cur_vaddr) : 0;
+
+		while (remaining_page > 0 && j < 1024) {
+			if (!(pt_virt[j] & pte_flags))
+				return pages_to_verify - remaining_page;
+			j++;
+			remaining_page--;
+		}
+	}
+	return 0;
+}
