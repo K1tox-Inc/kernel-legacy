@@ -18,8 +18,11 @@
 // ============================================================================
 
 static struct id_manager *pid_manager  = NULL;
+static struct task       *idle_task    = NULL;
 struct task              *current_task = NULL;
-struct task              *idle_task    = NULL;
+
+extern char         kitoxD_start[], kitoxD_end[];
+static struct task *kitoxD_task = NULL;
 
 __attribute__((constructor)) static void init_pid_manager(void)
 {
@@ -65,8 +68,10 @@ static void cpu_idle_loop(void)
 // EXTERNAL APIs
 // ============================================================================
 
-const struct task *task_get_current_task(void) { return current_task; }
-void               task_set_current_task(struct task *src) { current_task = src; }
+struct task *task_get_current_task(void) { return current_task; }
+struct task *task_get_kitoxD(void) { return kitoxD_task; }
+
+void task_set_current_task(struct task *src) { current_task = src; }
 
 void task_append_child(struct task *parent, struct task *child)
 {
@@ -178,7 +183,7 @@ void task_init_idle(void)
 {
 	idle_task = task_get_new("Idle", false, NULL, NULL);
 	if (!idle_task)
-		kpanic("Failed to init Idle :(\n");
+		kpanic("Failed to init Idle\n");
 
 	// Stack crafting
 	size_t switch_to_regs = 5;
@@ -190,9 +195,24 @@ void task_init_idle(void)
 	}
 
 	idle_task->esp -= switch_to_regs * sizeof(size_t);
-	idle_task->state = TASK_RUNNING;
-	current_task     = idle_task;
-	task_launcher(current_task);
+	// idle_task->state = TASK_NEW;
+	// current_task     = idle_task;
+	// task_launcher(current_task);
+}
+
+void task_init_kitoxD(void)
+{
+	struct section text;
+	size_t         fn_size = (uintptr_t)kitoxD_end - (uintptr_t)kitoxD_start;
+
+	if (!section_init_from_buffer(&text, 0, kitoxD_start, fn_size, 0))
+		kpanic("Failed to init kitoxD sections\n");
+
+	kitoxD_task = task_get_new("kitoxD", true, &text, NULL);
+	if (!kitoxD_task)
+		kpanic("Failed to init kitoxD\n");
+
+	kitoxD_task->state = TASK_NEW;
 }
 
 // ============================================================================
