@@ -29,6 +29,7 @@ OBJ=\
 	ft_strnstr.o 	\
 	ft_strlcpy.o 	\
 	ft_striteri.o 	\
+	ft_strequ.o		\
 	ft_strrchr.o
 
 .PHONY: all
