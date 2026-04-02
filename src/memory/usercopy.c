@@ -26,12 +26,12 @@ static unsigned long usercopy(void *kernel_buf, void *user_buf, unsigned long n,
 	return 0;
 }
 
-unsigned long copy_from_user(void *to, void *from, unsigned long n)
+unsigned long copy_from_user(void *to, const void *from, unsigned long n)
 {
-	return usercopy(to, from, n, true);
+	return usercopy(to, (void *)from, n, true);
 }
 
-unsigned long copy_to_user(void *to, void *from, unsigned long n)
+unsigned long copy_to_user(void *to, const void *from, unsigned long n)
 {
-	return usercopy(from, to, n, false);
+	return usercopy(to, (void *)from, n, false);
 }

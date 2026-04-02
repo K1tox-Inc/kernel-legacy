@@ -233,7 +233,7 @@ int vmm_verify_range_flags(uint32_t *pd_virt, const void *vaddr, unsigned long n
 
 		uint32_t pde = pd_virt[pde_idx + i];
 		if (!(pde & pde_flags))
-			return pages_to_verify - remaining_page;
+			return -1;
 
 		uintptr_t cur_vaddr = (uintptr_t)(vaddr + (i * (1024 * PAGE_SIZE)));
 		uint32_t *pt_virt   = PHYS_TO_VIRT_LINEAR(GET_ENTRY_ADDR(pde));
@@ -242,7 +242,7 @@ int vmm_verify_range_flags(uint32_t *pd_virt, const void *vaddr, unsigned long n
 
 		while (remaining_page > 0 && j < 1024) {
 			if (!(pt_virt[j] & pte_flags))
-				return pages_to_verify - remaining_page;
+				return -1;
 			j++;
 			remaining_page--;
 		}
