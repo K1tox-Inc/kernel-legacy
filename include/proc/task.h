@@ -4,6 +4,7 @@
 #include <proc/lock.h>
 #include <proc/section.h>
 #include <proc/signal.h>
+#include <proc/waitqueue.h>
 #include <types.h>
 
 #define STACK_CANARY_MAGIC 0xCAFEBABE
@@ -49,7 +50,8 @@ struct task {
 	char            *name;
 	size_t           ring;
 	int              exit_code;
-	struct wq_entry *wq_data;
+	struct wq_entry  wq_data;
+	struct list_head sched_node;
 	preempt_lock     lock;
 	bool             need_resched;
 };
