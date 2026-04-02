@@ -20,23 +20,27 @@ hello_from_cafe:
 # --- USER : CAFEBABE ---
 .align 4
 user_cafe_start:
-
-    # 1. Call sys_fork (syscall index 2)
     mov eax, 2
     int 0x80
 
-    # 2. Call sys_write (syscall index 4)
-    mov eax, 4          # syscall index: sys_write
-    mov ebx, 1          # argument 1: file descriptor 1 (stdout)
-    lea ecx, [hello_from_cafe]
-    mov edx, 17         # argument 3: string length (17 bytes)
-    int 0x80            # Trigger sys_write
+    jmp .cafe_after_msg
+.cafe_msg:
+    .ascii "Hello from cafe!\n"
+.cafe_after_msg:
+    call .cafe_getpc
+.cafe_getpc:
+    pop ecx
+    sub ecx, (.cafe_getpc - .cafe_msg)
+
+    mov eax, 4
+    mov ebx, 1
+    mov edx, 17
+    int 0x80
 
     mov eax, 0xCAFEBABE
-
 1:
-    hlt
     jmp 1b
+user_cafe_end:
 
 user_cafe_end:
 
@@ -48,7 +52,6 @@ user_dead_start:
     mov ebx, 0xDEADBEEF
 
 2:
-    hlt
     jmp 2b
 
 user_dead_end:
@@ -60,7 +63,6 @@ mok_sys_get_start:
     int 0x80
     mov edi, eax 
 3:
-    hlt
     jmp 3b
 mok_sys_get_end:
 
@@ -94,6 +96,5 @@ mok_sys_get_end:
 kitoxD_start:
     # SYSCALL_WAIT 0
 2:
-    hlt
     jmp 2b
 kitoxD_end:
