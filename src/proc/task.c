@@ -9,6 +9,7 @@
 #include <memory/vmm.h>
 #include <proc/task.h>
 #include <proc/userspace.h>
+#include <proc/waitqueue.h>
 #include <types.h>
 #include <utils/error.h>
 #include <utils/id_manager.h>
@@ -155,7 +156,7 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	ret->name = (char *)(ret->heap_sec + 1);
 	ft_memcpy(ret->name, name, name_len);
 	ret->name[name_len] = 0;
-
+	wq_entry_init(&ret->wq_data, ret);
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
 	 * and must be initialized by the caller if needed (like `fork`) :
