@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list.h>
+#include <proc/lock.h>
 #include <proc/section.h>
 #include <proc/signal.h>
 #include <types.h>
@@ -45,9 +46,12 @@ struct task {
 	struct signal_queue signals;
 
 	/* Info */
-	char  *name;
-	size_t ring;
-	int    exit_code;
+	char            *name;
+	size_t           ring;
+	int              exit_code;
+	struct wq_entry *wq_data;
+	preempt_lock     lock;
+	bool             need_resched;
 };
 
 extern void task_launcher(struct task *next);
