@@ -156,16 +156,23 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	ret->name = (char *)(ret->heap_sec + 1);
 	ft_memcpy(ret->name, name, name_len);
 	ret->name[name_len] = 0;
-	wq_entry_init(&ret->wq_data, ret);
+
+	wq_entry_init(&ret->wq_data, ret, TASK_INTERRUPTIBLE);
+	wq_init(&ret->child_wq);
+
+	INIT_SENTINEL(&ret->sched_node);
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
 	 * and must be initialized by the caller if needed (like `fork`) :
 	 *
 	 *  uid_t uid;
 	 *  gid_t gid;
-	 *  struct task *real_parent;
-	 *  struct task *parent;
-	 *  struct task  *next, *prev; // Used for "Round Robin"
+	 *  preempt_lock     lock;
+	 *  bool			 need_resched
+	 *  struct task		*real_parent;
+	 *  struct task		*parent;
+	 *  struct task		*next, *prev; // Used for "Round Robin"
+	 *	uint32_t         exit_code;
 	 *
 	 */
 
@@ -196,9 +203,9 @@ void task_init_idle(void)
 	}
 
 	idle_task->esp -= switch_to_regs * sizeof(size_t);
-	// idle_task->state = TASK_NEW;
-	// current_task     = idle_task;
-	// task_launcher(current_task);
+	idle_task->state = TASK_NEW;
+	current_task     = idle_task;
+	task_launcher(current_task);
 }
 
 void task_init_kitoxD(void)
@@ -214,6 +221,22 @@ void task_init_kitoxD(void)
 		kpanic("Failed to init kitoxD\n");
 
 	kitoxD_task->state = TASK_NEW;
+}
+
+void __task_reparent_children(struct task *parent)
+{
+	if (!kitoxD_task || parent == kitoxD_task)
+		return;
+
+	struct task *child;
+
+	while (!list_is_empty(&parent->children)) {
+		child              = list_first_entry(&parent->children, struct task, siblings);
+		child->parent      = kitoxD_task;
+		child->real_parent = kitoxD_task;
+		pop_node(&child->siblings);
+		list_add_head(&child->siblings, &kitoxD_task->children);
+	}
 }
 
 // ============================================================================

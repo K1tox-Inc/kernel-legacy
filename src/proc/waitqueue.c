@@ -11,16 +11,16 @@ void wq_prepare(struct wq_head *wq, struct task *task)
 
 void wq_finish(struct wq_entry *entry)
 {
-    if (!list_node_is_linked(&entry->node))
-        return;
-    pop_node(&entry->node);
-    INIT_SENTINEL(&entry->node); 
-    if (entry->handler)
-        entry->handler(entry);
-    entry->task->state = TASK_RUNNING;
-    entry->head        = NULL;
-    
-    // sched_enqueue(entry->task);
+	if (!list_node_is_linked(&entry->node))
+		return;
+	pop_node(&entry->node);
+	INIT_SENTINEL(&entry->node);
+	if (entry->handler)
+		entry->handler(entry);
+	entry->task->state = TASK_RUNNING;
+	entry->head        = NULL;
+
+	// sched_enqueue(entry->task);
 }
 
 void wq_signal_wake_up(struct task *task)

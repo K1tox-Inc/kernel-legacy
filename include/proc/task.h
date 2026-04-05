@@ -47,13 +47,17 @@ struct task {
 	struct signal_queue signals;
 
 	/* Info */
-	char            *name;
-	size_t           ring;
-	int              exit_code;
+	char        *name;
+	size_t       ring;
+	preempt_lock lock;
+	bool         need_resched;
+	uint32_t     exit_code;
+
+	/* Queues */
+
 	struct wq_entry  wq_data;
 	struct list_head sched_node;
-	preempt_lock     lock;
-	bool             need_resched;
+	struct wq_head   child_wq;
 };
 
 extern void task_launcher(struct task *next);
@@ -70,6 +74,7 @@ void         task_append_child(struct task *parent, struct task *child);
 void         task_init_idle(void);
 void         task_set_current_task(struct task *src);
 struct task *task_get_current_task(void);
+void         __task_reparent_children(struct task *parent);
 
 struct task *task_get_new(const char *name, bool userspace, struct section *text,
                           struct section *data);
