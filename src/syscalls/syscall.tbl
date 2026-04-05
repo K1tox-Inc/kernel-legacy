@@ -1,7 +1,5 @@
 1       exit        sys_exit
 2       fork        sys_fork
 4       write       sys_write
-7       waitpid     sys_waitpid
 20      getpid      sys_getpid
 24      getuid      sys_getuid
-114     wait4       sys_wait4
