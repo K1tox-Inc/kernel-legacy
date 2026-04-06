@@ -156,16 +156,23 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	ret->name = (char *)(ret->heap_sec + 1);
 	ft_memcpy(ret->name, name, name_len);
 	ret->name[name_len] = 0;
-	wq_entry_init(&ret->wq_data, ret);
+
+	wq_entry_init(&ret->wq_data, ret, TASK_INTERRUPTIBLE);
+	wq_init(&ret->child_wq);
+
+	INIT_SENTINEL(&ret->sched_node);
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
 	 * and must be initialized by the caller if needed (like `fork`) :
 	 *
 	 *  uid_t uid;
 	 *  gid_t gid;
-	 *  struct task *real_parent;
-	 *  struct task *parent;
-	 *  struct task  *next, *prev; // Used for "Round Robin"
+	 *  preempt_lock     lock;
+	 *  bool			 need_resched
+	 *  struct task		*real_parent;
+	 *  struct task		*parent;
+	 *  struct task		*next, *prev; // Used for "Round Robin"
+	 *	uint32_t         exit_code;
 	 *
 	 */
 
@@ -196,9 +203,9 @@ void task_init_idle(void)
 	}
 
 	idle_task->esp -= switch_to_regs * sizeof(size_t);
-	// idle_task->state = TASK_NEW;
-	// current_task     = idle_task;
-	// task_launcher(current_task);
+	idle_task->state = TASK_NEW;
+	current_task     = idle_task;
+	task_launcher(current_task);
 }
 
 void task_init_kitoxD(void)
@@ -214,6 +221,54 @@ void task_init_kitoxD(void)
 		kpanic("Failed to init kitoxD\n");
 
 	kitoxD_task->state = TASK_NEW;
+}
+
+void __task_reparent_children(struct task *parent)
+{
+	if (!kitoxD_task || parent == kitoxD_task)
+		return;
+
+	struct task *child;
+
+	while (!list_is_empty(&parent->children)) {
+		child              = list_first_entry(&parent->children, struct task, siblings);
+		child->parent      = kitoxD_task;
+		child->real_parent = kitoxD_task;
+		pop_node(&child->siblings);
+		list_add_head(&child->siblings, &kitoxD_task->children);
+	}
+}
+
+void task_exit_cleanup(struct task *task)
+{
+
+	struct section *text = task_text(task);
+	if (text && text->p_addr)
+		buddy_free_block((void *)text->p_addr);
+
+	struct section *data = task_data(task);
+	if (data && data->p_addr)
+		buddy_free_block((void *)data->p_addr);
+
+	struct section *stack = task_stack(task);
+	if (stack && stack->p_addr)
+		buddy_free_block((void *)stack->p_addr);
+
+	// actually no heap must be implemented later
+	// struct section *heap = task_heap(task);
+	// if (heap && heap->p_addr)
+	// 	buddy_free_block((void *)heap->p_addr);
+	if (task->ring)
+		vmm_destroy_user_pd(task->cr3);
+	// close all fds in futur
+}
+
+void task_release(struct task *task)
+{
+	pop_node(&task->siblings);
+	id_manager_free(pid_manager, task->pid);
+	kfree((void *)task->kernel_stack_pointer);
+	kfree(task);
 }
 
 // ============================================================================
@@ -232,7 +287,7 @@ void task_print_info(const struct task *task)
 	vga_printf("  - UID: %d | GID: %d\n", task->uid, task->gid);
 	vga_printf("  - State: %s\n", task_state_to_string(task->state));
 	vga_printf("  - Parent: %p | Real Parent: %p\n", task->parent, task->real_parent);
-	vga_printf("  - Sched: next=%p | prev=%p\n", task->next, task->prev);
+	vga_printf("  - Sched: next=%p | prev=%p\n", &task->sched_node.next, &task->sched_node.prev);
 	vga_printf("  - CPU: esp=%p | cr3=%p\n", (void *)task->esp, (void *)task->cr3);
 	vga_printf("  - Kernel Stack: base=%p | ptr=%p\n", (void *)task->kernel_stack_base,
 	           (void *)task->kernel_stack_pointer);
