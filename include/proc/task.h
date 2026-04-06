@@ -67,6 +67,17 @@ static inline bool            task_is_sleeping(struct task *task)
 {
 	return task->state == TASK_WAITING && task->wq_data.head != NULL;
 }
+static inline bool task_has_child_pid(struct task *parent, pid_t child_pid)
+{
+	struct task *child;
+	list_for_each_entry(child, &parent->children, siblings)
+	{
+		if (child->pid == child_pid)
+			return true;
+	}
+	return false;
+}
+
 void         task_print_info(const struct task *task);
 void         task_print_stack(const struct task *task);
 void         task_append_child(struct task *parent, struct task *child);
