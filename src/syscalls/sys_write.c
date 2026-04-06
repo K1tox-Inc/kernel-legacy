@@ -9,7 +9,7 @@ SYSCALL_DEFINE3(write, int, fd, const char *, str, size_t, size)
 {
 	(void)fd;
 
-	if (size > MAX_KMALLOC_SIZE)
+	if (size >= MAX_KMALLOC_SIZE)
 		return -EINVAL;
 	char *dup = kmalloc(size + 1, __GFP_KERNEL);
 	if (!dup)

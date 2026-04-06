@@ -42,8 +42,6 @@ user_cafe_start:
     jmp 1b
 user_cafe_end:
 
-user_cafe_end:
-
 
 # --- USER : DEADBEEF ---
 .align 4

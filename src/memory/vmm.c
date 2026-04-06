@@ -224,15 +224,16 @@ void vmm_destroy_user_pd(uintptr_t pd_phys)
 int vmm_verify_range_flags(uint32_t *pd_virt, const void *vaddr, unsigned long n,
                            uint32_t pde_flags, uint32_t pte_flags)
 {
-	uint32_t pde_idx         = GET_PDE_INDEX((uintptr_t)vaddr);
-	size_t   pde_range       = GET_PD_RANGE_SIZE(n);
+	uint32_t pde_start       = GET_PDE_INDEX((uintptr_t)vaddr);
+	uint32_t pde_end         = GET_PDE_INDEX((uintptr_t)vaddr + n - 1);
+	size_t   pde_range       = pde_end - pde_start + 1;
 	size_t   pages_to_verify = DIV_ROUND_UP(n, PAGE_SIZE);
 	size_t   remaining_page  = pages_to_verify;
 
 	for (size_t i = 0; i < pde_range; i++) {
 
-		uint32_t pde = pd_virt[pde_idx + i];
-		if (!(pde & pde_flags))
+		uint32_t pde = pd_virt[pde_start + i];
+		if ((pde & pde_flags) != pde_flags)
 			return -1;
 
 		uintptr_t cur_vaddr = (uintptr_t)vaddr + (i * (1024 * PAGE_SIZE));
@@ -241,7 +242,7 @@ int vmm_verify_range_flags(uint32_t *pd_virt, const void *vaddr, unsigned long n
 		size_t j = (i == 0) ? GET_PTE_INDEX(cur_vaddr) : 0;
 
 		while (remaining_page > 0 && j < 1024) {
-			if (!(pt_virt[j] & pte_flags))
+			if ((pt_virt[j] & pte_flags) != pte_flags)
 				return -1;
 			j++;
 			remaining_page--;

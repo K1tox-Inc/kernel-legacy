@@ -25,4 +25,5 @@ SYSCALL_DEFINE1(exit, int, status)
 	// schedule() needs to be implemented; do not return after tearing down
 	// the current task/address space.
 	kpanic("sys_exit returned after task_exit_cleanup()");
+	return status;
 }
