@@ -235,7 +235,7 @@ int vmm_verify_range_flags(uint32_t *pd_virt, const void *vaddr, unsigned long n
 		if (!(pde & pde_flags))
 			return -1;
 
-		uintptr_t cur_vaddr = (uintptr_t)(vaddr + (i * (1024 * PAGE_SIZE)));
+		uintptr_t cur_vaddr = (uintptr_t)vaddr + (i * (1024 * PAGE_SIZE));
 		uint32_t *pt_virt   = PHYS_TO_VIRT_LINEAR(GET_ENTRY_ADDR(pde));
 
 		size_t j = (i == 0) ? GET_PTE_INDEX(cur_vaddr) : 0;

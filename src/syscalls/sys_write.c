@@ -14,8 +14,8 @@ SYSCALL_DEFINE3(write, int, fd, const char *, str, size_t, size)
 	char *dup = kmalloc(size + 1, __GFP_KERNEL);
 	if (!dup)
 		return -ENOMEM;
-	int ret = copy_from_user(dup, str, size);
-	if (ret) {
+	unsigned long ret = copy_from_user(dup, str, size);
+	if (ret != 0) {
 		kfree(dup);
 		return -EFAULT;
 	}

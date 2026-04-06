@@ -171,7 +171,7 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	 *  bool			 need_resched
 	 *  struct task		*real_parent;
 	 *  struct task		*parent;
-	 *  struct task		*next, *prev; // Used for "Round Robin"
+	 *  struct list_head sched_node; // Used for scheduler run-queue linkage
 	 *	uint32_t         exit_code;
 	 *
 	 */
@@ -287,7 +287,8 @@ void task_print_info(const struct task *task)
 	vga_printf("  - UID: %d | GID: %d\n", task->uid, task->gid);
 	vga_printf("  - State: %s\n", task_state_to_string(task->state));
 	vga_printf("  - Parent: %p | Real Parent: %p\n", task->parent, task->real_parent);
-	vga_printf("  - Sched: next=%p | prev=%p\n", &task->sched_node.next, &task->sched_node.prev);
+	vga_printf("  - Sched: next=%p | prev=%p\n", (void *)task->sched_node.next,
+	           (void *)task->sched_node.prev);
 	vga_printf("  - CPU: esp=%p | cr3=%p\n", (void *)task->esp, (void *)task->cr3);
 	vga_printf("  - Kernel Stack: base=%p | ptr=%p\n", (void *)task->kernel_stack_base,
 	           (void *)task->kernel_stack_pointer);

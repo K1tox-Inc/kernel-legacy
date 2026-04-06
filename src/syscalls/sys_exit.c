@@ -22,6 +22,7 @@ SYSCALL_DEFINE1(exit, int, status)
 	wq_wake_all(&parent->child_wq);
 	// send_signal to parent
 	task_exit_cleanup(cur_task);
-	// schedule() need to be implemented
-	return status;
+	// schedule() needs to be implemented; do not return after tearing down
+	// the current task/address space.
+	kpanic("sys_exit returned after task_exit_cleanup()");
 }

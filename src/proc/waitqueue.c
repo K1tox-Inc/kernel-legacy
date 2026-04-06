@@ -8,6 +8,8 @@ void wq_prepare(struct wq_head *wq, struct task *task)
 	task->need_resched = true;
 	if (list_node_is_linked(&task->sched_node))
 		pop_node(&task->sched_node);
+	if (list_node_is_linked(&task->wq_data.node))
+		pop_node(&task->wq_data.node);
 	list_add_head(&task->wq_data.node, &wq->head);
 }
 

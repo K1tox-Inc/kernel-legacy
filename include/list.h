@@ -35,7 +35,10 @@ static inline void list_add_head(struct list_head *new_node, struct list_head *h
 	head->next     = new_node;
 }
 
-static inline bool list_node_is_linked(struct list_head *node) { return node->next != node; }
+static inline bool list_node_is_linked(struct list_head *node)
+{
+	return node && node->next && node->prev && node->next != node;
+}
 
 static inline void list_insert(struct list_head *new, struct list_head *prev,
                                struct list_head *next)
