@@ -96,10 +96,11 @@ enum Page_Directory_Entry {
 
 // Macros
 
-#define GET_PDE_INDEX(vaddr)  ((vaddr) >> 22)
-#define GET_PTE_INDEX(vaddr)  (((vaddr) >> 12) & 0x3FF)
-#define ENTRY_FLAGS_MASK      (0xFFF)
-#define GET_ENTRY_ADDR(entry) ((entry) & ~ENTRY_FLAGS_MASK)
+#define GET_PDE_INDEX(vaddr)    ((vaddr) >> 22)
+#define GET_PTE_INDEX(vaddr)    (((vaddr) >> 12) & 0x3FF)
+#define ENTRY_FLAGS_MASK        (0xFFF)
+#define GET_ENTRY_ADDR(entry)   ((entry) & ~ENTRY_FLAGS_MASK)
+#define GET_PD_RANGE_SIZE(size) (DIV_ROUND_UP(ALIGN(size, PAGE_SIZE), 1024 * PAGE_SIZE))
 
 // STRUCT
 
@@ -122,6 +123,8 @@ void     *vmm_kmap(uintptr_t p_addr);
 void      vmm_kunmap(void);
 void      vmm_free_pt_range(uintptr_t pd_phys, uint32_t pde_start, uint32_t pde_end);
 void      vmm_destroy_user_pd(uintptr_t pd_phys);
+int       vmm_verify_range_flags(uint32_t *pd_virt, const void *vaddr, unsigned long n,
+                                 uint32_t pde_flags, uint32_t pte_flags);
 
 static inline uintptr_t get_current_page_directory_phys(void)
 {

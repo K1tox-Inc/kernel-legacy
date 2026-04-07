@@ -47,6 +47,7 @@ void exec_task(struct task *task, bool userspace)
 	}
 
 	task->esp = (uintptr_t)kstack;
+	task_set_current_task(task);
 
 	if (userspace)
 		task_user_launcher(task);
@@ -78,6 +79,7 @@ int exec_fn(void *fn_start, size_t fn_size, const char *fn_name, bool userspace)
 
 extern char user_cafe_start[], user_cafe_end[];
 extern char user_dead_start[], user_dead_end[];
+extern char mok_sys_get_start[], mok_sys_get_end[];
 
 struct exec_fn_mok {
 	const char *name;
@@ -89,18 +91,9 @@ struct exec_fn_mok {
 const struct exec_fn_mok mok_registry[] = {
     {"cafe", user_cafe_start, user_cafe_end, true},
     {"dead", user_dead_start, user_dead_end, true},
+    {"sys_get", mok_sys_get_start, mok_sys_get_end, true},
+
 };
-
-static inline bool ft_strequ(const char *s1, const char *s2)
-{
-	size_t len1 = ft_strlen(s1);
-	size_t len2 = ft_strlen(s2);
-
-	if (len1 != len2)
-		return false;
-
-	return ft_memcmp(s1, s2, len1 + 1) == 0;
-}
 
 int exec_mok(const char *name)
 {

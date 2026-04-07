@@ -37,3 +37,4 @@ char  *ft_strnstr(const char *str, const char *seg, size_t len);
 int    ft_atoi(const char *nptr);
 size_t ft_strslen(char **str);
 void   ft_striteri(char *s, void (*f)(unsigned int, char *));
+bool   ft_strequ(const char *s1, const char *s2);
