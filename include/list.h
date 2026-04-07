@@ -8,6 +8,11 @@ struct list_head {
 	struct list_head *next, *prev;
 };
 
+#define LIST_HEAD_INIT(name)                                                                       \
+	{                                                                                              \
+		&(name), &(name)                                                                           \
+	}
+
 #define INIT_SENTINEL(ptr) (*(ptr) = (struct list_head){.next = ptr, .prev = ptr})
 
 #define list_is_empty(head) ((head) == (head)->next)

@@ -6,4 +6,3 @@ struct task;
 
 int  sched_enqueue(struct task *task);
 void schedule(void);
-void sched_init(void);
