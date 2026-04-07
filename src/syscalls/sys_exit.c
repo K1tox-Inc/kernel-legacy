@@ -1,5 +1,6 @@
 #include <kernel/panic.h>
 #include <libk.h>
+#include <proc/scheduler.h>
 #include <proc/task.h>
 #include <syscalls/syscalls.h>
 
@@ -22,7 +23,7 @@ SYSCALL_DEFINE1(exit, int, status)
 	wq_wake_all(&parent->child_wq);
 	// send_signal to parent
 	task_exit_cleanup(cur_task);
-	// schedule() needs to be implemented; do not return after tearing down
+	schedule();
 	// the current task/address space.
 	kpanic("sys_exit returned after task_exit_cleanup()");
 	return status;
