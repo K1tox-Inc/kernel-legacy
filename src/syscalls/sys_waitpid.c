@@ -1,4 +1,5 @@
 #include <memory/usercopy.h>
+#include <proc/scheduler.h>
 #include <proc/task.h>
 #include <proc/waitqueue.h>
 #include <syscalls/syscalls.h>
@@ -44,6 +45,6 @@ SYSCALL_DEFINE3(waitpid, pid_t, pid, int *, status, int, options)
 		}
 
 		wq_prepare(&cur_task->child_wq, cur_task);
-		// schedule();
+		schedule();
 	}
 }

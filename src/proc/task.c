@@ -71,6 +71,7 @@ static void cpu_idle_loop(void)
 
 struct task *task_get_current_task(void) { return current_task; }
 struct task *task_get_kitoxD(void) { return kitoxD_task; }
+struct task *task_get_idle(void) { return idle_task; }
 
 void task_set_current_task(struct task *src) { current_task = src; }
 
