@@ -2,11 +2,13 @@
 // INCLUDES
 // ============================================================================
 
+#include <arch/x86.h>
 #include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/vmm.h>
+#include <proc/scheduler.h>
 #include <proc/task.h>
 #include <proc/userspace.h>
 #include <proc/waitqueue.h>
@@ -29,6 +31,8 @@ __attribute__((constructor)) static void init_pid_manager(void)
 {
 	pid_manager = id_manager_create(PID_MAX);
 }
+
+extern void interrupt_exit(void);
 
 // ============================================================================
 // INTERNAL APIs
@@ -65,12 +69,41 @@ static void cpu_idle_loop(void)
 		__asm__ volatile("hlt");
 }
 
+static void task_init_idle(void)
+{
+	idle_task = task_get_new("Idle", false, NULL, NULL);
+	if (!idle_task)
+		kpanic("Failed to init Idle\n");
+
+	task_craft_context(idle_task, false, (uintptr_t)cpu_idle_loop);
+	idle_task->state = TASK_NEW;
+	current_task     = idle_task;
+}
+
+static void task_init_kitoxD(void)
+{
+	struct section text;
+	size_t         fn_size = (uintptr_t)kitoxD_end - (uintptr_t)kitoxD_start;
+
+	if (!section_init_from_buffer(&text, 0, kitoxD_start, fn_size, 0))
+		kpanic("Failed to init kitoxD sections\n");
+
+	kitoxD_task = task_get_new("kitoxD", true, &text, NULL);
+	if (!kitoxD_task)
+		kpanic("Failed to init kitoxD\n");
+
+	kitoxD_task->state = TASK_NEW;
+	task_craft_context(kitoxD_task, true, kitoxD_task->text_sec->v_addr);
+	sched_enqueue(kitoxD_task);
+}
+
 // ============================================================================
 // EXTERNAL APIs
 // ============================================================================
 
 struct task *task_get_current_task(void) { return current_task; }
 struct task *task_get_kitoxD(void) { return kitoxD_task; }
+struct task *task_get_idle(void) { return idle_task; }
 
 void task_set_current_task(struct task *src) { current_task = src; }
 
@@ -98,8 +131,8 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 		return NULL;
 
 	// `kmalloc` use slabs caches here
-	char *memory_zone = kmalloc(sizeof(struct task) + name_len + 1 + (sizeof(struct section) * 4),
-	                            GFP_KERNEL | __GFP_ZERO);
+	char *memory_zone =
+	    kmalloc(sizeof(struct task) + 16 + (sizeof(struct section) * 4), GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
 		return NULL;
 
@@ -187,42 +220,6 @@ free_task:
 	return NULL;
 }
 
-void task_init_idle(void)
-{
-	idle_task = task_get_new("Idle", false, NULL, NULL);
-	if (!idle_task)
-		kpanic("Failed to init Idle\n");
-
-	// Stack crafting
-	size_t switch_to_regs = 5;
-	for (size_t i = 1; i <= switch_to_regs; i++) {
-		if (i > 1)
-			*((uint32_t *)(idle_task->esp) - i) = i;
-		else
-			*((uint32_t *)(idle_task->esp) - i) = (uintptr_t)(&cpu_idle_loop);
-	}
-
-	idle_task->esp -= switch_to_regs * sizeof(size_t);
-	idle_task->state = TASK_NEW;
-	current_task     = idle_task;
-	task_launcher(current_task);
-}
-
-void task_init_kitoxD(void)
-{
-	struct section text;
-	size_t         fn_size = (uintptr_t)kitoxD_end - (uintptr_t)kitoxD_start;
-
-	if (!section_init_from_buffer(&text, 0, kitoxD_start, fn_size, 0))
-		kpanic("Failed to init kitoxD sections\n");
-
-	kitoxD_task = task_get_new("kitoxD", true, &text, NULL);
-	if (!kitoxD_task)
-		kpanic("Failed to init kitoxD\n");
-
-	kitoxD_task->state = TASK_NEW;
-}
-
 void __task_reparent_children(struct task *parent)
 {
 	if (!kitoxD_task || parent == kitoxD_task)
@@ -258,6 +255,7 @@ void task_exit_cleanup(struct task *task)
 	// struct section *heap = task_heap(task);
 	// if (heap && heap->p_addr)
 	// 	buddy_free_block((void *)heap->p_addr);
+	ft_bzero(task->text_sec, sizeof(struct section) * 4);
 	if (task->ring)
 		vmm_destroy_user_pd(task->cr3);
 	// close all fds in futur
@@ -269,6 +267,45 @@ void task_release(struct task *task)
 	id_manager_free(pid_manager, task->pid);
 	kfree((void *)task->kernel_stack_pointer);
 	kfree(task);
+}
+
+void task_craft_context(struct task *task, bool userspace, uintptr_t entry)
+{
+	uint32_t *kstack = (uint32_t *)task->kernel_stack_base;
+
+	if (userspace) {
+		struct trap_frame *tf =
+		    (struct trap_frame *)(task->kernel_stack_base - sizeof(struct trap_frame));
+		ft_bzero(tf, sizeof(struct trap_frame));
+
+		tf->user_ss  = USER_DS;
+		tf->user_esp = task->stack_sec->v_addr + task->stack_sec->mapping_size;
+		tf->eflags   = EFLAGS_USER_DEFAULT;
+		tf->cs       = USER_CS;
+		tf->eip      = entry;
+		tf->regs.ds  = USER_DS;
+		tf->regs.es  = USER_DS;
+		tf->regs.fs  = USER_DS;
+		tf->regs.gs  = USER_DS;
+
+		kstack      = (uint32_t *)(task->kernel_stack_base - sizeof(struct trap_frame));
+		*(--kstack) = (uint32_t)interrupt_exit;
+	} else {
+		*(--kstack) = entry;
+	}
+
+	*(--kstack) = 0; // ebp
+	*(--kstack) = 0; // ebx
+	*(--kstack) = 0; // esi
+	*(--kstack) = 0; // edi
+
+	task->esp = (uintptr_t)kstack;
+}
+
+void task_init_process(void)
+{
+	task_init_idle();
+	task_init_kitoxD();
 }
 
 // ============================================================================

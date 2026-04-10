@@ -6,8 +6,6 @@
 .extern g_tss
 .extern current_task
 .global switch_to
-.global task_launcher
-.global task_user_launcher
 
 # =============================================================================
 # STRUCT TASK LAYOUT (Memory Map)
@@ -52,58 +50,6 @@ switch_to:
   pop edi
   pop esi
   pop ebx
-
   pop ebp
 
   ret
-
-# void task_launcher(struct task *next);
-task_launcher:
-  # get task *next into ebx
-  mov ebx, [esp + 4]
-  mov current_task, ebx
-
-  # reload cr3
-  mov eax, [ebx + 40]
-  mov cr3, eax
-
-  # update g_tss
-  mov eax, [ebx + 48]
-  mov [g_tss + 4], eax
-
-  # jump to new process stack
-  mov esp, [ebx + 36]
-
-  # pop flushed registers
-  pop edi
-  pop esi
-  pop ebx
-  pop ebp
-
-  ret
-
-task_user_launcher:
-    mov ebx, [esp + 4]
-    mov current_task, ebx
-
-    mov eax, [ebx + 40]
-    mov cr3, eax
-
-    mov eax, [ebx + 48]
-    mov [g_tss + 4], eax
-
-    mov esp, [ebx + 36]
-
-    # set segs as UserDS
-    mov ax, 0x23  # UserDS = 0x23
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-
-    pop edi
-    pop esi
-    pop ebx
-    pop ebp
-
-    iret

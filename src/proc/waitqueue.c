@@ -1,3 +1,4 @@
+#include <proc/scheduler.h>
 #include <proc/task.h>
 #include <proc/waitqueue.h>
 
@@ -21,7 +22,7 @@ void wq_finish(struct wq_entry *entry)
 	if (entry->handler)
 		entry->handler(entry);
 	entry->task->state = TASK_RUNNING;
-	// sched_enqueue(entry->task);
+	sched_enqueue(entry->task);
 	wq_entry_init(entry, entry->task, entry->state);
 }
 

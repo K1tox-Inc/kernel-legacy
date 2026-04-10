@@ -97,8 +97,6 @@ void tty_framebuffer_write(struct tty *tty, char c)
 
 static void tty_current_tty_clear(void) { tty_framebuffer_clear(current_tty); }
 
-static void exec_mok_cafe() { exec_mok("cafe"); }
-
 struct shell_command {
 	const char *cmd;
 	const char *descr;
@@ -109,7 +107,6 @@ struct shell_command shell_commands[] = {{"poweroff", "Power off the system.", s
                                          {"reboot", "Reboot the system.", reboot},
                                          {"halt", "Halt the system.", halt},
                                          {"clear", "Clear the current tty.", tty_current_tty_clear},
-                                         {"cafe", "Run the mok process: cafe.", exec_mok_cafe},
                                          {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \
