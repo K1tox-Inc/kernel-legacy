@@ -2,11 +2,13 @@
 // INCLUDES
 // ============================================================================
 
+#include <arch/x86.h>
 #include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/vmm.h>
+#include <proc/scheduler.h>
 #include <proc/task.h>
 #include <proc/userspace.h>
 #include <proc/waitqueue.h>
@@ -29,6 +31,8 @@ __attribute__((constructor)) static void init_pid_manager(void)
 {
 	pid_manager = id_manager_create(PID_MAX);
 }
+
+extern void interrupt_exit(void);
 
 // ============================================================================
 // INTERNAL APIs
@@ -71,7 +75,7 @@ static void task_init_idle(void)
 	if (!idle_task)
 		kpanic("Failed to init Idle\n");
 
-	// task_craft_context(idle_task, false, (uintptr_t)cpu_idle_loop);
+	task_craft_context(idle_task, false, (uintptr_t)cpu_idle_loop);
 	idle_task->state = TASK_NEW;
 	current_task     = idle_task;
 }
@@ -89,7 +93,7 @@ static void task_init_kitoxD(void)
 		kpanic("Failed to init kitoxD\n");
 
 	kitoxD_task->state = TASK_NEW;
-	// task_craft_context(kitoxD_task, true, kitoxD_task->text_sec->v_addr);
+	task_craft_context(kitoxD_task, true, kitoxD_task->text_sec->v_addr);
 	sched_enqueue(kitoxD_task);
 }
 
@@ -262,6 +266,45 @@ void task_release(struct task *task)
 	id_manager_free(pid_manager, task->pid);
 	kfree((void *)task->kernel_stack_pointer);
 	kfree(task);
+}
+
+void task_craft_context(struct task *task, bool userspace, uintptr_t entry)
+{
+	uint32_t *kstack = (uint32_t *)task->kernel_stack_base;
+
+	if (userspace) {
+		struct trap_frame *tf =
+		    (struct trap_frame *)(task->kernel_stack_base - sizeof(struct trap_frame));
+		ft_bzero(tf, sizeof(struct trap_frame));
+
+		tf->user_ss  = USER_DS;
+		tf->user_esp = task->stack_sec->v_addr + task->stack_sec->mapping_size;
+		tf->eflags   = EFLAGS_USER_DEFAULT;
+		tf->cs       = USER_CS;
+		tf->eip      = entry;
+		tf->regs.ds  = USER_DS;
+		tf->regs.es  = USER_DS;
+		tf->regs.fs  = USER_DS;
+		tf->regs.gs  = USER_DS;
+
+		kstack      = (uint32_t *)(task->kernel_stack_base - sizeof(struct trap_frame));
+		*(--kstack) = (uint32_t)interrupt_exit;
+	} else {
+		*(--kstack) = entry;
+	}
+
+	*(--kstack) = 0; // ebp
+	*(--kstack) = 0; // ebx
+	*(--kstack) = 0; // esi
+	*(--kstack) = 0; // edi
+
+	task->esp = (uintptr_t)kstack;
+}
+
+void task_init_process(void)
+{
+	task_init_idle();
+	task_init_kitoxD();
 }
 
 // ============================================================================

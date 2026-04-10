@@ -68,7 +68,7 @@ SYSCALL_DEFINE1(exec_fn, int, index)
 	ft_memcpy(cur->name, fn_info.name, name_len);
 	cur->name[name_len] = 0;
 
-	// task_craft_context(cur, fn_info.is_user, cur->text_sec->v_addr);
+	task_craft_context(cur, fn_info.is_user, cur->text_sec->v_addr);
 
 	__asm__ volatile("mov %0, %%esp\n\t"
 	                 "pop %%edi\n\t"
