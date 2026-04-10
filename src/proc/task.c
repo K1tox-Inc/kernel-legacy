@@ -65,6 +65,34 @@ static void cpu_idle_loop(void)
 		__asm__ volatile("hlt");
 }
 
+static void task_init_idle(void)
+{
+	idle_task = task_get_new("Idle", false, NULL, NULL);
+	if (!idle_task)
+		kpanic("Failed to init Idle\n");
+
+	// task_craft_context(idle_task, false, (uintptr_t)cpu_idle_loop);
+	idle_task->state = TASK_NEW;
+	current_task     = idle_task;
+}
+
+static void task_init_kitoxD(void)
+{
+	struct section text;
+	size_t         fn_size = (uintptr_t)kitoxD_end - (uintptr_t)kitoxD_start;
+
+	if (!section_init_from_buffer(&text, 0, kitoxD_start, fn_size, 0))
+		kpanic("Failed to init kitoxD sections\n");
+
+	kitoxD_task = task_get_new("kitoxD", true, &text, NULL);
+	if (!kitoxD_task)
+		kpanic("Failed to init kitoxD\n");
+
+	kitoxD_task->state = TASK_NEW;
+	// task_craft_context(kitoxD_task, true, kitoxD_task->text_sec->v_addr);
+	sched_enqueue(kitoxD_task);
+}
+
 // ============================================================================
 // EXTERNAL APIs
 // ============================================================================
@@ -99,8 +127,8 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 		return NULL;
 
 	// `kmalloc` use slabs caches here
-	char *memory_zone = kmalloc(sizeof(struct task) + name_len + 1 + (sizeof(struct section) * 4),
-	                            GFP_KERNEL | __GFP_ZERO);
+	char *memory_zone =
+	    kmalloc(sizeof(struct task) + 16 + (sizeof(struct section) * 4), GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
 		return NULL;
 
@@ -186,42 +214,6 @@ free_pid:
 free_task:
 	kfree(ret);
 	return NULL;
-}
-
-void task_init_idle(void)
-{
-	idle_task = task_get_new("Idle", false, NULL, NULL);
-	if (!idle_task)
-		kpanic("Failed to init Idle\n");
-
-	// Stack crafting
-	size_t switch_to_regs = 5;
-	for (size_t i = 1; i <= switch_to_regs; i++) {
-		if (i > 1)
-			*((uint32_t *)(idle_task->esp) - i) = i;
-		else
-			*((uint32_t *)(idle_task->esp) - i) = (uintptr_t)(&cpu_idle_loop);
-	}
-
-	idle_task->esp -= switch_to_regs * sizeof(size_t);
-	idle_task->state = TASK_NEW;
-	current_task     = idle_task;
-	task_launcher(current_task);
-}
-
-void task_init_kitoxD(void)
-{
-	struct section text;
-	size_t         fn_size = (uintptr_t)kitoxD_end - (uintptr_t)kitoxD_start;
-
-	if (!section_init_from_buffer(&text, 0, kitoxD_start, fn_size, 0))
-		kpanic("Failed to init kitoxD sections\n");
-
-	kitoxD_task = task_get_new("kitoxD", true, &text, NULL);
-	if (!kitoxD_task)
-		kpanic("Failed to init kitoxD\n");
-
-	kitoxD_task->state = TASK_NEW;
 }
 
 void __task_reparent_children(struct task *parent)
