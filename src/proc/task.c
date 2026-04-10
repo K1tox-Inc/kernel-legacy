@@ -255,6 +255,7 @@ void task_exit_cleanup(struct task *task)
 	// struct section *heap = task_heap(task);
 	// if (heap && heap->p_addr)
 	// 	buddy_free_block((void *)heap->p_addr);
+	ft_bzero(task->text_sec, sizeof(struct section) * 4);
 	if (task->ring)
 		vmm_destroy_user_pd(task->cr3);
 	// close all fds in futur

@@ -31,14 +31,14 @@ const struct exec_fn_mok mok_registry[] = {
 };
 
 /*
- * Temporary execve implementation — mok-based, no ELF loader.
+ * Temporary execve — MOK-based (no ELF loader).
  *
- * Current behavior: creates a new child task (spawn semantics),
- * unlike real execve which replaces the calling process.
+ * Replaces the current process image:
+ * 1. Cleans up old memory (CR3/Sections) via task_exit_cleanup.
+ * 2. Loads new text and creates a fresh userspace/context.
+ * 3. Switches stack and jumps to entry point via ASM.
  *
- * When the ELF loader and filesystem are implemented,
- * only the binary loading logic needs to change;
- * the syscall interface and scheduling path remain the same.
+ * Does not return.
  */
 SYSCALL_DEFINE1(exec_fn, int, index)
 {
@@ -78,6 +78,7 @@ SYSCALL_DEFINE1(exec_fn, int, index)
 	                 "pop %%ebx\n\t"
 	                 "pop %%ebp\n\t"
 	                 "ret" ::"r"(cur->esp));
-	schedule();
+
+	kpanic("execve: reached unreachable code");
 	return -EUNREACH;
 }
