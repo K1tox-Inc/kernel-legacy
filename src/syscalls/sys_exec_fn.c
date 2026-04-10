@@ -53,6 +53,7 @@ SYSCALL_DEFINE1(exec_fn, int, index)
 		return -EFAULT;
 
 	struct task *cur = task_get_current_task();
+	paging_reload_cr3(vmm_get_kernel_directory());
 	task_exit_cleanup(cur);
 
 	ft_memcpy(cur->text_sec, &text, sizeof(struct section));
@@ -69,6 +70,7 @@ SYSCALL_DEFINE1(exec_fn, int, index)
 	cur->name[name_len] = 0;
 
 	task_craft_context(cur, fn_info.is_user, cur->text_sec->v_addr);
+	paging_reload_cr3(cur->cr3);
 
 	__asm__ volatile("mov %0, %%esp\n\t"
 	                 "pop %%edi\n\t"
