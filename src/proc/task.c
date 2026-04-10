@@ -27,6 +27,8 @@ struct task              *current_task = NULL;
 extern char         kitoxD_start[], kitoxD_end[];
 static struct task *kitoxD_task = NULL;
 
+static struct list_head info_queue = LIST_HEAD_INIT(info_queue);
+
 __attribute__((constructor)) static void init_pid_manager(void)
 {
 	pid_manager = id_manager_create(PID_MAX);
@@ -194,6 +196,7 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	wq_init(&ret->child_wq);
 
 	INIT_SENTINEL(&ret->sched_node);
+	list_add_tail(&ret->info_node, &info_queue);
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
 	 * and must be initialized by the caller if needed (like `fork`) :
@@ -264,6 +267,7 @@ void task_exit_cleanup(struct task *task)
 void task_release(struct task *task)
 {
 	pop_node(&task->siblings);
+	pop_node(&task->info_node);
 	id_manager_free(pid_manager, task->pid);
 	kfree((void *)task->kernel_stack_pointer);
 	kfree(task);
@@ -368,4 +372,21 @@ void task_print_stack(const struct task *task)
 	}
 
 	vga_printf("=== End of stack dump ===\n");
+}
+
+void task_ps(void)
+{
+	struct task *task;
+
+	vga_printf("[PID] [PPID] [RING] [STATE]   [NAME]\n");
+	list_for_each_entry(task, &info_queue, info_node)
+	{
+		const char *state = task_state_to_string(task->state);
+		vga_printf(" %d     %d      %d     %s", task->pid, task->parent ? task->parent->pid : 0,
+		           task->ring, state);
+		size_t len = ft_strlen(state);
+		while (len++ < 10)
+			vga_printf(" ");
+		vga_printf("%s\n", task->name);
+	}
 }

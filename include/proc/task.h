@@ -52,6 +52,7 @@ struct task {
 
 	/* Scheduling */
 	struct list_head sched_node; // Used for "Round Robin"
+	struct list_head info_node;
 	struct wq_entry  wq_data;
 	struct wq_head   child_wq;
 };
@@ -88,6 +89,7 @@ void         task_init_process(void);
 void         task_set_current_task(struct task *src);
 void         task_exit_cleanup(struct task *task);
 void         task_release(struct task *task);
+void         task_ps(void);
 void         task_craft_context(struct task *task, bool userspace, uintptr_t entry);
 void         __task_reparent_children(struct task *parent);
 struct task *task_get_current_task(void);

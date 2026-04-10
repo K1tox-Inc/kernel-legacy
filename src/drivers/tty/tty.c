@@ -6,7 +6,7 @@
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
-#include <proc/exec.h>
+#include <proc/task.h>
 
 struct tty ttys[12], *current_tty = ttys;
 
@@ -107,6 +107,7 @@ struct shell_command shell_commands[] = {{"poweroff", "Power off the system.", s
                                          {"reboot", "Reboot the system.", reboot},
                                          {"halt", "Halt the system.", halt},
                                          {"clear", "Clear the current tty.", tty_current_tty_clear},
+                                         {"ps", "Display existing proccess.", task_ps},
                                          {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \
