@@ -8,6 +8,8 @@
 #include <memory/slab.h>
 #include <memory/vmalloc.h>
 #include <memory/vmm.h>
+#include <proc/scheduler.h>
+#include <proc/task.h>
 
 extern void (*__init_array_start[])(void);
 extern void (*__init_array_end[])(void);
@@ -35,4 +37,6 @@ void init(void)
 	call_constructors();
 	keyboard_init();
 	ttys_init();
+	task_init_process();
+	schedule();
 }

@@ -6,6 +6,7 @@
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <memory/vmm.h>
+#include <proc/scheduler.h>
 #include <proc/task.h>
 #include <syscalls/syscalls.h>
 #include <utils/error.h>
@@ -66,7 +67,9 @@ SYSCALL_DEFINE0(fork)
 	*(--kstack) = 0;
 	*(--kstack) = 0;
 
-	new->esp = (uintptr_t)kstack;
+	new->esp   = (uintptr_t)kstack;
+	new->state = TASK_RUNNING;
+	sched_enqueue(new);
 
 	return new->pid;
 }
