@@ -77,5 +77,5 @@ SYSCALL_DEFINE1(exec_fn, int, index)
 	                 "pop %%ebp\n\t"
 	                 "ret" ::"r"(cur->esp));
 	schedule();
-	return -1;
+	return -EUNREACH;
 }
