@@ -4,6 +4,8 @@
 #include <proc/task.h>
 #include <utils/error.h>
 
+extern void switch_to(struct task *current, struct task *next);
+
 static struct list_head ready_queue = LIST_HEAD_INIT(ready_queue);
 
 static struct task *pick_next(void)
@@ -53,6 +55,5 @@ void schedule(void)
 		kpanic("Stack overflow: (pid=%d name=%s)", next_task->pid, next_task->name);
 	task_set_current_task(next_task);
 	// need to check the implementation when FCFS is implemented
-	// switch_context(next_task);
-	kpanic("Error: cannot use schedule actually switch context not implemented.");
+	switch_to(cur_task, next_task);
 }
