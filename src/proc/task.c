@@ -10,6 +10,7 @@
 #include <memory/vmm.h>
 #include <proc/scheduler.h>
 #include <proc/task.h>
+#include <proc/timer.h>
 #include <proc/userspace.h>
 #include <proc/waitqueue.h>
 #include <types.h>
@@ -310,6 +311,8 @@ void task_init_process(void)
 {
 	task_init_idle();
 	task_init_kitoxD();
+	timer_set_cycle(TIMER_HZ);
+	idt_register_interrupt_handlers(32, (irqHandler)timer_handle);
 }
 
 // ============================================================================

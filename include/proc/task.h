@@ -49,12 +49,13 @@ struct task {
 	bool                need_resched;
 	uint32_t            exit_code;
 	enum process_states state;
+	struct list_head    info_node;
 
 	/* Scheduling */
 	struct list_head sched_node; // Used for "Round Robin"
-	struct list_head info_node;
 	struct wq_entry  wq_data;
 	struct wq_head   child_wq;
+	uint32_t         quantum_remaining;
 };
 
 static inline struct section *task_text(struct task *new_task) { return new_task->text_sec; }

@@ -2,6 +2,7 @@
 #include <list.h>
 #include <proc/scheduler.h>
 #include <proc/task.h>
+#include <proc/timer.h>
 #include <utils/error.h>
 
 extern void switch_to(struct task *current, struct task *next);
@@ -54,6 +55,6 @@ void schedule(void)
 	if (task_stack_overflow(next_task))
 		kpanic("Stack overflow: (pid=%d name=%s)", next_task->pid, next_task->name);
 	task_set_current_task(next_task);
-	// need to check the implementation when FCFS is implemented
+	next_task->quantum_remaining = DEFAULT_QUANTUM;
 	switch_to(cur_task, next_task);
 }
