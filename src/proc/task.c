@@ -489,12 +489,12 @@ static void exec_fn(unsigned int *addr, unsigned int *function, unsigned int siz
 
 void sloppy_exec(char *sloppy_name)
 {
-	if (ft_strequ("fibo", sloppy_name))
-		exec_fn(0xB105F00D, sloppy_fibo, 0);
-	else if (ft_strequ("pid", sloppy_name))
-		exec_fn(0xBAAAAAAD, sloppy_pid, 0);
-	else if (ft_strequ("hello", sloppy_name))
-		exec_fn(0xBAADF00D, sloppy_hello, 0);
+    if (ft_strequ("fibo", sloppy_name))
+        exec_fn((unsigned int *)0xB105F00D, (unsigned int *)sloppy_fibo, 0);
+    else if (ft_strequ("pid", sloppy_name))
+        exec_fn((unsigned int *)0xBAAAAAAD, (unsigned int *)sloppy_pid, 0);
+    else if (ft_strequ("hello", sloppy_name))
+        exec_fn((unsigned int *)0xBAADF00D, (unsigned int *)sloppy_hello, 0);
 	else if (ft_strequ("cafe", sloppy_name)) {
 		size_t sz = (uintptr_t)user_cafe_end - (uintptr_t)user_cafe_start;
 		exec_fn((unsigned int *)0xBAFEBABE, (unsigned int *)user_cafe_start, sz);
