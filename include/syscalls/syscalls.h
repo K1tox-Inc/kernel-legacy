@@ -28,3 +28,4 @@ extern const syscallHandler syscall_table[MAX_SYSCALL];
 	asmlinkage long sys_##name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, type5 arg5)
 
 void do_syscall(struct trap_frame *tf);
+void ksyscall(int num);

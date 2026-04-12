@@ -1,3 +1,4 @@
+#include <libk.h>
 #include <syscalls/syscalls.h>
 #include <utils/error.h>
 
@@ -20,4 +21,11 @@ void do_syscall(struct trap_frame *tf)
 bad:
 	tf->regs.eax = -ENOSYS;
 	return;
+}
+
+void ksyscall(int num)
+{
+	struct trap_frame tf;
+	ft_bzero(&tf, sizeof(struct trap_frame));
+	do_syscall(&tf);
 }

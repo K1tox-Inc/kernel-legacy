@@ -115,8 +115,6 @@ user_cafe_start:
     sub ecx, (.cafe_getpc - .cafe_msg)
 
 2:
-    SYSCALL_WRITE 1, ecx, 17
-    SYSCALL_SLEEP 2
     jmp 2b
 user_cafe_end:
 
