@@ -110,7 +110,6 @@ user_cafe_start:
     SYSCALL_WRITE 1, ecx, 17
 
     mov eax, 0xCAFEBABE
-    SYSCALL_EXIT 1
 1:
     jmp 1b
 user_cafe_end:
@@ -132,6 +131,7 @@ user_dead_start:
     SYSCALL_WRITE 1, ecx, 17
 
     mov eax, 0xDEADBEEF
+    SYSCALL_EXIT 1
 2:
     jmp 2b
 user_dead_end:

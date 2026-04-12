@@ -40,7 +40,7 @@ const struct exec_fn_mok mok_registry[] = {
  *
  * Does not return.
  */
-SYSCALL_DEFINE1(exec_fn, int, index)
+SYSCALL_DEFINE1(execve, int, index)
 {
 	if (index < 0 || index >= MOK_SENTINEL)
 		return -EINVAL;
