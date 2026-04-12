@@ -118,7 +118,7 @@ struct shell_command shell_commands[] = {{"poweroff", "Power off the system.", s
                                          {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
                                          {"hello", "Run the mok process: hello.", exec_mok_hello},
                                          {"pid", "Run the mok process: pid.", exec_mok_pid},
-                                         {"ps", "Display existing proccess.", task_ps},
+                                         {"ps", "Display existing process.", task_ps},
                                          {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \
