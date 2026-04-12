@@ -55,7 +55,10 @@ struct task {
 	struct list_head sched_node; // Used for "Round Robin"
 	struct wq_entry  wq_data;
 	struct wq_head   child_wq;
-	uint32_t         quantum_remaining;
+
+	/* Time */
+	uint32_t tick_to_wake;
+	uint32_t quantum_remaining;
 };
 
 static inline struct section *task_text(struct task *new_task) { return new_task->text_sec; }

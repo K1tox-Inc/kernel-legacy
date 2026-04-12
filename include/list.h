@@ -30,6 +30,9 @@ struct list_head {
 	for (pos                                         = list_first_entry(head, typeof(*pos), member); \
 	     !list_entry_is_head(pos, head, member); pos = list_next_entry(pos, member))
 
+#define list_for_each_safe(pos, tmp, head)                                                         \
+	for (pos = (head)->next, tmp = pos->next; pos != (head); pos = tmp, tmp = pos->next)
+
 static inline void list_add_head(struct list_head *new_node, struct list_head *head)
 {
 	struct list_head *old_next = head->next;

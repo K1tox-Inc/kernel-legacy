@@ -6,6 +6,13 @@
 // ============================================================================
 // STRUCTS & MACROS
 // ============================================================================
+
+#define WQ_HEAD_INIT(name)                                                                         \
+	{                                                                                              \
+		.head = LIST_HEAD_INIT(name.head)                                                          \
+	}
+#define DECLARE_WQ_HEAD(name) struct wq_head name = WQ_HEAD_INIT(name)
+
 struct task;
 struct wq_entry;
 

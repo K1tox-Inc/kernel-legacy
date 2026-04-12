@@ -27,6 +27,12 @@
     int 0x80
 .endm
 
+.macro SYSCALL_SLEEP seconds
+    mov eax, 162
+    mov ebx, \seconds
+    int 0x80
+.endm
+
 .macro SYSCALL_FORK
     mov eax, 2
     int 0x80
@@ -107,11 +113,11 @@ user_cafe_start:
 .cafe_getpc:
     pop ecx
     sub ecx, (.cafe_getpc - .cafe_msg)
-    SYSCALL_WRITE 1, ecx, 17
 
-    mov eax, 0xCAFEBABE
-1:
-    jmp 1b
+2:
+    SYSCALL_WRITE 1, ecx, 17
+    SYSCALL_SLEEP 2
+    jmp 2b
 user_cafe_end:
 
 # ============================================================
@@ -132,6 +138,6 @@ user_dead_start:
 
     mov eax, 0xDEADBEEF
     SYSCALL_EXIT 1
-2:
+3:
     jmp 2b
 user_dead_end:
