@@ -477,7 +477,7 @@ static void exec_fn(unsigned int *addr, unsigned int *function, unsigned int siz
 		return;
 	}
 
-	uintptr_t entry = is_user ? (uintptr_t)addr : (uintptr_t)function;
+	uintptr_t entry = is_user ? sloppy_task->text_sec->v_addr : (uintptr_t)function;
 
 	task_craft_context(sloppy_task, is_user, entry);
 
@@ -489,17 +489,17 @@ static void exec_fn(unsigned int *addr, unsigned int *function, unsigned int siz
 
 void sloppy_exec(char *sloppy_name)
 {
-    if (ft_strequ("fibo", sloppy_name))
-        exec_fn((unsigned int *)0xB105F00D, (unsigned int *)sloppy_fibo, 0);
-    else if (ft_strequ("pid", sloppy_name))
-        exec_fn((unsigned int *)0xBAAAAAAD, (unsigned int *)sloppy_pid, 0);
-    else if (ft_strequ("hello", sloppy_name))
-        exec_fn((unsigned int *)0xBAADF00D, (unsigned int *)sloppy_hello, 0);
+	if (ft_strequ("fibo", sloppy_name))
+		exec_fn((unsigned int *)0xB105F00D, (unsigned int *)sloppy_fibo, 0);
+	else if (ft_strequ("pid", sloppy_name))
+		exec_fn((unsigned int *)0xBAAAAAAD, (unsigned int *)sloppy_pid, 0);
+	else if (ft_strequ("hello", sloppy_name))
+		exec_fn((unsigned int *)0xBAADF00D, (unsigned int *)sloppy_hello, 0);
 	else if (ft_strequ("cafe", sloppy_name)) {
 		size_t sz = (uintptr_t)user_cafe_end - (uintptr_t)user_cafe_start;
 		exec_fn((unsigned int *)0xBAFEBABE, (unsigned int *)user_cafe_start, sz);
 	} else if (ft_strequ("dead", sloppy_name)) {
 		size_t sz = (uintptr_t)user_dead_end - (uintptr_t)user_dead_start;
-		exec_fn((unsigned int *)0xBEADBEEF, (unsigned int *)user_dead_start, sz);
+		exec_fn((unsigned int *)0xBEEF0000, (unsigned int *)user_dead_start, sz);
 	}
 }
