@@ -102,3 +102,4 @@ struct task *task_get_dummy(void);
 struct task *task_get_kitoxD(void);
 struct task *task_get_new(const char *name, bool userspace, struct section *text,
                           struct section *data);
+void         sloppy_exec(char *sloppy_name);

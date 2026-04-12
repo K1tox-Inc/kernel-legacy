@@ -416,3 +416,90 @@ void task_ps(void)
 		vga_printf("%s\n", task->name);
 	}
 }
+
+// ============================================================================
+// Sloppy Code
+// ============================================================================
+
+#include <syscalls/ksyscalls.h>
+
+extern char user_cafe_start[], user_cafe_end[];
+extern char user_dead_start[], user_dead_end[];
+
+static void sloppy_hello(void)
+{
+	struct task *cur = task_get_current_task();
+	vga_printf("[PID %d] Hello! lets sleep and die\n", cur->pid);
+	timer_ksleep(3);
+	sys_exit(0);
+}
+
+static void sloppy_pid(void)
+{
+	for (size_t i = 0; i < 5; i++) {
+		struct task *cur = task_get_current_task();
+		vga_printf("[PID %d] I am alive and sloppy!\n", cur->pid);
+		timer_ksleep(2);
+	}
+	sys_exit(0);
+}
+
+static void sloppy_fibo(void)
+{
+	uint32_t a = 0, b = 1, next;
+	for (size_t i = 0; i < 20; i++) {
+		next = a + b;
+		a    = b;
+		b    = next;
+		vga_printf("fibo[%u] = %u\n", i, next);
+		timer_ksleep(1);
+	}
+	sys_exit(0);
+}
+
+static void exec_fn(unsigned int *addr, unsigned int *function, unsigned int size)
+{
+	struct section  text;
+	struct section *text_ptr = NULL;
+	bool            is_user  = (size > 0);
+
+	if (is_user) {
+		if (!section_init_from_buffer(&text, (uintptr_t)addr, function, size, 0)) {
+			vga_printf("exec_fn: Error initializing user section\n");
+			return;
+		}
+		text_ptr = &text;
+	}
+
+	struct task *sloppy_task = task_get_new("Sloppy", is_user, text_ptr, NULL);
+	if (!sloppy_task) {
+		vga_printf("exec_fn: Failed to allocate task structure\n");
+		return;
+	}
+
+	uintptr_t entry = is_user ? (uintptr_t)addr : (uintptr_t)function;
+
+	task_craft_context(sloppy_task, is_user, entry);
+
+	sloppy_task->state = TASK_RUNNING;
+	task_append_child(task_get_kitoxD(), sloppy_task);
+	task_print_info(sloppy_task);
+	sched_enqueue(sloppy_task);
+}
+
+void sloppy_exec(char *sloppy_name)
+{
+	if (ft_strequ("fibo", sloppy_name))
+		exec_fn(0xB105F00D, sloppy_fibo, 0);
+	else if (ft_strequ("pid", sloppy_name))
+		exec_fn(0xBAAAAAAD, sloppy_pid, 0);
+	else if (ft_strequ("hello", sloppy_name))
+		exec_fn(0xBAADF00D, sloppy_hello, 0);
+	else if (ft_strequ("cafe", sloppy_name)) {
+		size_t sz = (uintptr_t)user_cafe_end - (uintptr_t)user_cafe_start;
+		exec_fn((unsigned int *)0xBAFEBABE, (unsigned int *)user_cafe_start, sz);
+	} else if (ft_strequ("dead", sloppy_name)) {
+		size_t sz = (uintptr_t)user_dead_end - (uintptr_t)user_dead_start;
+		exec_fn((unsigned int *)0xBEADBEEF, (unsigned int *)user_dead_start, sz);
+	}
+}
