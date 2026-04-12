@@ -1,3 +1,5 @@
+#pragma once
+
 #include <types.h>
 
 #define PIT_BASE_FREQUENCY 1193180

@@ -26,9 +26,10 @@ struct list_head {
 #define list_first_entry(ptr, type, member)                                                        \
 	(!list_is_empty(ptr) ? list_entry((ptr)->next, type, member) : NULL)
 
-#define list_for_each_entry(pos, head, member)                                                       \
-	for (pos = list_first_entry(head, typeof(*pos), member);                                         \
-	     pos != NULL && !list_entry_is_head(pos, head, member); pos = list_next_entry(pos, member))
+#define list_for_each_entry(pos, head, member)                                                     \
+	for (pos = list_first_entry(head, typeof(*pos), member);                                       \
+	     pos != NULL && !list_entry_is_head(pos, head, member);                                    \
+	     pos = list_next_entry(pos, member))
 
 #define list_for_each_safe(pos, tmp, head)                                                         \
 	for (pos = (head)->next, tmp = pos->next; pos != (head); pos = tmp, tmp = pos->next)
