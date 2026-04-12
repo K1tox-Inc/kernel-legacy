@@ -16,7 +16,6 @@ enum mok_idx { IDX_CAFEBABE, IDX_DEADBEEF, MOK_SENTINEL };
 
 extern char user_cafe_start[], user_cafe_end[];
 extern char user_dead_start[], user_dead_end[];
-extern char mok_sys_get_start[], mok_sys_get_end[];
 
 struct exec_fn_mok {
 	const char *name;
