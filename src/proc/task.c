@@ -21,9 +21,11 @@
 // DEFINE AND MACRO
 // ============================================================================
 
-static struct id_manager *pid_manager  = NULL;
-static struct task       *idle_task    = NULL;
-struct task              *current_task = NULL;
+static struct task        dummy_task;
+static struct task       *idle_task        = NULL;
+static struct task       *current_task     = NULL;
+static struct id_manager *pid_manager      = NULL;
+static uint32_t           dummy_canary_val = STACK_CANARY_MAGIC;
 
 extern char         kitoxD_start[], kitoxD_end[];
 static struct task *kitoxD_task = NULL;
@@ -69,7 +71,27 @@ static void task_print_section(const char *label, const struct section *sec)
 static void cpu_idle_loop(void)
 {
 	while (true)
-		__asm__ volatile("hlt");
+		__asm__ volatile("sti; hlt");
+}
+
+static void task_init_dummy(void)
+{
+	ft_bzero(&dummy_task, sizeof(struct task));
+
+	dummy_task.name  = "BootThread";
+	dummy_task.pid   = 0;
+	dummy_task.state = TASK_RUNNING;
+	dummy_task.cr3   = vmm_get_kernel_directory();
+
+	dummy_task.kernel_stack_pointer = (uintptr_t)&dummy_canary_val;
+
+	uint32_t esp_val;
+	__asm__ volatile("mov %%esp, %0" : "=r"(esp_val));
+
+	dummy_task.esp               = esp_val;
+	dummy_task.kernel_stack_base = esp_val;
+
+	current_task = &dummy_task;
 }
 
 static void task_init_idle(void)
@@ -80,7 +102,6 @@ static void task_init_idle(void)
 
 	task_craft_context(idle_task, false, (uintptr_t)cpu_idle_loop);
 	idle_task->state = TASK_NEW;
-	current_task     = idle_task;
 }
 
 static void task_init_kitoxD(void)
@@ -107,6 +128,7 @@ static void task_init_kitoxD(void)
 struct task *task_get_current_task(void) { return current_task; }
 struct task *task_get_kitoxD(void) { return kitoxD_task; }
 struct task *task_get_idle(void) { return idle_task; }
+struct task *task_get_dummy(void) { return &dummy_task; }
 
 void task_set_current_task(struct task *src) { current_task = src; }
 
@@ -309,6 +331,7 @@ void task_craft_context(struct task *task, bool userspace, uintptr_t entry)
 
 void task_init_process(void)
 {
+	task_init_dummy();
 	task_init_idle();
 	task_init_kitoxD();
 	timer_set_cycle(TIMER_HZ);
