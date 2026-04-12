@@ -98,5 +98,6 @@ void         task_craft_context(struct task *task, bool userspace, uintptr_t ent
 void         __task_reparent_children(struct task *parent);
 struct task *task_get_current_task(void);
 struct task *task_get_idle(void);
+struct task *task_get_dummy(void);
 struct task *task_get_new(const char *name, bool userspace, struct section *text,
                           struct section *data);
