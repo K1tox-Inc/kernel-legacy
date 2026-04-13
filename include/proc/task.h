@@ -7,7 +7,7 @@
 #include <proc/waitqueue.h>
 #include <types.h>
 
-#define STACK_CANARY_MAGIC 0xCAFEBABE
+#define STACK_CANARY_MAGIC 0xABADBABE
 #define PID_MAX            32768
 
 enum process_states { TASK_NEW, TASK_RUNNING, TASK_WAITING, TASK_ZOMBIE };
@@ -67,6 +67,12 @@ static inline bool            task_is_sleeping(struct task *task)
 {
 	return task->state == TASK_WAITING && task->wq_data.head != NULL;
 }
+
+static inline bool task_stack_overflow(struct task *task)
+{
+	return (*(uint32_t *)(task->kernel_stack_pointer) != STACK_CANARY_MAGIC);
+}
+
 static inline bool task_has_child_pid(struct task *parent, pid_t child_pid)
 {
 	struct task *child;
@@ -87,5 +93,6 @@ void         task_exit_cleanup(struct task *task);
 void         task_release(struct task *task);
 void         __task_reparent_children(struct task *parent);
 struct task *task_get_current_task(void);
+struct task *task_get_idle(void);
 struct task *task_get_new(const char *name, bool userspace, struct section *text,
                           struct section *data);

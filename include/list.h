@@ -8,9 +8,14 @@ struct list_head {
 	struct list_head *next, *prev;
 };
 
+#define LIST_HEAD_INIT(name)                                                                       \
+	{                                                                                              \
+		&(name), &(name)                                                                           \
+	}
+
 #define INIT_SENTINEL(ptr) (*(ptr) = (struct list_head){.next = ptr, .prev = ptr})
 
-#define list_is_empty(head) (!(head) || (head) == (head)->next)
+#define list_is_empty(head) ((head) == (head)->next)
 
 #define list_entry(ptr, type, member) container_of(ptr, type, member)
 
@@ -47,6 +52,11 @@ static inline void list_insert(struct list_head *new, struct list_head *prev,
 	new->next  = next;
 	new->prev  = prev;
 	prev->next = new;
+}
+
+static inline void list_add_tail(struct list_head *new_node, struct list_head *head)
+{
+	list_insert(new_node, head->prev, head);
 }
 
 static inline void pop_node(struct list_head *node)
