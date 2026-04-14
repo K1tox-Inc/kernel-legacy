@@ -338,6 +338,18 @@ void task_init_process(void)
 	idt_register_interrupt_handlers(32, (irqHandler)timer_handle);
 }
 
+struct task *task_find_by_pid(pid_t pid)
+{
+	struct task *task;
+
+	list_for_each_entry(task, &info_queue, info_node)
+	{
+		if (task->pid == pid)
+			return task;
+	}
+	return NULL;
+}
+
 // ============================================================================
 // DEBUG APIs
 // ============================================================================
@@ -415,18 +427,6 @@ void task_ps(void)
 			vga_printf(" ");
 		vga_printf("%s\n", task->name);
 	}
-}
-
-void task_find_vy_pid(pid_t pid)
-{
-	struct task *task;
-
-	list_for_each_entry(task, &info_queue, info_node)
-	{
-		if (task->pid == pid)
-			return task;
-	}
-	return NULL;
 }
 
 // ============================================================================

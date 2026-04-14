@@ -7,6 +7,9 @@
 #define MAX_CMD_LEN   256
 #define TTY_PROMPT    "$> "
 
+#define SHELL_ARGS        int argc, char **argv
+#define SHELL_ARGS_UNUSED int argc __attribute__((unused)), char **argv __attribute__((unused))
+
 struct tty_history {
 	bool   status;
 	bool   stop_scroll;

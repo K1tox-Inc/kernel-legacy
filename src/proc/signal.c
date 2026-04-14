@@ -1,5 +1,5 @@
+#include <proc/signal.h>
 #include <proc/task.h>
-#include <signal.h>
 
 bool signal_is_valid(enum signals sig) { return (sig >= 0 && sig < Sentinel); }
 
@@ -11,10 +11,10 @@ bool signal_check_perm(struct task *target)
 		return false;
 	else if (cur->uid == 0)
 		return true;
-    else if  (cur->uid == target->uid)
-        return true;
-    
-    return false;
+	else if (cur->uid == target->uid)
+		return true;
+
+	return false;
 }
 
 void signal_send(enum signals sig, struct task *dst)

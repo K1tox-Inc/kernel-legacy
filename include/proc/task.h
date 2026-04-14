@@ -100,6 +100,7 @@ struct task *task_get_current_task(void);
 struct task *task_get_idle(void);
 struct task *task_get_dummy(void);
 struct task *task_get_kitoxD(void);
+struct task *task_find_by_pid(pid_t pid);
 struct task *task_get_new(const char *name, bool userspace, struct section *text,
                           struct section *data);
 void         sloppy_exec(char *sloppy_name);
