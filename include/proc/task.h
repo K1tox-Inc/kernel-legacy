@@ -40,7 +40,7 @@ struct task {
 	struct section *heap_sec;
 
 	/* Signals */
-	struct signal_queue signals;
+	uint32_t signals_map;
 
 	/* Info */
 	char               *name;
