@@ -2,6 +2,7 @@
 #include <list.h>
 #include <proc/scheduler.h>
 #include <proc/task.h>
+#include <proc/timer.h>
 #include <utils/error.h>
 
 extern void switch_to(struct task *current, struct task *next);
@@ -30,15 +31,16 @@ int sched_enqueue(struct task *task)
 
 void schedule(void)
 {
-	struct task *idle_task = task_get_idle();
-	struct task *cur_task  = task_get_current_task();
+	struct task *idle_task  = task_get_idle();
+	struct task *cur_task   = task_get_current_task();
+	struct task *dummy_task = task_get_dummy();
 	if (!idle_task)
 		kpanic("Error: idle not init.");
 	else if (cur_task == NULL)
 		kpanic("Error: current task is NULL.");
 	else if (task_stack_overflow(cur_task))
 		kpanic("Stack overflow: (pid=%d name=%s)", cur_task->pid, cur_task->name);
-	else if (cur_task->state == TASK_RUNNING && cur_task != idle_task)
+	else if (cur_task->state == TASK_RUNNING && cur_task != idle_task && cur_task != dummy_task)
 		sched_enqueue(cur_task);
 
 	struct task *next_task = pick_next();
@@ -47,13 +49,14 @@ void schedule(void)
 		       next_task->name);
 
 	if (!next_task) {
-		next_task = idle_task;
 		if (cur_task == idle_task)
 			return;
+		next_task        = idle_task;
+		next_task->state = TASK_RUNNING;
 	}
 	if (task_stack_overflow(next_task))
 		kpanic("Stack overflow: (pid=%d name=%s)", next_task->pid, next_task->name);
 	task_set_current_task(next_task);
-	// need to check the implementation when FCFS is implemented
+	next_task->quantum_remaining = DEFAULT_QUANTUM;
 	switch_to(cur_task, next_task);
 }

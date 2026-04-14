@@ -10,6 +10,7 @@
 #include <memory/vmm.h>
 #include <proc/scheduler.h>
 #include <proc/task.h>
+#include <proc/timer.h>
 #include <proc/userspace.h>
 #include <proc/waitqueue.h>
 #include <types.h>
@@ -20,12 +21,16 @@
 // DEFINE AND MACRO
 // ============================================================================
 
-static struct id_manager *pid_manager  = NULL;
-static struct task       *idle_task    = NULL;
-struct task              *current_task = NULL;
+static struct task        dummy_task;
+static struct task       *idle_task        = NULL;
+static struct task       *current_task     = NULL;
+static struct id_manager *pid_manager      = NULL;
+static uint32_t           dummy_canary_val = STACK_CANARY_MAGIC;
 
 extern char         kitoxD_start[], kitoxD_end[];
 static struct task *kitoxD_task = NULL;
+
+static struct list_head info_queue = LIST_HEAD_INIT(info_queue);
 
 __attribute__((constructor)) static void init_pid_manager(void)
 {
@@ -66,7 +71,27 @@ static void task_print_section(const char *label, const struct section *sec)
 static void cpu_idle_loop(void)
 {
 	while (true)
-		__asm__ volatile("hlt");
+		__asm__ volatile("sti; hlt");
+}
+
+static void task_init_dummy(void)
+{
+	ft_bzero(&dummy_task, sizeof(struct task));
+
+	dummy_task.name  = "BootThread";
+	dummy_task.pid   = 0;
+	dummy_task.state = TASK_RUNNING;
+	dummy_task.cr3   = vmm_get_kernel_directory();
+
+	dummy_task.kernel_stack_pointer = (uintptr_t)&dummy_canary_val;
+
+	uint32_t esp_val;
+	__asm__ volatile("mov %%esp, %0" : "=r"(esp_val));
+
+	dummy_task.esp               = esp_val;
+	dummy_task.kernel_stack_base = esp_val;
+
+	current_task = &dummy_task;
 }
 
 static void task_init_idle(void)
@@ -77,7 +102,6 @@ static void task_init_idle(void)
 
 	task_craft_context(idle_task, false, (uintptr_t)cpu_idle_loop);
 	idle_task->state = TASK_NEW;
-	current_task     = idle_task;
 }
 
 static void task_init_kitoxD(void)
@@ -104,6 +128,7 @@ static void task_init_kitoxD(void)
 struct task *task_get_current_task(void) { return current_task; }
 struct task *task_get_kitoxD(void) { return kitoxD_task; }
 struct task *task_get_idle(void) { return idle_task; }
+struct task *task_get_dummy(void) { return &dummy_task; }
 
 void task_set_current_task(struct task *src) { current_task = src; }
 
@@ -194,6 +219,7 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	wq_init(&ret->child_wq);
 
 	INIT_SENTINEL(&ret->sched_node);
+	list_add_tail(&ret->info_node, &info_queue);
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
 	 * and must be initialized by the caller if needed (like `fork`) :
@@ -264,6 +290,7 @@ void task_exit_cleanup(struct task *task)
 void task_release(struct task *task)
 {
 	pop_node(&task->siblings);
+	pop_node(&task->info_node);
 	id_manager_free(pid_manager, task->pid);
 	kfree((void *)task->kernel_stack_pointer);
 	kfree(task);
@@ -304,8 +331,11 @@ void task_craft_context(struct task *task, bool userspace, uintptr_t entry)
 
 void task_init_process(void)
 {
+	task_init_dummy();
 	task_init_idle();
 	task_init_kitoxD();
+	timer_set_cycle(TIMER_HZ);
+	idt_register_interrupt_handlers(32, (irqHandler)timer_handle);
 }
 
 // ============================================================================
@@ -368,4 +398,108 @@ void task_print_stack(const struct task *task)
 	}
 
 	vga_printf("=== End of stack dump ===\n");
+}
+
+void task_ps(void)
+{
+	struct task *task;
+
+	vga_printf("[PID] [PPID] [RING] [STATE]   [NAME]\n");
+	list_for_each_entry(task, &info_queue, info_node)
+	{
+		const char *state = task_state_to_string(task->state);
+		vga_printf(" %d     %d      %d     %s", task->pid, task->parent ? task->parent->pid : 0,
+		           task->ring, state);
+		size_t len = ft_strlen(state);
+		while (len++ < 10)
+			vga_printf(" ");
+		vga_printf("%s\n", task->name);
+	}
+}
+
+// ============================================================================
+// Sloppy Code
+// ============================================================================
+
+#include <syscalls/ksyscalls.h>
+
+extern char user_cafe_start[], user_cafe_end[];
+extern char user_dead_start[], user_dead_end[];
+
+static void sloppy_hello(void)
+{
+	struct task *cur = task_get_current_task();
+	vga_printf("[PID %d] Hello! lets sleep and die\n", cur->pid);
+	timer_ksleep(3);
+	sys_exit(0);
+}
+
+static void sloppy_pid(void)
+{
+	for (size_t i = 0; i < 5; i++) {
+		struct task *cur = task_get_current_task();
+		vga_printf("[PID %d] I am alive and sloppy!\n", cur->pid);
+		timer_ksleep(2);
+	}
+	sys_exit(0);
+}
+
+static void sloppy_fibo(void)
+{
+	uint32_t a = 0, b = 1, next;
+	for (size_t i = 0; i < 20; i++) {
+		next = a + b;
+		a    = b;
+		b    = next;
+		vga_printf("fibo[%u] = %u\n", i, next);
+		timer_ksleep(1);
+	}
+	sys_exit(0);
+}
+
+static void exec_fn(unsigned int *addr, unsigned int *function, unsigned int size)
+{
+	struct section  text;
+	struct section *text_ptr = NULL;
+	bool            is_user  = (size > 0);
+
+	if (is_user) {
+		if (!section_init_from_buffer(&text, (uintptr_t)addr, function, size, 0)) {
+			vga_printf("exec_fn: Error initializing user section\n");
+			return;
+		}
+		text_ptr = &text;
+	}
+
+	struct task *sloppy_task = task_get_new("Sloppy", is_user, text_ptr, NULL);
+	if (!sloppy_task) {
+		vga_printf("exec_fn: Failed to allocate task structure\n");
+		return;
+	}
+
+	uintptr_t entry = is_user ? sloppy_task->text_sec->v_addr : (uintptr_t)function;
+
+	task_craft_context(sloppy_task, is_user, entry);
+
+	sloppy_task->state = TASK_RUNNING;
+	task_append_child(task_get_kitoxD(), sloppy_task);
+	task_print_info(sloppy_task);
+	sched_enqueue(sloppy_task);
+}
+
+void sloppy_exec(char *sloppy_name)
+{
+	if (ft_strequ("fibo", sloppy_name))
+		exec_fn((unsigned int *)0xB105F00D, (unsigned int *)sloppy_fibo, 0);
+	else if (ft_strequ("pid", sloppy_name))
+		exec_fn((unsigned int *)0xBAAAAAAD, (unsigned int *)sloppy_pid, 0);
+	else if (ft_strequ("hello", sloppy_name))
+		exec_fn((unsigned int *)0xBAADF00D, (unsigned int *)sloppy_hello, 0);
+	else if (ft_strequ("cafe", sloppy_name)) {
+		size_t sz = (uintptr_t)user_cafe_end - (uintptr_t)user_cafe_start;
+		exec_fn((unsigned int *)0xBAFEBABE, (unsigned int *)user_cafe_start, sz);
+	} else if (ft_strequ("dead", sloppy_name)) {
+		size_t sz = (uintptr_t)user_dead_end - (uintptr_t)user_dead_start;
+		exec_fn((unsigned int *)0xBEEF0000, (unsigned int *)user_dead_start, sz);
+	}
 }

@@ -7,10 +7,12 @@
 
 SYSCALL_DEFINE1(exit, int, status)
 {
+	struct task *init     = task_get_kitoxD();
+	struct task *idle     = task_get_idle();
 	struct task *cur_task = task_get_current_task();
 	struct task *parent   = cur_task->real_parent;
 
-	if (!parent)
+	if (cur_task == idle || cur_task == init)
 		kpanic("Error: Trying to exit init or idle...");
 
 	cur_task->exit_code = (status & 0xff) << 8;

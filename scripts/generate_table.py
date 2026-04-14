@@ -7,12 +7,14 @@ project_root = os.path.dirname(script_dir)
 syscall_dir     = os.path.join(project_root, "src", "syscalls")
 tbl_path        = os.path.join(syscall_dir, "syscall.tbl")
 kernel_generated = os.path.join(project_root, "src", "generated")
+kernel_headers   = os.path.join(project_root, "include", "syscalls")
 user_headers    = os.path.join(project_root, "include", "uapi")
 
 def main():
     try:
         os.makedirs(kernel_generated, exist_ok=True)
         os.makedirs(user_headers, exist_ok=True)
+        os.makedirs(kernel_headers, exist_ok=True)
 
         syscalls = {}
         with open(tbl_path, "r") as file:
@@ -40,9 +42,9 @@ def main():
                         'name': name,
                         'sys_entry': sys_entry
                     }
-
         with open(f"{kernel_generated}/syscall_table.c", "w") as sys_table, \
-             open(f"{user_headers}/syscalls.h", "w") as sys_user_header:
+            open(f"{user_headers}/syscalls.h", "w") as sys_user_header, \
+            open(f"{kernel_headers}/ksyscalls.h", "w") as ksyscall_header:
 
             sys_table.write("/* auto-generated FILE - do not edit */\n\n")
             sys_table.write("#include <arch/trap_frame.h>\n")
@@ -68,6 +70,13 @@ def main():
                 sys_table.write(f"    [{syscall_id}] = (syscallHandler){sys_entry},\n")
 
             sys_table.write("};\n")
+
+            ksyscall_header.write("/* auto-generated FILE - do not edit */\n\n")
+            ksyscall_header.write("#pragma once\n\n")
+
+            for syscall_id in sorted(syscalls.keys()):
+                sys_entry = syscalls[syscall_id]['sys_entry']
+                ksyscall_header.write(f"long {sys_entry}();\n")
 
         sys.exit(0)
 

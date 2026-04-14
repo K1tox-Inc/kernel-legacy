@@ -92,6 +92,8 @@ bool userspace_create_new(struct task *new_task)
 
 	if (!text->v_addr)
 		text->v_addr = USER_TEXT_START;
+	else if (!IS_ALIGNED(text->v_addr, PAGE_SIZE))
+		text->v_addr = ALIGN_DOWN(text->v_addr, PAGE_SIZE);
 
 	text->flags        = USER_SECTION_RO;
 	text->mapping_size = ALIGN(text->data_size, PAGE_SIZE);

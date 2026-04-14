@@ -48,3 +48,4 @@ _codeql_detected_source_root
 
 generated
 include/uapi/syscalls.h
+include/syscalls/ksyscalls.h

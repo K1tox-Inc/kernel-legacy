@@ -70,17 +70,20 @@ all: $(BUILDDIR)/boot.iso
 
 -include $(DEPS)
 
+$(OBJ): src/generated/syscall_table.c include/uapi/syscalls.h include/syscalls/ksyscalls.h
+
+src/generated/syscall_table.c include/uapi/syscalls.h include/syscalls/ksyscalls.h: src/syscalls/syscall.tbl
+	python3 $(SCRIPTS_DIR)/generate_table.py
+
 .PHONY: format
 format:
 	@clang-format --verbose --Werror -i $(shell find src include -regex '.*\.\(c\|h\|cpp\|hpp\)' -not \( -path 'src/generated/*' -o -path 'include/generated/*' \))
-
-src/generated/syscall_table.c include/uapi/syscalls.h: src/syscalls/syscall.tbl
-	python3 $(SCRIPTS_DIR)/generate_table.py
 
 .PHONY: clean
 clean:
 	$(RM) -r $(BUILDDIR)
 	$(RM) -r src/generated
+	$(RM) -f include/syscalls/ksyscalls.h
 	@make -C lib/libk clean
 	@make -C lib/data_structs clean
 	@make -C lib/libutils clean

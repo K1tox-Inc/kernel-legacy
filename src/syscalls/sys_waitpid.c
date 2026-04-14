@@ -20,7 +20,6 @@ static struct task *find_zombie_child(struct task *parent, pid_t pid)
 
 SYSCALL_DEFINE3(waitpid, pid_t, pid, int *, status, int, options)
 {
-	// Not handled actualy
 	(void)options;
 
 	if (pid == 0 || pid < -1)
@@ -28,12 +27,18 @@ SYSCALL_DEFINE3(waitpid, pid_t, pid, int *, status, int, options)
 
 	struct task *cur_task = task_get_current_task();
 
-	if (list_is_empty(&cur_task->children))
-		return -ECHILD;
-	else if (pid > 0 && !task_has_child_pid(cur_task, pid))
-		return -ECHILD;
-
 	while (true) {
+		if (list_is_empty(&cur_task->children)) {
+			if (cur_task != task_get_kitoxD())
+				return -ECHILD;
+			wq_prepare(&cur_task->child_wq, cur_task);
+			schedule();
+			continue;
+		}
+
+		if (pid > 0 && !task_has_child_pid(cur_task, pid))
+			return -ECHILD;
+
 		struct task *zombie = find_zombie_child(cur_task, pid);
 		if (zombie) {
 			pid_t ret = zombie->pid;

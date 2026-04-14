@@ -6,7 +6,7 @@
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
-#include <proc/exec.h>
+#include <proc/task.h>
 
 struct tty ttys[12], *current_tty = ttys;
 
@@ -103,10 +103,22 @@ struct shell_command {
 	void (*func)(void);
 };
 
+static void exec_mok_cafe() { sloppy_exec("cafe"); }
+static void exec_mok_dead() { sloppy_exec("dead"); }
+static void exec_mok_fibo() { sloppy_exec("fibo"); }
+static void exec_mok_hello() { sloppy_exec("hello"); }
+static void exec_mok_pid() { sloppy_exec("pid"); }
+
 struct shell_command shell_commands[] = {{"poweroff", "Power off the system.", shutdown},
                                          {"reboot", "Reboot the system.", reboot},
                                          {"halt", "Halt the system.", halt},
                                          {"clear", "Clear the current tty.", tty_current_tty_clear},
+                                         {"cafe", "Run the mok process: cafe.", exec_mok_cafe},
+                                         {"dead", "Run the mok process: dead.", exec_mok_dead},
+                                         {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
+                                         {"hello", "Run the mok process: hello.", exec_mok_hello},
+                                         {"pid", "Run the mok process: pid.", exec_mok_pid},
+                                         {"ps", "Display existing process.", task_ps},
                                          {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \

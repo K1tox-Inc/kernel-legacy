@@ -35,8 +35,8 @@ void init(void)
 	slab_init();
 	vmalloc_init();
 	call_constructors();
+	task_init_process();
 	keyboard_init();
 	ttys_init();
-	task_init_process();
 	schedule();
 }
