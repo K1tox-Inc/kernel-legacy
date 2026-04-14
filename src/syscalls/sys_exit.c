@@ -1,5 +1,6 @@
 #include <kernel/panic.h>
 #include <libk.h>
+#include <memory/vmm.h>
 #include <proc/scheduler.h>
 #include <proc/task.h>
 #include <syscalls/syscalls.h>
@@ -21,7 +22,9 @@ SYSCALL_DEFINE1(exit, int, status)
 	cur_task->state = TASK_ZOMBIE;
 
 	wq_wake_all(&parent->child_wq);
-	// send_signal to parent
+
+	// send_signal to parent (when implemented)
+	paging_reload_cr3(vmm_get_kernel_directory());
 	task_exit_cleanup(cur_task);
 	schedule();
 	// the current task/address space.

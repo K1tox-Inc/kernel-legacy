@@ -2,5 +2,6 @@
 2       fork        sys_fork
 4       write       sys_write
 7       waitpid     sys_waitpid
+11      exec_fn     sys_exec_fn
 20      getpid      sys_getpid
 24      getuid      sys_getuid

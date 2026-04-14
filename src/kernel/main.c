@@ -2,8 +2,4 @@
 
 void init(void);
 
-void kernel_main(void)
-{
-	init();
-	task_init_idle();
-}
+void kernel_main(void) { init(); }

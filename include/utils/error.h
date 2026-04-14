@@ -51,3 +51,6 @@
 /*for scheduler */
 #define ERESTART 512 /* Interrupted system call should be restarted */
 #define ENOSR    513 /* Out of streams resources */
+
+/*Custom errors*/
+#define EUNREACH 600 /* Code is unreachable */
