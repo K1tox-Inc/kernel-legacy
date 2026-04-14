@@ -42,16 +42,8 @@ enum signals {
 	Sentinel  = 32  /* Sentinel */
 };
 
-static inline void signal_send(enum signals sig, struct task *dst)
-{
-	if (sig < Sentinel)
-		dst->signals_map |= (1 << sig);
-}
-
-static inline bool signal_is_set(enum signals sig, struct task *dst)
-{
-	if (sig < Sentinel)
-		return ((dst->signals_map >> sig) & 1);
-	return false;
-}
-static inline void signal_reset(struct task *dst) { dst->signals_map = 0; }
+bool signal_is_valid(enum signals sig);
+bool signal_check_perm(struct task *target);
+void signal_send(enum signals sig, struct task *dst);
+bool signal_is_set(enum signals sig, struct task *dst);
+void signal_reset(struct task *dst);

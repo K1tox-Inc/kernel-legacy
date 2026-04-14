@@ -417,6 +417,18 @@ void task_ps(void)
 	}
 }
 
+void task_find_vy_pid(pid_t pid)
+{
+	struct task *task;
+
+	list_for_each_entry(task, &info_queue, info_node)
+	{
+		if (task->pid == pid)
+			return task;
+	}
+	return NULL;
+}
+
 // ============================================================================
 // Sloppy Code
 // ============================================================================
