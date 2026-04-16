@@ -1,6 +1,66 @@
+#include <drivers/vga.h>
 #include <proc/signal.h>
 #include <proc/task.h>
 #include <utils/error.h>
+
+// ============================================================================
+// DEFINE AND MACRO
+// ============================================================================
+
+#define SIG_IGN_MASK                                                                               \
+	((1U << SIGCHLD) | (1U << SIGCONT) | (1U << SIGSTOP) | (1U << SIGTSTP) | (1U << SIGTTIN) |     \
+	 (1U << SIGTTOU) | (1U << SIGURG) | (1U << SIGWINCH) | (1U << SIGPOLL) | (1U << SIGPWR) |      \
+	 (1U << SIGSTKFLT))
+
+static const char *default_msg[] = {
+    [SIGHUP]    = "Hangup",
+    [SIGINT]    = "Interrupt",
+    [SIGQUIT]   = "Quit",
+    [SIGILL]    = "Illegal instruction",
+    [SIGTRAP]   = "Trace/breakpoint trap",
+    [SIGABRT]   = "Aborted",
+    [SIGBUS]    = "Bus error",
+    [SIGFPE]    = "Floating point exception",
+    [SIGKILL]   = "Killed",
+    [SIGUSR1]   = "User defined signal 1",
+    [SIGSEGV]   = "Segmentation fault",
+    [SIGUSR2]   = "User defined signal 2",
+    [SIGPIPE]   = "Broken pipe",
+    [SIGALRM]   = "Alarm clock",
+    [SIGTERM]   = "Terminated",
+    [SIGSTKFLT] = "Stack fault",
+    [SIGCHLD]   = "Child exited",
+    [SIGCONT]   = "Continued",
+    [SIGSTOP]   = "Stopped (signal)",
+    [SIGTSTP]   = "Stopped (user)",
+    [SIGTTIN]   = "Stopped (tty input)",
+    [SIGTTOU]   = "Stopped (tty output)",
+    [SIGURG]    = "Urgent I/O condition",
+    [SIGXCPU]   = "CPU time limit exceeded",
+    [SIGXFSZ]   = "File size limit exceeded",
+    [SIGVTALRM] = "Virtual timer expired",
+    [SIGPROF]   = "Profiling timer expired",
+    [SIGWINCH]  = "Window changed",
+    [SIGPOLL]   = "I/O possible",
+    [SIGPWR]    = "Power failure",
+    [SIGSYS]    = "Bad system call",
+};
+
+// ============================================================================
+// INTERNAL APIs
+// ============================================================================
+
+static void signal_default_handler(int sig)
+{
+	vga_printf("%s\n", default_msg[sig]);
+	sys_exit(-1);
+}
+
+static void signal_ignore_handler(int sig) { (void)sig; }
+
+// ============================================================================
+// EXTERNAL APIs
+// ============================================================================
 
 bool signal_is_valid(enum signals sig) { return (sig >= 0 && sig < SIG_Sentinel); }
 
@@ -56,4 +116,18 @@ int signal_dequeue_yield(struct task *task)
 		return i;
 	}
 	return 0;
+}
+
+// ============================================================================
+// Handlers
+// ============================================================================
+
+void signal_init_default_handlers(struct task *task)
+{
+	for (int i = 1; i < SIG_Sentinel; i++) {
+		if ((SIG_IGN_MASK >> i) & 1U)
+			task->sig_handlers[i] = signal_ignore_handler;
+		else
+			task->sig_handlers[i] = signal_default_handler;
+	}
 }

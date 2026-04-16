@@ -221,6 +221,8 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 
 	INIT_SENTINEL(&ret->sched_node);
 	list_add_tail(&ret->info_node, &info_queue);
+	signal_init_default_handlers(ret);
+
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
 	 * and must be initialized by the caller if needed (like `fork`) :

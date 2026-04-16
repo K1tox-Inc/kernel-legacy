@@ -2,6 +2,7 @@
 
 #include <list.h>
 #include <proc/section.h>
+#include <proc/signal.h>
 #include <proc/waitqueue.h>
 #include <types.h>
 #include <utils/kmacro.h>
@@ -57,6 +58,9 @@ struct task {
 	/* Time */
 	uint32_t tick_to_wake;
 	uint32_t quantum_remaining;
+
+	/* Signals */
+	sighandler_t sig_handlers[MAX_SIG];
 };
 
 static inline struct section *task_text(struct task *new_task) { return new_task->text_sec; }

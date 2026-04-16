@@ -42,6 +42,10 @@ enum signals {
 	SIG_Sentinel = 32  /* SIG_Sentinel */
 };
 
+#define MAX_SIG SIG_Sentinel
+
+typedef typeof(void(int)) *sighandler_t;
+
 static inline const char *signal_to_string(enum signals sig)
 {
 	static const char *names[] = {
@@ -69,3 +73,4 @@ bool signal_is_set(enum signals sig, struct task *dst);
 void signal_reset(struct task *dst);
 void signal_dequeue(enum signals sig, struct task *dst);
 int  signal_dequeue_yield(struct task *task);
+void signal_init_default_handlers(struct task *task);
