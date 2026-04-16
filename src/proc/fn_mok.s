@@ -114,10 +114,8 @@ user_cafe_start:
     pop ecx
     sub ecx, (.cafe_getpc - .cafe_msg)
     SYSCALL_WRITE 1, ecx, 17
-    SYSCALL_EXIT 1
-
 2:
-    SYSCALL_SLEEP 2
+    SYSCALL_SLEEP 1
     jmp 2b
 user_cafe_end:
 

@@ -9,6 +9,7 @@
 #include <memory/kmalloc.h>
 #include <memory/vmm.h>
 #include <proc/scheduler.h>
+#include <proc/signal.h>
 #include <proc/task.h>
 #include <proc/timer.h>
 #include <proc/userspace.h>
@@ -226,7 +227,6 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	 *
 	 *  uid_t uid;
 	 *  gid_t gid;
-	 *  preempt_lock     lock;
 	 *  bool			 need_resched
 	 *  struct task		*real_parent;
 	 *  struct task		*parent;
@@ -354,8 +354,13 @@ struct task *task_find_by_pid(pid_t pid)
 // DEBUG APIs
 // ============================================================================
 
-void task_print_info(const struct task *task)
+void task_print_info(SHELL_ARGS)
 {
+	if (argc != 2)
+		return;
+	pid_t        task_pid = ft_atoi(argv[1]);
+	struct task *task     = task_find_by_pid(task_pid);
+
 	if (!task) {
 		vga_printf("task_print_info: task pointer is NULL\n");
 		return;
@@ -376,6 +381,16 @@ void task_print_info(const struct task *task)
 	task_print_section("Data", task->data_sec);
 	task_print_section("Stack", task->stack_sec);
 	task_print_section("Heap", task->heap_sec);
+	vga_printf("  - Signals pending: ");
+	if (!task->signals_map) {
+		vga_printf("none");
+	} else {
+		for (int i = 1; i < Sentinel; i++) {
+			if ((task->signals_map >> i) & 1)
+				vga_printf("%s ", signal_to_string(i));
+		}
+	}
+	vga_printf("\n");
 }
 
 void task_print_stack(const struct task *task)
@@ -495,7 +510,6 @@ static void exec_fn(unsigned int *addr, unsigned int *function, unsigned int siz
 
 	sloppy_task->state = TASK_RUNNING;
 	task_append_child(task_get_kitoxD(), sloppy_task);
-	task_print_info(sloppy_task);
 	sched_enqueue(sloppy_task);
 }
 

@@ -42,6 +42,26 @@ enum signals {
 	Sentinel  = 32  /* Sentinel */
 };
 
+static inline const char *signal_to_string(enum signals sig)
+{
+	static const char *names[] = {
+	    [SIGHUP] = "SIGHUP",       [SIGINT] = "SIGINT",       [SIGQUIT] = "SIGQUIT",
+	    [SIGILL] = "SIGILL",       [SIGTRAP] = "SIGTRAP",     [SIGABRT] = "SIGABRT",
+	    [SIGBUS] = "SIGBUS",       [SIGFPE] = "SIGFPE",       [SIGKILL] = "SIGKILL",
+	    [SIGUSR1] = "SIGUSR1",     [SIGSEGV] = "SIGSEGV",     [SIGUSR2] = "SIGUSR2",
+	    [SIGPIPE] = "SIGPIPE",     [SIGALRM] = "SIGALRM",     [SIGTERM] = "SIGTERM",
+	    [SIGSTKFLT] = "SIGSTKFLT", [SIGCHLD] = "SIGCHLD",     [SIGCONT] = "SIGCONT",
+	    [SIGSTOP] = "SIGSTOP",     [SIGTSTP] = "SIGTSTP",     [SIGTTIN] = "SIGTTIN",
+	    [SIGTTOU] = "SIGTTOU",     [SIGURG] = "SIGURG",       [SIGXCPU] = "SIGXCPU",
+	    [SIGXFSZ] = "SIGXFSZ",     [SIGVTALRM] = "SIGVTALRM", [SIGPROF] = "SIGPROF",
+	    [SIGWINCH] = "SIGWINCH",   [SIGPOLL] = "SIGPOLL",     [SIGPWR] = "SIGPWR",
+	    [SIGSYS] = "SIGSYS",
+	};
+	if (sig < 1 || sig >= Sentinel)
+		return "UNKNOWN";
+	return names[sig] ? names[sig] : "UNKNOWN";
+}
+
 bool signal_is_valid(enum signals sig);
 bool signal_check_perm(struct task *target);
 void signal_send(enum signals sig, struct task *dst);

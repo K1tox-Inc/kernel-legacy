@@ -8,6 +8,7 @@
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <proc/task.h>
+#include <syscalls/ksyscalls.h>
 #include <utils/kmacro.h>
 
 struct tty ttys[12], *current_tty = ttys;
@@ -124,6 +125,19 @@ static void exec_mok_fibo(SHELL_ARGS_UNUSED) { sloppy_exec("fibo"); }
 static void exec_mok_hello(SHELL_ARGS_UNUSED) { sloppy_exec("hello"); }
 static void exec_mok_pid(SHELL_ARGS_UNUSED) { sloppy_exec("pid"); }
 
+static void sys_kill_wrapper(SHELL_ARGS)
+{
+	if (argc != 3) {
+		vga_printf("kill: not enough arguments\n");
+		return;
+	}
+
+	int   sig = ft_atoi(argv[1]);
+	pid_t pid = ft_atoi(argv[2]);
+
+	sys_kill(pid, sig);
+}
+
 struct shell_command shell_commands[] = {
     {"poweroff", "Power off the system.", tty_handle_kprimitive},
     {"reboot", "Reboot the system.", tty_handle_kprimitive},
@@ -135,6 +149,8 @@ struct shell_command shell_commands[] = {
     {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
     {"hello", "Run the mok process: hello.", exec_mok_hello},
     {"pid", "Run the mok process: pid.", exec_mok_pid},
+    {"task_info", "Print task data using pid.", task_print_info},
+    {"kill", "Send signal to process .", sys_kill_wrapper},
     {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \

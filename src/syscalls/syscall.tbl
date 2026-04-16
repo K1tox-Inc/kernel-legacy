@@ -5,4 +5,5 @@
 11      execve      sys_execve
 20      getpid      sys_getpid
 24      getuid      sys_getuid
+37      kill        sys_kill
 162     sleep       sys_sleep

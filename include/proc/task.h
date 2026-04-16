@@ -1,11 +1,10 @@
 #pragma once
 
 #include <list.h>
-#include <proc/lock.h>
 #include <proc/section.h>
-#include <proc/signal.h>
 #include <proc/waitqueue.h>
 #include <types.h>
+#include <utils/kmacro.h>
 
 #define STACK_CANARY_MAGIC 0xABADBABE
 #define PID_MAX            32768
@@ -45,7 +44,6 @@ struct task {
 	/* Info */
 	char               *name;
 	size_t              ring;
-	preempt_lock        lock;
 	bool                need_resched;
 	uint32_t            exit_code;
 	enum process_states state;
@@ -86,7 +84,7 @@ static inline bool task_has_child_pid(struct task *parent, pid_t child_pid)
 	return false;
 }
 
-void         task_print_info(const struct task *task);
+void         task_print_info(SHELL_ARGS);
 void         task_print_stack(const struct task *task);
 void         task_append_child(struct task *parent, struct task *child);
 void         task_init_process(void);
