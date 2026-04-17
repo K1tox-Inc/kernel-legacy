@@ -74,3 +74,4 @@ void signal_reset(struct task *dst);
 void signal_dequeue(enum signals sig, struct task *dst);
 int  signal_dequeue_yield(struct task *task);
 void signal_init_default_handlers(struct task *task);
+void signal_call_curtask_handlers(void);

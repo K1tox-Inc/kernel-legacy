@@ -1,11 +1,16 @@
 #include <drivers/vga.h>
 #include <proc/signal.h>
 #include <proc/task.h>
+#include <proc/waitqueue.h>
+#include <syscalls/ksyscalls.h>
 #include <utils/error.h>
 
 // ============================================================================
 // DEFINE AND MACRO
 // ============================================================================
+
+#define iter_over_array(p, a)                                                                      \
+	for (p = a; (uintptr_t)p - (uintptr_t)a <= sizeof(a) - sizeof(typeof(*a)); p++)
 
 #define SIG_IGN_MASK                                                                               \
 	((1U << SIGCHLD) | (1U << SIGCONT) | (1U << SIGSTOP) | (1U << SIGTSTP) | (1U << SIGTTIN) |     \
@@ -80,9 +85,11 @@ bool signal_check_perm(struct task *target)
 
 void signal_send(enum signals sig, struct task *dst)
 {
-	// Here we need to handle task state
-	if (dst && sig > 0 && sig < SIG_Sentinel)
-		dst->signals_map |= (1U << sig);
+	if (!(dst && sig > 0 && sig < SIG_Sentinel))
+		return;
+	dst->signals_map |= (1U << sig);
+	// TASK_UNINTERRUPTIBLE state check is handled inside wq_signal_wake_up
+	wq_signal_wake_up(dst);
 }
 
 bool signal_is_set(enum signals sig, struct task *dst)
@@ -124,10 +131,23 @@ int signal_dequeue_yield(struct task *task)
 
 void signal_init_default_handlers(struct task *task)
 {
-	for (int i = 1; i < SIG_Sentinel; i++) {
+	for (int i = 0; i < SIG_Sentinel; i++) {
 		if ((SIG_IGN_MASK >> i) & 1U)
 			task->sig_handlers[i] = signal_ignore_handler;
 		else
 			task->sig_handlers[i] = signal_default_handler;
+	}
+}
+
+void signal_call_curtask_handlers(void)
+{
+	struct task *cur = task_get_current_task();
+	if (!cur)
+		return;
+	for (int i = 1; i < SIG_Sentinel; i++) {
+		if (signal_is_set(i, cur)) {
+			signal_dequeue(i, cur);
+			cur->sig_handlers[i](i);
+		}
 	}
 }

@@ -387,7 +387,7 @@ void task_print_info(SHELL_ARGS)
 	if (!task->signals_map) {
 		vga_printf("none");
 	} else {
-		for (int i = 1; i < Sentinel; i++) {
+		for (int i = 1; i < SIG_Sentinel; i++) {
 			if ((task->signals_map >> i) & 1)
 				vga_printf("%s ", signal_to_string(i));
 		}

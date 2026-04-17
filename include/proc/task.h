@@ -40,7 +40,8 @@ struct task {
 	struct section *heap_sec;
 
 	/* Signals */
-	uint32_t signals_map;
+	uint32_t     signals_map;
+	sighandler_t sig_handlers[MAX_SIG];
 
 	/* Info */
 	char               *name;
@@ -58,9 +59,6 @@ struct task {
 	/* Time */
 	uint32_t tick_to_wake;
 	uint32_t quantum_remaining;
-
-	/* Signals */
-	sighandler_t sig_handlers[MAX_SIG];
 };
 
 static inline struct section *task_text(struct task *new_task) { return new_task->text_sec; }
