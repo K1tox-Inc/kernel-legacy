@@ -6,4 +6,5 @@
 20      getpid      sys_getpid
 24      getuid      sys_getuid
 37      kill        sys_kill
+48      signal      sys_signal
 162     sleep       sys_sleep
