@@ -168,7 +168,7 @@ void signal_call_curtask_handlers(void)
 				kframe.sig_num  = i;
 				ft_memcpy(&kframe.tf_backup, tf, sizeof(struct trap_frame));
 
-				if (copy_to_user(new_esp, &kframe, sizeof(struct sigframe)))
+				if (copy_to_user((void *)new_esp, &kframe, sizeof(struct sigframe)))
 					sys_exit(-EFAULT);
 
 				tf->eip      = (uintptr_t)handler;
