@@ -1,4 +1,7 @@
 #include <drivers/vga.h>
+#include <libk.h>
+#include <memory/usercopy.h>
+#include <proc/section.h>
 #include <proc/signal.h>
 #include <proc/task.h>
 #include <proc/waitqueue.h>
@@ -138,6 +141,7 @@ void signal_init_default_handlers(struct task *task)
 			task->sig_handlers[i] = signal_default_handler;
 	}
 }
+#define ESP_ALIGN 16
 
 void signal_call_curtask_handlers(void)
 {
@@ -147,7 +151,30 @@ void signal_call_curtask_handlers(void)
 	for (int i = 1; i < SIG_Sentinel; i++) {
 		if (signal_is_set(i, cur)) {
 			signal_dequeue(i, cur);
-			cur->sig_handlers[i](i);
+			sighandler_t handler = cur->sig_handlers[i];
+			if ((uintptr_t)handler < KERNEL_VADDR_BASE) {
+				if (cur->pid == 0 || cur->pid == 1)
+					continue;
+				handler(i);
+			} else {
+
+				struct trap_frame *tf =
+				    (struct trap_frame *)(cur->kernel_stack_base - sizeof(struct trap_frame));
+
+				uintptr_t new_esp = ALIGN_DOWN(tf->user_esp - sizeof(struct sigframe), ESP_ALIGN);
+
+				struct sigframe kframe;
+				kframe.ret_addr = USER_TRAMPOLINE_VADDR;
+				kframe.sig_num  = i;
+				ft_memcpy(&kframe.tf_backup, tf, sizeof(struct trap_frame));
+
+				if (copy_to_user(new_esp, &kframe, sizeof(struct sigframe)))
+					sys_exit(-EFAULT);
+
+				tf->eip      = (uintptr_t)handler;
+				tf->user_esp = new_esp;
+				return;
+			}
 		}
 	}
 }

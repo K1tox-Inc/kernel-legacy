@@ -40,8 +40,9 @@ struct task {
 	struct section *heap_sec;
 
 	/* Signals */
-	uint32_t     signals_map;
-	sighandler_t sig_handlers[MAX_SIG];
+	uint32_t        signals_map;
+	struct section *sig_trampoline;
+	sighandler_t    sig_handlers[MAX_SIG];
 
 	/* Info */
 	char               *name;

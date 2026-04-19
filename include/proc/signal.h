@@ -1,5 +1,6 @@
 #pragma once
 
+#include <arch/trap_frame.h>
 #include <types.h>
 
 struct task;
@@ -46,6 +47,8 @@ enum signals {
 
 typedef typeof(void(int)) *sighandler_t;
 
+#define SIG_ERR ((sighandler_t) - 1)
+
 static inline const char *signal_to_string(enum signals sig)
 {
 	static const char *names[] = {
@@ -65,6 +68,12 @@ static inline const char *signal_to_string(enum signals sig)
 		return "UNKNOWN";
 	return names[sig] ? names[sig] : "UNKNOWN";
 }
+
+struct sigframe {
+	uint32_t          ret_addr;
+	int               sig_num;
+	struct trap_frame tf_backup;
+} __attribute__((packed));
 
 bool signal_is_valid(enum signals sig);
 bool signal_check_perm(struct task *target);

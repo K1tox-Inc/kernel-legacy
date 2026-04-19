@@ -28,6 +28,7 @@ static struct task       *current_task     = NULL;
 static struct id_manager *pid_manager      = NULL;
 static uint32_t           dummy_canary_val = STACK_CANARY_MAGIC;
 
+extern char         sig_trampoline_start[], sig_trampoline_end[];
 extern char         kitoxD_start[], kitoxD_end[];
 static struct task *kitoxD_task = NULL;
 
@@ -158,16 +159,17 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 
 	// `kmalloc` use slabs caches here
 	char *memory_zone =
-	    kmalloc(sizeof(struct task) + 16 + (sizeof(struct section) * 4), GFP_KERNEL | __GFP_ZERO);
+	    kmalloc(sizeof(struct task) + 16 + (sizeof(struct section) * 5), GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
 		return NULL;
 
 	struct task *ret = (struct task *)memory_zone;
 
-	ret->text_sec  = (struct section *)(ret + 1);
-	ret->data_sec  = ret->text_sec + 1;
-	ret->stack_sec = ret->data_sec + 1;
-	ret->heap_sec  = ret->stack_sec + 1;
+	ret->text_sec       = (struct section *)(ret + 1);
+	ret->data_sec       = ret->text_sec + 1;
+	ret->stack_sec      = ret->data_sec + 1;
+	ret->heap_sec       = ret->stack_sec + 1;
+	ret->sig_trampoline = ret->heap_sec + 1;
 
 	if (text)
 		ft_memcpy(ret->text_sec, text, sizeof(struct section));
@@ -199,6 +201,10 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 
 	ret->esp = ret->kernel_stack_base;
 
+	if (!section_init_from_buffer(ret->sig_trampoline, USER_TRAMPOLINE_VADDR, sig_trampoline_start,
+	                              (sig_trampoline_end - sig_trampoline_start), USER_SECTION_RW))
+		goto free_kstack;
+
 	if (userspace) {
 		if (!userspace_create_new(ret))
 			goto free_kstack;
@@ -212,7 +218,7 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 
 	ret->state = TASK_NEW;
 
-	ret->name = (char *)(ret->heap_sec + 1);
+	ret->name = (char *)(ret->sig_trampoline + 1);
 	ft_memcpy(ret->name, name, name_len);
 	ret->name[name_len] = 0;
 
@@ -278,6 +284,10 @@ void task_exit_cleanup(struct task *task)
 	struct section *stack = task_stack(task);
 	if (stack && stack->p_addr)
 		buddy_free_block((void *)stack->p_addr);
+
+	struct section *trampo = task->sig_trampoline;
+	if (trampo && trampo->p_addr)
+		buddy_free_block((void *)trampo->p_addr);
 
 	// actually no heap must be implemented later
 	// struct section *heap = task_heap(task);
