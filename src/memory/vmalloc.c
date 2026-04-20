@@ -56,18 +56,15 @@ void vfree(void *ptr)
 
 void *vmalloc(size_t size)
 {
-    if (size > MAX_VMALLOC_SIZE || size < MIN_VMALLOC_SIZE)
-        return NULL;
+	if (size > MAX_VMALLOC_SIZE || size < MIN_VMALLOC_SIZE)
+		return NULL;
 
-    uintptr_t pd = get_current_page_directory_phys();
-    struct vm_area *area = vma_alloc(&vmalloc_areas, pd, size, PTE_PRESENT_BIT | PTE_RW_BIT, NULL);
-    if (!area)
-        return NULL;
+	uintptr_t       pd   = get_current_page_directory_phys();
+	struct vm_area *area = vma_alloc(&vmalloc_areas, pd, size, PTE_PRESENT_BIT | PTE_RW_BIT, NULL);
+	if (!area)
+		return NULL;
 
-    return (void *)area->start_vaddr;
+	return (void *)area->start_vaddr;
 }
 
-void vmalloc_init(void)
-{
-	vma_init_area(&vmalloc_areas, VMALLOC_START, VMALLOC_END);
-}
+void vmalloc_init(void) { vma_init_area(&vmalloc_areas, VMALLOC_START, VMALLOC_END); }

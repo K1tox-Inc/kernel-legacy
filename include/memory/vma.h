@@ -41,11 +41,13 @@ static inline bool vma_areas_are_neighbors(struct vm_area *start_area, struct vm
 // EXTERNAL APIs
 // ============================================================================
 
-void            vma_merge_area(struct list_head *head, struct vm_area *area);
-void			vma_init_area(struct list_head *head, uintptr_t start, uintptr_t end);;
+void vma_merge_area(struct list_head *head, struct vm_area *area);
+void vma_init_area(struct list_head *head, uintptr_t start, uintptr_t end);
+;
 size_t          vma_size(void *ptr, struct list_head *head);
 struct vm_area *vma_split_area(struct vm_area *area, size_t size);
 struct vm_area *vma_first_fit_alloc(struct list_head *head, size_t size);
 struct vm_area *vma_find_by_addr(void *ptr, struct list_head *head);
 struct vm_area *vma_find_by_start(void *ptr, struct list_head *head);
-struct vm_area *vma_alloc(struct list_head *head, uintptr_t pd, size_t size, uint32_t pte_flags, void *hint_vaddr);
+struct vm_area *vma_alloc(struct list_head *head, uintptr_t pd, size_t size, uint32_t pte_flags,
+                          void *hint_vaddr);
