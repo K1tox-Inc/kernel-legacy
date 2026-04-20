@@ -25,11 +25,12 @@ SYSCALL_DEFINE1(exit, int, status)
 
 	wq_wake_all(&parent->child_wq);
 
-	// send_signal to parent (when implemented)
+	// TODO: send_signal to parent (when implemented)
 	paging_reload_cr3(vmm_get_kernel_directory());
 	task_exit_cleanup(cur_task);
 	schedule();
+
 	// the current task/address space.
-	kpanic("sys_exit returned after task_exit_cleanup()");
+	kpanic("sys_exit: returned after `task_exit_cleanup()'");
 	return status;
 }
