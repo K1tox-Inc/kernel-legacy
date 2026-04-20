@@ -63,7 +63,7 @@ interrupt_exit:
 	mov ds, ax
 
 	popa
-	add esp, 8	
+	add esp, 8
 	iret
 
 .macro irq_stub num

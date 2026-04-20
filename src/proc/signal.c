@@ -70,7 +70,7 @@ static void signal_ignore_handler(int sig) { (void)sig; }
 // EXTERNAL APIs
 // ============================================================================
 
-bool signal_is_valid(enum signals sig) { return (sig >= 0 && sig < SIG_Sentinel); }
+bool signal_is_valid(enum signals sig) { return (sig > 0 && sig < SIG_Sentinel); }
 
 bool signal_check_perm(struct task *target)
 {

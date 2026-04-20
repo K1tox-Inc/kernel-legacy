@@ -202,7 +202,7 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	ret->esp = ret->kernel_stack_base;
 
 	if (!section_init_from_buffer(ret->sig_trampoline, USER_TRAMPOLINE_VADDR, sig_trampoline_start,
-	                              (sig_trampoline_end - sig_trampoline_start), USER_SECTION_RW))
+	                              (sig_trampoline_end - sig_trampoline_start), USER_SECTION_RO))
 		goto free_kstack;
 
 	if (userspace) {

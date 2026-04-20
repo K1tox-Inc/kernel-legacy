@@ -170,25 +170,25 @@ void tty_cli_handle_nl(void)
 	vga_printf("\n");
 
 	if (*current_tty->cli) {
-		struct shell_command *cmd;
-		char                **shell_argv = ft_split(current_tty->cli, ' ');
-
-		iter_over_array(cmd, shell_commands)
-		{
-			if (ft_strequ(cmd->cmd, shell_argv[0])) {
-				func = cmd->func;
-				break;
+		char **shell_argv = ft_split(current_tty->cli, ' ');
+		if (shell_argv) {
+			if (shell_argv[0]) {
+				struct shell_command *cmd;
+				iter_over_array(cmd, shell_commands)
+				{
+					if (ft_strequ(cmd->cmd, shell_argv[0])) {
+						func = cmd->func;
+						break;
+					}
+				}
+				uint32_t shell_argc = ft_strslen(shell_argv);
+				func ? func(shell_argc, shell_argv)
+				     : vga_printf("k1tOS: command not found: %s\n", shell_argv[0]);
 			}
+			ft_free_strs(shell_argv);
 		}
-
-		uint32_t shell_argc = ft_strslen(shell_argv);
-		func ? func(shell_argc, shell_argv)
-		     : vga_printf("k1tOS: command not found: %s\n", current_tty->cli);
-
 		ft_bzero(current_tty->cli, 256);
-		kfree(shell_argv);
 	}
-
 	tty_print_prompt();
 }
 

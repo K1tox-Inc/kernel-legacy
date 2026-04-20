@@ -9,6 +9,8 @@ SYSCALL_DEFINE2(signal, int, signum, sighandler_t, handler)
 		return -EINVAL;
 	else if (signum == SIGKILL || signum == SIGSTOP)
 		return -EINVAL;
+	else if ((uintptr_t)handler >= KERNEL_VADDR_BASE)
+		return -EINVAL;
 
 	struct task *cur = task_get_current_task();
 
