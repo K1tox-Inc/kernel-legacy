@@ -1,6 +1,8 @@
 #include <proc/task.h>
 #include <syscalls/syscalls.h>
 #include <utils/error.h>
+#include <memory/vmm.h>
+#include <memory/vma.h>
 
 enum mmap_prot {
 	PROT_NONE  = 0x0, // Pages may not be accessed.
@@ -11,9 +13,20 @@ enum mmap_prot {
 
 SYSCALL_DEFINE6(mmap, void *, addr, size_t, length, int, prot, int, flags, int, fd, int, offset)
 {
-	struct task *cur_task = task_get_current_task();
-	if (!cur_task)
-		return -EINVAL;
+	(void)fd;
+	(void)offset;
+    if (!length)
+        return -EINVAL;
 
-	struct vm_area *return -1;
+    struct task *cur    = task_get_current_task();
+    uint32_t pte_flags  = PTE_PRESENT_BIT | PTE_US_BIT;
+    if (prot & PROT_WRITE)
+        pte_flags |= PTE_RW_BIT;
+
+    struct vm_area *area = vma_alloc(&cur->vma_areas, cur->cr3,
+                                      length, pte_flags, addr);
+    if (!area)
+        return -ENOMEM;
+
+    return (long)area->start_vaddr;
 }
