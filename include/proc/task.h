@@ -34,10 +34,11 @@ struct task {
 	uintptr_t kernel_stack_base; // <------- DO NOT REORDER before this line (see context.s)
 
 	// Sections
-	struct section *text_sec;
-	struct section *data_sec;
-	struct section *stack_sec;
-	struct section *heap_sec;
+	struct section  *text_sec;
+	struct section  *data_sec;
+	struct section  *stack_sec;
+	struct section  *heap_sec;
+	struct list_head vma_areas; // handle heap growing
 
 	/* Signals */
 	struct signal_queue signals;
