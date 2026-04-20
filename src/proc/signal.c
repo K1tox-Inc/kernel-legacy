@@ -152,7 +152,7 @@ void signal_call_curtask_handlers(void)
 		if (signal_is_set(i, cur)) {
 			signal_dequeue(i, cur);
 			sighandler_t handler = cur->sig_handlers[i];
-			if ((uintptr_t)handler < KERNEL_VADDR_BASE) {
+			if ((uintptr_t)handler >= KERNEL_VADDR_BASE) {
 				if (cur->pid == 0 || cur->pid == 1)
 					continue;
 				handler(i);
