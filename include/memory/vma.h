@@ -47,6 +47,7 @@ void            vma_print_areas(struct list_head *head);
 void            vma_merge_area(struct list_head *head, struct vm_area *area);
 void            vma_init_area(struct list_head *head, uintptr_t start, uintptr_t end);
 void            vma_destroy_area(struct list_head *head, struct vm_area *area, uintptr_t pd);
+void            vma_destroy_areas(struct list_head *head, uintptr_t pd);
 bool            vma_map_area(struct vm_area *new_area, uintptr_t pd);
 size_t          vma_size(void *ptr, struct list_head *head);
 struct vm_area *vma_split_area(struct vm_area *area, size_t size);

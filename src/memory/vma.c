@@ -178,6 +178,14 @@ struct vm_area *vma_alloc(struct list_head *head, uintptr_t pd, size_t size, uin
 	return vma_alloc_in_area(head, pd, free_area, size, pte_flags, alloc_mode);
 }
 
+void vma_destroy_areas(struct list_head *head, uintptr_t pd)
+{
+	while (!list_is_empty(head)) {
+		struct vm_area *area = list_first_entry(head, struct vm_area, vma_node);
+		vma_destroy_area(head, area, pd);
+	}
+}
+
 void vma_destroy_area(struct list_head *head, struct vm_area *area, uintptr_t pd)
 {
 	for (size_t i = 0; i < area->nr_pages; i++) {
