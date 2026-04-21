@@ -1,8 +1,11 @@
+#include <kernel/panic.h>
+#include <libk.h>
 #include <list.h>
 #include <memory/buddy.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <memory/vma.h>
+#include <memory/vmm.h>
 #include <utils/kmacro.h>
 
 // ============================================================================
@@ -28,38 +31,29 @@ static struct vm_area *vma_alloc_in_area(struct list_head *head, uintptr_t pd, s
 		return NULL;
 
 	size_t number_of_pages = DIV_ROUND_UP(size, PAGE_SIZE);
-	new_area->pages        = kmalloc(sizeof(uintptr_t) * number_of_pages, GFP_KERNEL);
+	new_area->pages        = kmalloc(sizeof(uintptr_t) * number_of_pages, GFP_KERNEL | __GFP_ZERO);
 	if (!new_area->pages)
-		goto free_allocated_area;
+		goto free_on_error;
 	new_area->nr_pages = number_of_pages;
 
-	size_t num_of_alloc = 0;
-	for (size_t i = 0; i < number_of_pages; i++, num_of_alloc++) {
+	for (size_t i = 0; i < number_of_pages; i++) {
 		void *page = buddy_alloc_pages(PAGE_SIZE, HIGHMEM_ZONE);
 		if (!page)
-			goto free_allocated_pages;
+			goto free_on_error;
 		new_area->pages[i] = (uintptr_t)page;
 	}
 
 	for (size_t i = 0; i < number_of_pages; i++) {
 		uintptr_t paddr = new_area->pages[i];
 		uintptr_t vaddr = new_area->start_vaddr + (i * PAGE_SIZE);
-		// Can fail only if buddy is out of memory, im lazy to implement the unmap label for this
-		// case
 		if (!vmm_map_page(pd, vaddr, paddr, pte_flags))
-			kpanic("vmalloc: vmm_map_page failed!");
+			goto free_on_error;
 	}
 
 	return new_area;
 
-free_allocated_pages:
-	for (size_t i = 0; i < num_of_alloc; i++)
-		buddy_free_block((void *)new_area->pages[i]);
-	kfree(new_area->pages);
-free_allocated_area:
-	area->state = VM_AREA_FREE;
-	vma_merge_area(head, new_area);
-
+free_on_error:
+	vma_destroy_area(head, new_area, pd);
 	return NULL;
 }
 
@@ -81,7 +75,7 @@ struct vm_area *vma_first_fit_alloc(struct list_head *head, size_t size)
 struct vm_area *vma_split_area(struct vm_area *area, size_t size)
 {
 	size_t needed_size  = ALIGN(size, PAGE_SIZE);
-	size_t num_of_pages = needed_size / PAGE_SIZE;
+	size_t num_of_pages = DIV_ROUND_UP(needed_size, PAGE_SIZE);
 
 	if (needed_size > area->size)
 		return NULL;
@@ -184,4 +178,36 @@ struct vm_area *vma_alloc(struct list_head *head, uintptr_t pd, size_t size, uin
 		return NULL;
 
 	return vma_alloc_in_area(head, pd, free_area, size, pte_flags);
+}
+
+void vma_destroy_area(struct list_head *head, struct vm_area *area, uintptr_t pd)
+{
+	for (size_t i = 0; i < area->nr_pages; i++) {
+		if (!area->pages[i])
+			continue;
+		vmm_unmap_page(pd, area->start_vaddr + (i * PAGE_SIZE));
+		buddy_free_block((void *)area->pages[i]);
+	}
+
+	kfree(area->pages);
+	area->pages    = NULL;
+	area->nr_pages = 0;
+	area->state    = VM_AREA_FREE;
+	vma_merge_area(head, area);
+}
+
+// ============================================================================
+// DEBUG APIs
+// ============================================================================
+
+void vma_print_areas(struct list_head *head)
+{
+	struct vm_area *area;
+	int             i = 0;
+	vga_printf("  - VMA areas:\n");
+	list_for_each_entry(area, head, vma_node)
+	{
+		vga_printf("    [%d] vaddr=%p size=%u state=%s\n", i++, (void *)area->start_vaddr,
+		           area->size, area->state == VM_AREA_FREE ? "FREE" : "ALLOC");
+	}
 }

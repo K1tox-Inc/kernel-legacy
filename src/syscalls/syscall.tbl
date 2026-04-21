@@ -6,4 +6,5 @@
 20      getpid      sys_getpid
 24      getuid      sys_getuid
 90      mmap        sys_mmap
+91      munmap      sys_munmap
 162     sleep       sys_sleep
