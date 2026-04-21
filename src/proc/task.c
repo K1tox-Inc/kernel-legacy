@@ -10,6 +10,7 @@
 #include <memory/vma.h>
 #include <memory/vmm.h>
 #include <proc/scheduler.h>
+#include <proc/signal.h>
 #include <proc/task.h>
 #include <proc/timer.h>
 #include <proc/userspace.h>
@@ -28,6 +29,7 @@ static struct task       *current_task     = NULL;
 static struct id_manager *pid_manager      = NULL;
 static uint32_t           dummy_canary_val = STACK_CANARY_MAGIC;
 
+extern char         sig_trampoline_start[], sig_trampoline_end[];
 extern char         kitoxD_start[], kitoxD_end[];
 static struct task *kitoxD_task = NULL;
 
@@ -158,16 +160,17 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 
 	// `kmalloc` use slabs caches here
 	char *memory_zone =
-	    kmalloc(sizeof(struct task) + 16 + (sizeof(struct section) * 4), GFP_KERNEL | __GFP_ZERO);
+	    kmalloc(sizeof(struct task) + 16 + (sizeof(struct section) * 5), GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
 		return NULL;
 
 	struct task *ret = (struct task *)memory_zone;
 
-	ret->text_sec  = (struct section *)(ret + 1);
-	ret->data_sec  = ret->text_sec + 1;
-	ret->stack_sec = ret->data_sec + 1;
-	ret->heap_sec  = ret->stack_sec + 1;
+	ret->text_sec       = (struct section *)(ret + 1);
+	ret->data_sec       = ret->text_sec + 1;
+	ret->stack_sec      = ret->data_sec + 1;
+	ret->heap_sec       = ret->stack_sec + 1;
+	ret->sig_trampoline = ret->heap_sec + 1;
 
 	if (text)
 		ft_memcpy(ret->text_sec, text, sizeof(struct section));
@@ -199,6 +202,10 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 
 	ret->esp = ret->kernel_stack_base;
 
+	if (!section_init_from_buffer(ret->sig_trampoline, USER_TRAMPOLINE_VADDR, sig_trampoline_start,
+	                              (sig_trampoline_end - sig_trampoline_start), USER_SECTION_RO))
+		goto free_kstack;
+
 	if (userspace) {
 		if (!userspace_create_new(ret))
 			goto free_kstack;
@@ -212,7 +219,7 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 
 	ret->state = TASK_NEW;
 
-	ret->name = (char *)(ret->heap_sec + 1);
+	ret->name = (char *)(ret->sig_trampoline + 1);
 	ft_memcpy(ret->name, name, name_len);
 	ret->name[name_len] = 0;
 
@@ -220,18 +227,19 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	wq_init(&ret->child_wq);
 
 	INIT_SENTINEL(&ret->sched_node);
-	list_add_tail(&ret->info_node, &info_queue);
-	if (userspace)
-		vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
-	else
-		INIT_SENTINEL(&ret->vma_areas);
+  list_add_tail(&ret->info_node, &info_queue);
+  signal_init_default_handlers(ret);
+  if (userspace)
+      vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
+  else
+      INIT_SENTINEL(&ret->vma_areas);
+
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
 	 * and must be initialized by the caller if needed (like `fork`) :
 	 *
 	 *  uid_t uid;
 	 *  gid_t gid;
-	 *  preempt_lock     lock;
 	 *  bool			 need_resched
 	 *  struct task		*real_parent;
 	 *  struct task		*parent;
@@ -282,9 +290,17 @@ void task_exit_cleanup(struct task *task)
 	if (stack && stack->p_addr)
 		buddy_free_block((void *)stack->p_addr);
 
-	if (task->ring > 0)
-		vma_destroy_areas(&task->vma_areas, task->cr3);
+// 	if (task->ring > 0)
+// 		vma_destroy_areas(&task->vma_areas, task->cr3);
 
+	struct section *trampo = task->sig_trampoline;
+	if (trampo && trampo->p_addr)
+		buddy_free_block((void *)trampo->p_addr);
+
+	// actually no heap must be implemented later
+	// struct section *heap = task_heap(task);
+	// if (heap && heap->p_addr)
+	// 	buddy_free_block((void *)heap->p_addr);
 	ft_bzero(task->text_sec, sizeof(struct section) * 4);
 	if (task->ring)
 		vmm_destroy_user_pd(task->cr3);
@@ -342,12 +358,29 @@ void task_init_process(void)
 	idt_register_interrupt_handlers(32, (irqHandler)timer_handle);
 }
 
+struct task *task_find_by_pid(pid_t pid)
+{
+	struct task *task;
+
+	list_for_each_entry(task, &info_queue, info_node)
+	{
+		if (task->pid == pid)
+			return task;
+	}
+	return NULL;
+}
+
 // ============================================================================
 // DEBUG APIs
 // ============================================================================
 
-void task_print_info(struct task *task)
+void task_print_info(SHELL_ARGS)
 {
+	if (argc != 2)
+		return;
+	pid_t        task_pid = ft_atoi(argv[1]);
+	struct task *task     = task_find_by_pid(task_pid);
+
 	if (!task) {
 		vga_printf("task_print_info: task pointer is NULL\n");
 		return;
@@ -368,7 +401,17 @@ void task_print_info(struct task *task)
 	task_print_section("Data", task->data_sec);
 	task_print_section("Stack", task->stack_sec);
 	task_print_section("Heap", task->heap_sec);
-	vma_print_areas(&task->vma_areas);
+  vga_printf("  - Signals pending: ");
+  if (!task->signals_map) {
+      vga_printf("none");
+  } else {
+      for (int i = 1; i < SIG_Sentinel; i++) {
+          if ((task->signals_map >> i) & 1)
+              vga_printf("%s ", signal_to_string(i));
+      }
+  }
+  vga_printf("\n");
+  vma_print_areas(&task->vma_areas);
 }
 
 void task_print_stack(const struct task *task)

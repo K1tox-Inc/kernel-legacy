@@ -1,6 +1,7 @@
 #include <kernel/panic.h>
 #include <list.h>
 #include <proc/scheduler.h>
+#include <proc/signal.h>
 #include <proc/task.h>
 #include <proc/timer.h>
 #include <utils/error.h>
@@ -59,4 +60,5 @@ void schedule(void)
 	task_set_current_task(next_task);
 	next_task->quantum_remaining = DEFAULT_QUANTUM;
 	switch_to(cur_task, next_task);
+	signal_call_curtask_handlers();
 }
