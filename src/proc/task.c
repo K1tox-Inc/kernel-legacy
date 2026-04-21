@@ -344,7 +344,7 @@ void task_init_process(void)
 // DEBUG APIs
 // ============================================================================
 
-void task_print_info(const struct task *task)
+void task_print_info(struct task *task)
 {
 	if (!task) {
 		vga_printf("task_print_info: task pointer is NULL\n");
@@ -366,6 +366,7 @@ void task_print_info(const struct task *task)
 	task_print_section("Data", task->data_sec);
 	task_print_section("Stack", task->stack_sec);
 	task_print_section("Heap", task->heap_sec);
+	vma_print_areas(&task->vma_areas);
 }
 
 void task_print_stack(const struct task *task)
@@ -419,6 +420,18 @@ void task_ps(void)
 	}
 }
 
+struct task *task_find_by_pid(pid_t pid)
+{
+	struct task *task;
+
+	list_for_each_entry(task, &info_queue, info_node)
+	{
+		if (task->pid == pid)
+			return task;
+	}
+	return NULL;
+}
+
 // ============================================================================
 // Sloppy Code
 // ============================================================================
@@ -438,11 +451,12 @@ static void sloppy_hello(void)
 
 static void sloppy_pid(void)
 {
-	for (size_t i = 0; i < 5; i++) {
+	for (size_t i = 0; i < 2; i++) {
 		struct task *cur = task_get_current_task();
 		vga_printf("[PID %d] I am alive and sloppy!\n", cur->pid);
 		timer_ksleep(2);
 	}
+	task_print_info(task_find_by_pid(3));
 	sys_exit(0);
 }
 
@@ -485,7 +499,6 @@ static void exec_fn(unsigned int *addr, unsigned int *function, unsigned int siz
 
 	sloppy_task->state = TASK_RUNNING;
 	task_append_child(task_get_kitoxD(), sloppy_task);
-	task_print_info(sloppy_task);
 	sched_enqueue(sloppy_task);
 }
 

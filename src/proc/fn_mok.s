@@ -5,6 +5,24 @@
 # SYSCALL MACROS
 # ============================================================
 
+.macro SYSCALL_MMAP addr, length, prot, flags
+    mov eax, 90
+    mov ebx, \addr
+    mov ecx, \length
+    mov edx, \prot
+    mov esi, \flags
+    mov edi, -1
+    xor ebp, ebp
+    int 0x80
+.endm
+
+.macro SYSCALL_MUNMAP addr, length
+    mov eax, 91
+    mov ebx, \addr
+    mov ecx, \length
+    int 0x80
+.endm
+
 .macro SYSCALL_WRITE fd, buf, len
     mov eax, 4
     mov ebx, \fd
@@ -137,8 +155,15 @@ user_dead_start:
     sub ecx, (.dead_getpc - .dead_msg)
     SYSCALL_WRITE 1, ecx, 17
 
-    mov eax, 0xDEADBEEF
-    SYSCALL_EXIT 1
+    SYSCALL_MMAP 0, 4096, 3, 0x20
+    mov esi, eax
+
+    mov dword ptr [esi], 0x44414544
+    mov byte ptr [esi + 4], 0x0A
+
+    SYSCALL_WRITE 1, esi, 5
+
 3:
-    jmp 2b
+    SYSCALL_SLEEP 2
+    jmp 3b
 user_dead_end:

@@ -87,7 +87,7 @@ static inline bool task_has_child_pid(struct task *parent, pid_t child_pid)
 	return false;
 }
 
-void         task_print_info(const struct task *task);
+void         task_print_info(struct task *task);
 void         task_print_stack(const struct task *task);
 void         task_append_child(struct task *parent, struct task *child);
 void         task_init_process(void);
