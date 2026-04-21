@@ -15,7 +15,8 @@
 // STRUCT
 // ============================================================================
 
-enum vm_area_state { VM_AREA_FREE, VM_AREA_ALLOCATED };
+enum vm_area_state { VM_AREA_FREE, VM_AREA_ALLOCATED, VM_AREA_LAZY };
+enum vma_alloc_mode { VMA_EAGER, VMA_LAZY };
 
 struct vm_area {
 	struct list_head   vma_node;
@@ -24,6 +25,7 @@ struct vm_area {
 	size_t             size;
 
 	// Only initialized when state is VM_AREA_ALLOCATED otherwise set as NULL
+	uint32_t   pte_flags;
 	size_t     nr_pages;
 	uintptr_t *pages;
 };
@@ -45,10 +47,11 @@ void            vma_print_areas(struct list_head *head);
 void            vma_merge_area(struct list_head *head, struct vm_area *area);
 void            vma_init_area(struct list_head *head, uintptr_t start, uintptr_t end);
 void            vma_destroy_area(struct list_head *head, struct vm_area *area, uintptr_t pd);
+bool            vma_map_area(struct vm_area *new_area, uintptr_t pd);
 size_t          vma_size(void *ptr, struct list_head *head);
 struct vm_area *vma_split_area(struct vm_area *area, size_t size);
 struct vm_area *vma_first_fit_alloc(struct list_head *head, size_t size);
 struct vm_area *vma_find_by_addr(void *ptr, struct list_head *head);
 struct vm_area *vma_find_by_start(void *ptr, struct list_head *head);
 struct vm_area *vma_alloc(struct list_head *head, uintptr_t pd, size_t size, uint32_t pte_flags,
-                          void *hint_vaddr);
+                          void *hint_vaddr, enum vma_alloc_mode);

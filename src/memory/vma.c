@@ -24,7 +24,8 @@ static void merge_neighbor(struct vm_area *start_area, struct vm_area *next_area
 }
 
 static struct vm_area *vma_alloc_in_area(struct list_head *head, uintptr_t pd, struct vm_area *area,
-                                         size_t size, uint32_t pte_flags)
+                                         size_t size, uint32_t pte_flags,
+                                         enum vma_alloc_mode alloc_mode)
 {
 	struct vm_area *new_area = vma_split_area(area, size);
 	if (!new_area)
@@ -34,20 +35,14 @@ static struct vm_area *vma_alloc_in_area(struct list_head *head, uintptr_t pd, s
 	new_area->pages        = kmalloc(sizeof(uintptr_t) * number_of_pages, GFP_KERNEL | __GFP_ZERO);
 	if (!new_area->pages)
 		goto free_on_error;
-	new_area->nr_pages = number_of_pages;
+	new_area->nr_pages  = number_of_pages;
+	new_area->pte_flags = pte_flags;
 
-	for (size_t i = 0; i < number_of_pages; i++) {
-		void *page = buddy_alloc_pages(PAGE_SIZE, HIGHMEM_ZONE);
-		if (!page)
+	if (alloc_mode == VMA_EAGER) {
+		if (!vma_map_area(new_area, pd))
 			goto free_on_error;
-		new_area->pages[i] = (uintptr_t)page;
-	}
-
-	for (size_t i = 0; i < number_of_pages; i++) {
-		uintptr_t paddr = new_area->pages[i];
-		uintptr_t vaddr = new_area->start_vaddr + (i * PAGE_SIZE);
-		if (!vmm_map_page(pd, vaddr, paddr, pte_flags))
-			goto free_on_error;
+	} else {
+		new_area->state = VM_AREA_LAZY;
 	}
 
 	return new_area;
@@ -161,6 +156,7 @@ void vma_init_area(struct list_head *head, uintptr_t start, uintptr_t end)
 	    .size        = end - start,
 	    .nr_pages    = 0,
 	    .pages       = NULL,
+	    .pte_flags   = 0,
 	};
 
 	INIT_SENTINEL(head);
@@ -168,7 +164,7 @@ void vma_init_area(struct list_head *head, uintptr_t start, uintptr_t end)
 }
 
 struct vm_area *vma_alloc(struct list_head *head, uintptr_t pd, size_t size, uint32_t pte_flags,
-                          void *hint_vaddr)
+                          void *hint_vaddr, enum vma_alloc_mode alloc_mode)
 {
 
 	struct vm_area *free_area = vma_find_by_start(hint_vaddr, head);
@@ -177,7 +173,7 @@ struct vm_area *vma_alloc(struct list_head *head, uintptr_t pd, size_t size, uin
 	if (!free_area)
 		return NULL;
 
-	return vma_alloc_in_area(head, pd, free_area, size, pte_flags);
+	return vma_alloc_in_area(head, pd, free_area, size, pte_flags, alloc_mode);
 }
 
 void vma_destroy_area(struct list_head *head, struct vm_area *area, uintptr_t pd)
@@ -190,10 +186,30 @@ void vma_destroy_area(struct list_head *head, struct vm_area *area, uintptr_t pd
 	}
 
 	kfree(area->pages);
-	area->pages    = NULL;
-	area->nr_pages = 0;
-	area->state    = VM_AREA_FREE;
+	area->pages     = NULL;
+	area->nr_pages  = 0;
+	area->state     = VM_AREA_FREE;
+	area->pte_flags = 0;
 	vma_merge_area(head, area);
+}
+
+bool vma_map_area(struct vm_area *new_area, uintptr_t pd)
+{
+	size_t number_of_pages = new_area->nr_pages;
+	for (size_t i = 0; i < number_of_pages; i++) {
+		void *page = buddy_alloc_pages(PAGE_SIZE, HIGHMEM_ZONE);
+		if (!page)
+			return false;
+		new_area->pages[i] = (uintptr_t)page;
+	}
+
+	for (size_t i = 0; i < number_of_pages; i++) {
+		uintptr_t paddr = new_area->pages[i];
+		uintptr_t vaddr = new_area->start_vaddr + (i * PAGE_SIZE);
+		if (!vmm_map_page(pd, vaddr, paddr, new_area->pte_flags))
+			return false;
+	}
+	return true;
 }
 
 // ============================================================================

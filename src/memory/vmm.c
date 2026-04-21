@@ -4,7 +4,9 @@
 #include <libk.h>
 #include <memory/boot_allocator.h>
 #include <memory/memory.h>
+#include <memory/vma.h>
 #include <memory/vmm.h>
+#include <proc/task.h>
 
 /*
  * Virtual-to-physical address translation (32-bit paging):
@@ -34,11 +36,18 @@ void page_fault_handler(struct trap_frame *frame)
 
 	__asm__ volatile("mov %%cr2, %0" : "=r"(faulting_address));
 
-	vga_printf("Faulting address: 0x%x\n", faulting_address);
-	vga_printf("Error code: 0x%x\n", frame->err_code);
-	vga_printf("Cause: %s\n", (frame->err_code & 1) ? "Protection violation" : "Page not present");
-
-	kpanic("Page fault");
+	struct task    *cur_task  = task_get_current_task();
+	struct vm_area *falt_area = vma_find_by_addr((void *)faulting_address, &cur_task->vma_areas);
+	if (falt_area && falt_area->state == VM_AREA_LAZY) {
+		vma_map_area(falt_area, cur_task->cr3);
+		falt_area->state = VM_AREA_ALLOCATED;
+	} else {
+		vga_printf("Faulting address: 0x%x\n", faulting_address);
+		vga_printf("Error code: 0x%x\n", frame->err_code);
+		vga_printf("Cause: %s\n",
+		           (frame->err_code & 1) ? "Protection violation" : "Page not present");
+		kpanic("Page fault");
+	}
 }
 
 void vmm_finalize(void)

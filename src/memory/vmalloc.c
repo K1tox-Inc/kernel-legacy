@@ -59,8 +59,9 @@ void *vmalloc(size_t size)
 	if (size > MAX_VMALLOC_SIZE || size < MIN_VMALLOC_SIZE)
 		return NULL;
 
-	uintptr_t       pd   = get_current_page_directory_phys();
-	struct vm_area *area = vma_alloc(&vmalloc_areas, pd, size, PTE_PRESENT_BIT | PTE_RW_BIT, NULL);
+	uintptr_t       pd = get_current_page_directory_phys();
+	struct vm_area *area =
+	    vma_alloc(&vmalloc_areas, pd, size, PTE_PRESENT_BIT | PTE_RW_BIT, NULL, VMA_EAGER);
 	if (!area)
 		return NULL;
 

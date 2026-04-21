@@ -24,7 +24,7 @@ SYSCALL_DEFINE6(mmap, void *, addr, size_t, length, int, prot, int, flags, int, 
 	if (prot & PROT_WRITE)
 		pte_flags |= PTE_RW_BIT;
 
-	struct vm_area *area = vma_alloc(&cur->vma_areas, cur->cr3, length, pte_flags, addr);
+	struct vm_area *area = vma_alloc(&cur->vma_areas, cur->cr3, length, pte_flags, addr, VMA_LAZY);
 	if (!area)
 		return -ENOMEM;
 
