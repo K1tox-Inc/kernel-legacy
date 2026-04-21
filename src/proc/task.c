@@ -227,12 +227,12 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	wq_init(&ret->child_wq);
 
 	INIT_SENTINEL(&ret->sched_node);
-  list_add_tail(&ret->info_node, &info_queue);
-  signal_init_default_handlers(ret);
-  if (userspace)
-      vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
-  else
-      INIT_SENTINEL(&ret->vma_areas);
+	list_add_tail(&ret->info_node, &info_queue);
+	signal_init_default_handlers(ret);
+	if (userspace)
+		vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
+	else
+		INIT_SENTINEL(&ret->vma_areas);
 
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
@@ -290,8 +290,8 @@ void task_exit_cleanup(struct task *task)
 	if (stack && stack->p_addr)
 		buddy_free_block((void *)stack->p_addr);
 
-// 	if (task->ring > 0)
-// 		vma_destroy_areas(&task->vma_areas, task->cr3);
+	// 	if (task->ring > 0)
+	// 		vma_destroy_areas(&task->vma_areas, task->cr3);
 
 	struct section *trampo = task->sig_trampoline;
 	if (trampo && trampo->p_addr)
@@ -401,17 +401,17 @@ void task_print_info(SHELL_ARGS)
 	task_print_section("Data", task->data_sec);
 	task_print_section("Stack", task->stack_sec);
 	task_print_section("Heap", task->heap_sec);
-  vga_printf("  - Signals pending: ");
-  if (!task->signals_map) {
-      vga_printf("none");
-  } else {
-      for (int i = 1; i < SIG_Sentinel; i++) {
-          if ((task->signals_map >> i) & 1)
-              vga_printf("%s ", signal_to_string(i));
-      }
-  }
-  vga_printf("\n");
-  vma_print_areas(&task->vma_areas);
+	vga_printf("  - Signals pending: ");
+	if (!task->signals_map) {
+		vga_printf("none");
+	} else {
+		for (int i = 1; i < SIG_Sentinel; i++) {
+			if ((task->signals_map >> i) & 1)
+				vga_printf("%s ", signal_to_string(i));
+		}
+	}
+	vga_printf("\n");
+	vma_print_areas(&task->vma_areas);
 }
 
 void task_print_stack(const struct task *task)
@@ -465,18 +465,6 @@ void task_ps(void)
 	}
 }
 
-struct task *task_find_by_pid(pid_t pid)
-{
-	struct task *task;
-
-	list_for_each_entry(task, &info_queue, info_node)
-	{
-		if (task->pid == pid)
-			return task;
-	}
-	return NULL;
-}
-
 // ============================================================================
 // Sloppy Code
 // ============================================================================
@@ -501,7 +489,6 @@ static void sloppy_pid(void)
 		vga_printf("[PID %d] I am alive and sloppy!\n", cur->pid);
 		timer_ksleep(2);
 	}
-	task_print_info(task_find_by_pid(3));
 	sys_exit(0);
 }
 
