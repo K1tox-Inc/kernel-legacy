@@ -221,7 +221,10 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 
 	INIT_SENTINEL(&ret->sched_node);
 	list_add_tail(&ret->info_node, &info_queue);
-	vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
+	if (userspace)
+		vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
+	else
+		INIT_SENTINEL(&ret->vma_areas);
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
 	 * and must be initialized by the caller if needed (like `fork`) :

@@ -80,7 +80,7 @@ struct vm_area *vma_split_area(struct vm_area *area, size_t size)
 		return area;
 	}
 
-	struct vm_area *new_area = kmalloc(sizeof(struct vm_area), GFP_KERNEL);
+	struct vm_area *new_area = kmalloc(sizeof(struct vm_area), GFP_KERNEL | __GFP_ZERO);
 	if (!new_area)
 		return NULL;
 
@@ -99,13 +99,15 @@ struct vm_area *vma_split_area(struct vm_area *area, size_t size)
 
 void vma_merge_area(struct list_head *head, struct vm_area *area)
 {
-	struct vm_area *next_area = list_entry(area->vma_node.next, struct vm_area, vma_node);
-	struct vm_area *prev_area = list_entry(area->vma_node.prev, struct vm_area, vma_node);
-
-	if (&next_area->vma_node != head)
+	if (area->vma_node.next != head) {
+		struct vm_area *next_area = list_entry(area->vma_node.next, struct vm_area, vma_node);
 		merge_neighbor(area, next_area);
-	if (&prev_area->vma_node != head)
+	}
+
+	if (area->vma_node.prev != head) {
+		struct vm_area *prev_area = list_entry(area->vma_node.prev, struct vm_area, vma_node);
 		merge_neighbor(prev_area, area);
+	}
 }
 
 struct vm_area *vma_find_by_start(void *ptr, struct list_head *head)

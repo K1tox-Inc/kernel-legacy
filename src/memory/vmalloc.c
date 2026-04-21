@@ -31,7 +31,7 @@ static struct list_head vmalloc_areas;
 // EXTERNAL APIs
 // ============================================================================
 
-static inline size_t vsize(void *ptr) { return (vma_size(ptr, &vmalloc_areas)); }
+size_t vsize(void *ptr) { return vma_size(ptr, &vmalloc_areas); }
 
 void vfree(void *ptr)
 {
@@ -49,6 +49,7 @@ void vfree(void *ptr)
 	}
 
 	kfree(area->pages);
+	area->pages    = NULL;
 	area->nr_pages = 0;
 	area->state    = VM_AREA_FREE;
 	vma_merge_area(&vmalloc_areas, area);

@@ -24,7 +24,7 @@ struct vm_area {
 	uintptr_t          start_vaddr;
 	size_t             size;
 
-	// Only initialized when state is VM_AREA_ALLOCATED otherwise set as NULL
+	// Initialized for allocated and lazy areas; NULL for free/uninitialized areas.
 	uint32_t   pte_flags;
 	size_t     nr_pages;
 	uintptr_t *pages;
