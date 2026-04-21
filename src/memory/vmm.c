@@ -224,11 +224,17 @@ void vmm_destroy_user_pd(uintptr_t pd_phys)
 int vmm_verify_range_flags(uint32_t *pd_virt, const void *vaddr, unsigned long n,
                            uint32_t pde_flags, uint32_t pte_flags)
 {
+	if (n == 0)
+		return 0;
+
 	uint32_t pde_start       = GET_PDE_INDEX((uintptr_t)vaddr);
 	uint32_t pde_end         = GET_PDE_INDEX((uintptr_t)vaddr + n - 1);
 	size_t   pde_range       = pde_end - pde_start + 1;
-	size_t   pages_to_verify = DIV_ROUND_UP(n, PAGE_SIZE);
+	size_t   pages_to_verify = DIV_ROUND_UP(((uintptr_t)vaddr % PAGE_SIZE) + n, PAGE_SIZE);
 	size_t   remaining_page  = pages_to_verify;
+
+	pde_flags |= PDE_PRESENT_BIT;
+	pte_flags |= PTE_PRESENT_BIT;
 
 	for (size_t i = 0; i < pde_range; i++) {
 

@@ -1,11 +1,11 @@
 #pragma once
 
 #include <list.h>
-#include <proc/lock.h>
 #include <proc/section.h>
 #include <proc/signal.h>
 #include <proc/waitqueue.h>
 #include <types.h>
+#include <utils/kmacro.h>
 
 #define STACK_CANARY_MAGIC 0xABADBABE
 #define PID_MAX            32768
@@ -40,12 +40,13 @@ struct task {
 	struct section *heap_sec;
 
 	/* Signals */
-	struct signal_queue signals;
+	uint32_t        signals_map;
+	struct section *sig_trampoline;
+	sighandler_t    sig_handlers[MAX_SIG];
 
 	/* Info */
 	char               *name;
 	size_t              ring;
-	preempt_lock        lock;
 	bool                need_resched;
 	uint32_t            exit_code;
 	enum process_states state;
@@ -86,7 +87,7 @@ static inline bool task_has_child_pid(struct task *parent, pid_t child_pid)
 	return false;
 }
 
-void         task_print_info(const struct task *task);
+void         task_print_info(SHELL_ARGS);
 void         task_print_stack(const struct task *task);
 void         task_append_child(struct task *parent, struct task *child);
 void         task_init_process(void);
@@ -100,6 +101,7 @@ struct task *task_get_current_task(void);
 struct task *task_get_idle(void);
 struct task *task_get_dummy(void);
 struct task *task_get_kitoxD(void);
+struct task *task_find_by_pid(pid_t pid);
 struct task *task_get_new(const char *name, bool userspace, struct section *text,
                           struct section *data);
 void         sloppy_exec(char *sloppy_name);

@@ -4,13 +4,16 @@
 #include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
+#include <libutils.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <proc/task.h>
+#include <syscalls/ksyscalls.h>
+#include <utils/kmacro.h>
 
 struct tty ttys[12], *current_tty = ttys;
 
-static void print_help(void);
+static void print_help(SHELL_ARGS_UNUSED);
 
 void tty_framebuffer_set_screen_mode(struct tty *tty, enum vga_color mode)
 {
@@ -20,6 +23,19 @@ void tty_framebuffer_set_screen_mode(struct tty *tty, enum vga_color mode)
 }
 
 static inline void tty_print_prompt(void) { vga_printf("%s", TTY_PROMPT); }
+
+static void tty_handle_kprimitive(SHELL_ARGS)
+{
+	(void)argc;
+	if (ft_strequ("halt", argv[0]))
+		halt();
+	else if (ft_strequ("reboot", argv[0]))
+		reboot();
+	else if (ft_strequ("poweroff", argv[0]))
+		shutdown();
+	else if (ft_strequ("ps", argv[0]))
+		task_ps();
+}
 
 void tty_framebuffer_clear(struct tty *tty)
 {
@@ -95,36 +111,52 @@ void tty_framebuffer_write(struct tty *tty, char c)
 	tty->framebuffer[offset] = (struct vga_entry){c, tty->mode};
 }
 
-static void tty_current_tty_clear(void) { tty_framebuffer_clear(current_tty); }
+static void tty_current_tty_clear(SHELL_ARGS_UNUSED) { tty_framebuffer_clear(current_tty); }
 
 struct shell_command {
 	const char *cmd;
 	const char *descr;
-	void (*func)(void);
+	void (*func)(int, char **);
 };
 
-static void exec_mok_cafe() { sloppy_exec("cafe"); }
-static void exec_mok_dead() { sloppy_exec("dead"); }
-static void exec_mok_fibo() { sloppy_exec("fibo"); }
-static void exec_mok_hello() { sloppy_exec("hello"); }
-static void exec_mok_pid() { sloppy_exec("pid"); }
+static void exec_mok_cafe(SHELL_ARGS_UNUSED) { sloppy_exec("cafe"); }
+static void exec_mok_dead(SHELL_ARGS_UNUSED) { sloppy_exec("dead"); }
+static void exec_mok_fibo(SHELL_ARGS_UNUSED) { sloppy_exec("fibo"); }
+static void exec_mok_hello(SHELL_ARGS_UNUSED) { sloppy_exec("hello"); }
+static void exec_mok_pid(SHELL_ARGS_UNUSED) { sloppy_exec("pid"); }
 
-struct shell_command shell_commands[] = {{"poweroff", "Power off the system.", shutdown},
-                                         {"reboot", "Reboot the system.", reboot},
-                                         {"halt", "Halt the system.", halt},
-                                         {"clear", "Clear the current tty.", tty_current_tty_clear},
-                                         {"cafe", "Run the mok process: cafe.", exec_mok_cafe},
-                                         {"dead", "Run the mok process: dead.", exec_mok_dead},
-                                         {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
-                                         {"hello", "Run the mok process: hello.", exec_mok_hello},
-                                         {"pid", "Run the mok process: pid.", exec_mok_pid},
-                                         {"ps", "Display existing process.", task_ps},
-                                         {"help", "Print this help message.", print_help}};
+static void sys_kill_wrapper(SHELL_ARGS)
+{
+	if (argc != 3) {
+		vga_printf("kill: not enough arguments\n");
+		return;
+	}
+
+	int   sig = ft_atoi(argv[1]);
+	pid_t pid = ft_atoi(argv[2]);
+
+	sys_kill(pid, sig);
+}
+
+struct shell_command shell_commands[] = {
+    {"poweroff", "Power off the system.", tty_handle_kprimitive},
+    {"reboot", "Reboot the system.", tty_handle_kprimitive},
+    {"halt", "Halt the system.", tty_handle_kprimitive},
+    {"ps", "Display existing process.", tty_handle_kprimitive},
+    {"clear", "Clear the current tty.", tty_current_tty_clear},
+    {"cafe", "Run the mok process: cafe.", exec_mok_cafe},
+    {"dead", "Run the mok process: dead.", exec_mok_dead},
+    {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
+    {"hello", "Run the mok process: hello.", exec_mok_hello},
+    {"pid", "Run the mok process: pid.", exec_mok_pid},
+    {"task_info", "Print task data using pid.", task_print_info},
+    {"kill", "Send signal to process .", sys_kill_wrapper},
+    {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \
 	for (p = a; (uintptr_t)p - (uintptr_t)a <= sizeof(a) - sizeof(typeof(*a)); p++)
 
-static void print_help(void)
+static void print_help(SHELL_ARGS_UNUSED)
 {
 	struct shell_command *cmd;
 	vga_printf("Usage: [command] [options]\n\nAvailable commands:\n");
@@ -133,25 +165,30 @@ static void print_help(void)
 
 void tty_cli_handle_nl(void)
 {
-	void (*func)(void) = NULL;
+	void (*func)(int, char **) = NULL;
 
 	vga_printf("\n");
 
 	if (*current_tty->cli) {
-		struct shell_command *cmd;
-		iter_over_array(cmd, shell_commands)
-		{
-			if (ft_strequ(cmd->cmd, current_tty->cli)) {
-				func = cmd->func;
-				break;
+		char **shell_argv = ft_split(current_tty->cli, ' ');
+		if (shell_argv) {
+			if (shell_argv[0]) {
+				struct shell_command *cmd;
+				iter_over_array(cmd, shell_commands)
+				{
+					if (ft_strequ(cmd->cmd, shell_argv[0])) {
+						func = cmd->func;
+						break;
+					}
+				}
+				uint32_t shell_argc = ft_strslen(shell_argv);
+				func ? func(shell_argc, shell_argv)
+				     : vga_printf("k1tOS: command not found: %s\n", shell_argv[0]);
 			}
+			ft_free_strs(shell_argv);
 		}
-
-		func ? func() : vga_printf("k1tOS: command not found: %s\n", current_tty->cli);
-
 		ft_bzero(current_tty->cli, 256);
 	}
-
 	tty_print_prompt();
 }
 
