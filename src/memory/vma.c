@@ -148,20 +148,14 @@ size_t vma_size(void *ptr, struct list_head *head)
 
 void vma_init_area(struct list_head *head, uintptr_t start, uintptr_t end)
 {
-	struct vm_area *initial_hole = kmalloc(sizeof(struct vm_area), GFP_KERNEL);
+	struct vm_area *initial_hole = kmalloc(sizeof(struct vm_area), GFP_KERNEL | __GFP_ZERO);
 	if (!initial_hole)
 		kpanic("vma_init_area failed!");
 
-	*initial_hole = (struct vm_area){
-	    .state       = VM_AREA_FREE,
-	    .start_vaddr = start,
-	    .size        = end - start,
-	    .nr_pages    = 0,
-	    .pages       = NULL,
-	    .pte_flags   = 0,
-	};
+	initial_hole->state       = VM_AREA_FREE;
+	initial_hole->start_vaddr = start;
+	initial_hole->size        = end - start;
 
-	INIT_SENTINEL(head);
 	list_add_head(&initial_hole->vma_node, head);
 }
 
@@ -180,23 +174,42 @@ struct vm_area *vma_alloc(struct list_head *head, uintptr_t pd, size_t size, uin
 
 void vma_destroy_areas(struct list_head *head, uintptr_t pd)
 {
-	while (!list_is_empty(head)) {
-		struct vm_area *area = list_first_entry(head, struct vm_area, vma_node);
-		vma_destroy_area(head, area, pd);
+	struct list_head *pos, *tmp;
+	list_for_each_safe(pos, tmp, head)
+	{
+		struct vm_area *area = list_entry(pos, struct vm_area, vma_node);
+		pop_node(pos);
+		if (area->pages) {
+			for (size_t i = 0; i < area->nr_pages; i++) {
+				if (!area->pages[i])
+					continue;
+				vmm_unmap_page(pd, area->start_vaddr + (i * PAGE_SIZE));
+				buddy_free_block((void *)area->pages[i]);
+			}
+			kfree(area->pages);
+		}
+		kfree(area);
 	}
+	INIT_SENTINEL(head);
 }
 
 void vma_destroy_area(struct list_head *head, struct vm_area *area, uintptr_t pd)
 {
-	for (size_t i = 0; i < area->nr_pages; i++) {
-		if (!area->pages[i])
-			continue;
-		vmm_unmap_page(pd, area->start_vaddr + (i * PAGE_SIZE));
-		buddy_free_block((void *)area->pages[i]);
+	if (!area)
+		return;
+
+	if (area->pages) {
+		for (size_t i = 0; i < area->nr_pages; i++) {
+			if (!area->pages[i])
+				continue;
+			vmm_unmap_page(pd, area->start_vaddr + (i * PAGE_SIZE));
+			buddy_free_block((void *)area->pages[i]);
+		}
+
+		kfree(area->pages);
+		area->pages = NULL;
 	}
 
-	kfree(area->pages);
-	area->pages     = NULL;
 	area->nr_pages  = 0;
 	area->state     = VM_AREA_FREE;
 	area->pte_flags = 0;

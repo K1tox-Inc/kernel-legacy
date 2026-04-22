@@ -229,10 +229,9 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	INIT_SENTINEL(&ret->sched_node);
 	list_add_tail(&ret->info_node, &info_queue);
 	signal_init_default_handlers(ret);
+	INIT_SENTINEL(&ret->vma_areas);
 	if (userspace)
 		vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
-	else
-		INIT_SENTINEL(&ret->vma_areas);
 
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
@@ -290,17 +289,13 @@ void task_exit_cleanup(struct task *task)
 	if (stack && stack->p_addr)
 		buddy_free_block((void *)stack->p_addr);
 
-	// 	if (task->ring > 0)
-	// 		vma_destroy_areas(&task->vma_areas, task->cr3);
-
 	struct section *trampo = task->sig_trampoline;
 	if (trampo && trampo->p_addr)
 		buddy_free_block((void *)trampo->p_addr);
 
-	// actually no heap must be implemented later
-	// struct section *heap = task_heap(task);
-	// if (heap && heap->p_addr)
-	// 	buddy_free_block((void *)heap->p_addr);
+	if (task->ring > 0)
+		vma_destroy_areas(&task->vma_areas, task->cr3);
+
 	ft_bzero(task->text_sec, sizeof(struct section) * 4);
 	if (task->ring)
 		vmm_destroy_user_pd(task->cr3);
