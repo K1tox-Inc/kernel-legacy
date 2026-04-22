@@ -69,4 +69,8 @@ void *vmalloc(size_t size)
 	return (void *)area->start_vaddr;
 }
 
-void vmalloc_init(void) { vma_init_area(&vmalloc_areas, VMALLOC_START, VMALLOC_END); }
+void vmalloc_init(void)
+{
+	INIT_SENTINEL(&vmalloc_areas);
+	vma_init_area(&vmalloc_areas, VMALLOC_START, VMALLOC_END);
+}
