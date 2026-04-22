@@ -7,7 +7,7 @@
 #define SYS_INT     0x80
 #define asmlinkage  __attribute__((regparm(0)))
 
-typedef asmlinkage long (*syscallHandler)(long, long, long, long, long);
+typedef asmlinkage long (*syscallHandler)(long, long, long, long, long, long);
 
 extern const syscallHandler syscall_table[MAX_SYSCALL];
 
@@ -26,5 +26,10 @@ extern const syscallHandler syscall_table[MAX_SYSCALL];
 
 #define SYSCALL_DEFINE5(name, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5)     \
 	asmlinkage long sys_##name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, type5 arg5)
+
+#define SYSCALL_DEFINE6(name, type1, arg1, type2, arg2, type3, arg3, type4, arg4, type5, arg5,     \
+                        type6, arg6)                                                               \
+	asmlinkage long sys_##name(type1 arg1, type2 arg2, type3 arg3, type4 arg4, type5 arg5,         \
+	                           type6 arg6)
 
 void do_syscall(struct trap_frame *tf);

@@ -7,6 +7,7 @@
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
+#include <memory/vma.h>
 #include <memory/vmm.h>
 #include <proc/scheduler.h>
 #include <proc/signal.h>
@@ -228,6 +229,10 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	INIT_SENTINEL(&ret->sched_node);
 	list_add_tail(&ret->info_node, &info_queue);
 	signal_init_default_handlers(ret);
+	if (userspace)
+		vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
+	else
+		INIT_SENTINEL(&ret->vma_areas);
 
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
@@ -284,6 +289,9 @@ void task_exit_cleanup(struct task *task)
 	struct section *stack = task_stack(task);
 	if (stack && stack->p_addr)
 		buddy_free_block((void *)stack->p_addr);
+
+	// 	if (task->ring > 0)
+	// 		vma_destroy_areas(&task->vma_areas, task->cr3);
 
 	struct section *trampo = task->sig_trampoline;
 	if (trampo && trampo->p_addr)
@@ -403,6 +411,7 @@ void task_print_info(SHELL_ARGS)
 		}
 	}
 	vga_printf("\n");
+	vma_print_areas(&task->vma_areas);
 }
 
 void task_print_stack(const struct task *task)
@@ -475,7 +484,7 @@ static void sloppy_hello(void)
 
 static void sloppy_pid(void)
 {
-	for (size_t i = 0; i < 5; i++) {
+	for (size_t i = 0; i < 2; i++) {
 		struct task *cur = task_get_current_task();
 		vga_printf("[PID %d] I am alive and sloppy!\n", cur->pid);
 		timer_ksleep(2);
