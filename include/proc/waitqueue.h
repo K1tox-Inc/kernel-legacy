@@ -51,3 +51,4 @@ void wq_finish(struct wq_entry *entry);
 void wq_wake_specifiq(struct task *task);
 void wq_wake_one(struct wq_head *wq);
 void wq_wake_all(struct wq_head *wq);
+void wq_signal_wake_up(struct task *task);

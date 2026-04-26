@@ -49,7 +49,10 @@ interrupt_routine:
 	call interrupt_dispatcher
 	add esp, 4
 
+.extern signal_call_curtask_handlers
+
 interrupt_exit:
+	call signal_call_curtask_handlers
 	pop eax
 	mov gs, ax
 	pop eax

@@ -5,6 +5,24 @@
 # SYSCALL MACROS
 # ============================================================
 
+.macro SYSCALL_MMAP addr, length, prot, flags
+    mov eax, 90
+    mov ebx, \addr
+    mov ecx, \length
+    mov edx, \prot
+    mov esi, \flags
+    mov edi, -1
+    xor ebp, ebp
+    int 0x80
+.endm
+
+.macro SYSCALL_MUNMAP addr, length
+    mov eax, 91
+    mov ebx, \addr
+    mov ecx, \length
+    int 0x80
+.endm
+
 .macro SYSCALL_WRITE fd, buf, len
     mov eax, 4
     mov ebx, \fd
@@ -41,6 +59,13 @@
 .macro SYSCALL_EXEC_FN index
     mov eax, 11
     mov ebx, \index
+    int 0x80
+.endm
+
+.macro SYSCALL_SIGNAL sig, handler
+    mov eax, 48
+    mov ebx, \sig
+    mov ecx, \handler
     int 0x80
 .endm
 
@@ -105,20 +130,38 @@ kitoxD_end:
 
 .align 4
 user_cafe_start:
+    call .cafe_get_handler_addr
+.cafe_get_handler_addr:
+    pop ecx
+    add ecx, (.cafe_handler - .cafe_get_handler_addr)
+    SYSCALL_SIGNAL 2, ecx
+
     jmp .cafe_after_msg
 .cafe_msg:
-    .ascii "Hello from cafe!\n"
+    .ascii "Cafe: waiting for signal...\n"
 .cafe_after_msg:
     call .cafe_getpc
 .cafe_getpc:
     pop ecx
     sub ecx, (.cafe_getpc - .cafe_msg)
-    SYSCALL_WRITE 1, ecx, 17
-    SYSCALL_EXIT 1
+    SYSCALL_WRITE 1, ecx, 28
 
-2:
+.cafe_loop:
     SYSCALL_SLEEP 2
-    jmp 2b
+    jmp .cafe_loop
+
+.align 4
+.cafe_handler:
+    jmp .cafe_h_after_msg
+.cafe_h_msg:
+    .ascii "[SIGINT] caught! returning...\n"
+.cafe_h_after_msg:
+    call .cafe_h_getpc
+.cafe_h_getpc:
+    pop ecx
+    sub ecx, (.cafe_h_getpc - .cafe_h_msg)
+    SYSCALL_WRITE 1, ecx, 30
+    ret
 user_cafe_end:
 
 # ============================================================
@@ -137,8 +180,15 @@ user_dead_start:
     sub ecx, (.dead_getpc - .dead_msg)
     SYSCALL_WRITE 1, ecx, 17
 
-    mov eax, 0xDEADBEEF
-    SYSCALL_EXIT 1
+    SYSCALL_MMAP 0, 4096, 3, 0x20
+    mov esi, eax
+
+    mov dword ptr [esi], 0x44414544
+    mov byte ptr [esi + 4], 0x0A
+
+    SYSCALL_WRITE 1, esi, 5
+
 3:
-    jmp 2b
+    SYSCALL_SLEEP 2
+    jmp 3b
 user_dead_end:

@@ -50,5 +50,7 @@
 		(type *)((char *)__mptr - offsetof(type, member));                                         \
 	})
 #define BITS_TO_BYTES(nb_bits) DIV_ROUND_UP((nb_bits), 8)
+#define SHELL_ARGS             int argc, char **argv
+#define SHELL_ARGS_UNUSED      int argc __attribute__((unused)), char **argv __attribute__((unused))
 
 // Define

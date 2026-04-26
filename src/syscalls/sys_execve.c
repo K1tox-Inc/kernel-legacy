@@ -1,6 +1,7 @@
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
+#include <memory/vma.h>
 #include <memory/vmm.h>
 #include <proc/scheduler.h>
 #include <proc/section.h>
@@ -53,7 +54,6 @@ SYSCALL_DEFINE1(execve, int, index)
 
 	struct task *cur = task_get_current_task();
 	paging_reload_cr3(vmm_get_kernel_directory());
-	task_exit_cleanup(cur);
 
 	ft_memcpy(cur->text_sec, &text, sizeof(struct section));
 
@@ -62,6 +62,10 @@ SYSCALL_DEFINE1(execve, int, index)
 			kpanic("Error: execve fail to create a userspace clean");
 	} else
 		cur->cr3 = vmm_get_kernel_directory();
+
+	INIT_SENTINEL(&cur->vma_areas);
+	if (fn_info.is_user)
+		vma_init_area(&cur->vma_areas, cur->heap_sec->v_addr, cur->stack_sec->v_addr - PAGE_SIZE);
 
 	size_t name_len = ft_strlen(fn_info.name);
 	name_len        = name_len > 15 ? 15 : name_len;

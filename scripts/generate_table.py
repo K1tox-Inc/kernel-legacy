@@ -73,10 +73,12 @@ def main():
 
             ksyscall_header.write("/* auto-generated FILE - do not edit */\n\n")
             ksyscall_header.write("#pragma once\n\n")
+            ksyscall_header.write("#include <syscalls/syscalls.h>\n")
+
 
             for syscall_id in sorted(syscalls.keys()):
                 sys_entry = syscalls[syscall_id]['sys_entry']
-                ksyscall_header.write(f"long {sys_entry}();\n")
+                ksyscall_header.write(f"asmlinkage long {sys_entry}();\n")
 
         sys.exit(0)
 

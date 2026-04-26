@@ -131,6 +131,8 @@ bool userspace_create_new(struct task *new_task)
 		goto bad;
 	else if ((data && data->data_size > 0) && !map_section(uspace_pd_phy, task_data(new_task)))
 		goto bad;
+	else if (!map_section(uspace_pd_phy, new_task->sig_trampoline))
+		goto bad;
 
 	new_task->cr3 = uspace_pd_phy;
 
@@ -143,6 +145,8 @@ bad:
 		buddy_free_block((void *)data->p_addr);
 	if (stack && stack->p_addr)
 		buddy_free_block((void *)stack->p_addr);
+	if (new_task->sig_trampoline && new_task->sig_trampoline->p_addr)
+		buddy_free_block((void *)new_task->sig_trampoline->p_addr);
 
 	vmm_destroy_user_pd(uspace_pd_phy);
 	return false;

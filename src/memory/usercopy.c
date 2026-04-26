@@ -1,3 +1,4 @@
+#include <drivers/vga.h>
 #include <libk.h>
 #include <memory/usercopy.h>
 #include <memory/vmm.h>
@@ -16,9 +17,9 @@ static unsigned long usercopy(void *kernel_buf, void *user_buf, unsigned long n,
 		flags |= PDE_RW_BIT;
 
 	int ret = vmm_verify_range_flags(pd_virt, user_buf, n, flags, flags);
-
 	if (ret)
 		return ret;
+
 	if (copy_into_kbuf)
 		ft_memcpy(kernel_buf, user_buf, n);
 	else
@@ -33,5 +34,5 @@ unsigned long copy_from_user(void *to, const void *from, unsigned long n)
 
 unsigned long copy_to_user(void *to, const void *from, unsigned long n)
 {
-	return usercopy(to, (void *)from, n, false);
+	return usercopy((void *)from, to, n, false);
 }

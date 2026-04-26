@@ -6,6 +6,13 @@
 .extern g_tss
 .extern current_task
 .global switch_to
+.global sig_trampoline_start
+.global sig_trampoline_end
+
+.macro SYSCALL_SIGRETURN
+    mov eax, 119
+    int 0x80
+.endm
 
 # =============================================================================
 # STRUCT TASK LAYOUT (Memory Map)
@@ -53,3 +60,9 @@ switch_to:
   pop ebp
 
   ret
+
+sig_trampoline_start:
+  mov eax, 119
+  int 0x80
+sig_trampoline_end:
+

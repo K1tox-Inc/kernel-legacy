@@ -4,7 +4,9 @@
 #include <libk.h>
 #include <memory/boot_allocator.h>
 #include <memory/memory.h>
+#include <memory/vma.h>
 #include <memory/vmm.h>
+#include <proc/task.h>
 
 /*
  * Virtual-to-physical address translation (32-bit paging):
@@ -34,11 +36,19 @@ void page_fault_handler(struct trap_frame *frame)
 
 	__asm__ volatile("mov %%cr2, %0" : "=r"(faulting_address));
 
-	vga_printf("Faulting address: 0x%x\n", faulting_address);
-	vga_printf("Error code: 0x%x\n", frame->err_code);
-	vga_printf("Cause: %s\n", (frame->err_code & 1) ? "Protection violation" : "Page not present");
-
-	kpanic("Page fault");
+	struct task    *cur_task   = task_get_current_task();
+	struct vm_area *fault_area = vma_find_by_addr((void *)faulting_address, &cur_task->vma_areas);
+	if (fault_area && fault_area->state == VM_AREA_LAZY) {
+		if (!vma_map_area(fault_area, cur_task->cr3))
+			kpanic("Failed to map lazy VM area");
+		fault_area->state = VM_AREA_ALLOCATED;
+	} else {
+		vga_printf("Faulting address: 0x%x\n", faulting_address);
+		vga_printf("Error code: 0x%x\n", frame->err_code);
+		vga_printf("Cause: %s\n",
+		           (frame->err_code & 1) ? "Protection violation" : "Page not present");
+		kpanic("Page fault");
+	}
 }
 
 void vmm_finalize(void)
@@ -224,11 +234,17 @@ void vmm_destroy_user_pd(uintptr_t pd_phys)
 int vmm_verify_range_flags(uint32_t *pd_virt, const void *vaddr, unsigned long n,
                            uint32_t pde_flags, uint32_t pte_flags)
 {
+	if (n == 0)
+		return 0;
+
 	uint32_t pde_start       = GET_PDE_INDEX((uintptr_t)vaddr);
 	uint32_t pde_end         = GET_PDE_INDEX((uintptr_t)vaddr + n - 1);
 	size_t   pde_range       = pde_end - pde_start + 1;
-	size_t   pages_to_verify = DIV_ROUND_UP(n, PAGE_SIZE);
+	size_t   pages_to_verify = DIV_ROUND_UP(((uintptr_t)vaddr % PAGE_SIZE) + n, PAGE_SIZE);
 	size_t   remaining_page  = pages_to_verify;
+
+	pde_flags |= PDE_PRESENT_BIT;
+	pte_flags |= PTE_PRESENT_BIT;
 
 	for (size_t i = 0; i < pde_range; i++) {
 
