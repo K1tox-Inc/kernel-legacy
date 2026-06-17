@@ -73,7 +73,7 @@ struct sigframe {
 	uint32_t          ret_addr;
 	int               sig_num;
 	struct trap_frame tf_backup;
-} __attribute__((packed));
+} __packed;
 
 bool signal_is_valid(enum signals sig);
 bool signal_check_perm(struct task *target);

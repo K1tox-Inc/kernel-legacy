@@ -6,6 +6,8 @@
 #include <memory/memory.h>
 #include <memory/vma.h>
 #include <memory/vmm.h>
+#include <types.h>
+#include <utils/compiler.h>
 #include <utils/kmacro.h>
 
 // ============================================================================
@@ -172,7 +174,7 @@ struct vm_area *vma_alloc(struct list_head *head, uintptr_t pd, size_t size, uin
 	return vma_alloc_in_area(head, pd, free_area, size, pte_flags, alloc_mode);
 }
 
-void vma_destroy_areas(struct list_head *head, uintptr_t pd)
+void vma_destroy_areas(struct list_head *head, __always_unused uintptr_t pd)
 {
 	struct list_head *pos, *tmp;
 	list_for_each_safe(pos, tmp, head)
@@ -193,7 +195,7 @@ void vma_destroy_areas(struct list_head *head, uintptr_t pd)
 	INIT_SENTINEL(head);
 }
 
-void vma_destroy_area(struct list_head *head, struct vm_area *area, uintptr_t pd)
+void vma_destroy_area(struct list_head *head, struct vm_area *area, __always_unused uintptr_t pd)
 {
 	if (!area)
 		return;
@@ -243,6 +245,7 @@ void vma_print_areas(struct list_head *head)
 {
 	struct vm_area *area;
 	int             i = 0;
+
 	vga_printf("  - VMA areas:\n");
 	list_for_each_entry(area, head, vma_node)
 	{

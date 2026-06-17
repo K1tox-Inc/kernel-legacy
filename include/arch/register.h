@@ -5,7 +5,7 @@
 struct registers {
 	uint32_t gs, fs, es, ds;
 	uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
-} __attribute__((packed));
+} __packed;
 
 static inline void clean_registers(void)
 {

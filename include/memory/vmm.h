@@ -1,11 +1,7 @@
 #pragma once
 
-// INCLUDES
-#include <arch/trap_frame.h>
-
-// DEFINE AND MACRO
-
-// Defines
+#include "../arch/trap_frame.h"
+#include "../utils/compiler.h"
 
 //  Page Table Entry (PTE)
 enum Page_Table_Entry {
@@ -126,38 +122,38 @@ void      vmm_destroy_user_pd(uintptr_t pd_phys);
 int       vmm_verify_range_flags(uint32_t *pd_virt, const void *vaddr, unsigned long n,
                                  uint32_t pde_flags, uint32_t pte_flags);
 
-static inline uintptr_t get_current_page_directory_phys(void)
+static __always_inline uintptr_t get_current_page_directory_phys(void)
 {
 	uintptr_t pd_phys;
 	__asm__ volatile("mov %%cr3, %0" : "=r"(pd_phys));
 	return pd_phys;
 }
 
-static inline void paging_reload_cr3(uintptr_t pd_phys_addr)
+static __always_inline void paging_reload_cr3(uintptr_t pd_phys_addr)
 {
 	__asm__ volatile("mov %0, %%cr3" : : "r"(pd_phys_addr) : "memory");
 }
 
-static inline void paging_invalid_TLB_addr(uint32_t addr)
+static __always_inline void paging_invalid_TLB_addr(uint32_t addr)
 {
 	__asm__ volatile("invlpg (%0)" ::"r"(addr));
 }
 
-static inline void paging_flush_TLB(void)
+static __always_inline void paging_flush_TLB(void)
 {
 	uint32_t cr3;
 	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
 	__asm__ volatile("mov %0, %%cr3" ::"r"(cr3));
 }
 
-static inline void paging_disable_ro(void)
+static __always_inline void paging_disable_ro(void)
 {
 	uint32_t cr0;
 	__asm__ volatile("mov %%cr0, %0" : "=r"(cr0));
 	__asm__ volatile("mov %0, %%cr0" ::"r"(cr0 & ~0x10000));
 }
 
-static inline void paging_enable_ro(void)
+static __always_inline void paging_enable_ro(void)
 {
 	uint32_t cr0;
 	__asm__ volatile("mov %%cr0, %0" : "=r"(cr0));

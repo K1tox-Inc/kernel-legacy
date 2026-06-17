@@ -5,6 +5,7 @@
 #include <proc/signal.h>
 #include <proc/waitqueue.h>
 #include <types.h>
+#include <utils/assert.h>
 #include <utils/kmacro.h>
 
 #define STACK_CANARY_MAGIC 0xABADBABE
@@ -31,7 +32,7 @@ struct task {
 	uintptr_t cr3;
 
 	uintptr_t kernel_stack_pointer;
-	uintptr_t kernel_stack_base; // <------- DO NOT REORDER before this line (see context.s)
+	uintptr_t kernel_stack_base;
 
 	// Sections
 	struct section  *text_sec;
@@ -63,21 +64,26 @@ struct task {
 	uint32_t quantum_remaining;
 };
 
-static inline struct section *task_text(struct task *new_task) { return new_task->text_sec; }
-static inline struct section *task_data(struct task *new_task) { return new_task->data_sec; }
-static inline struct section *task_heap(struct task *new_task) { return new_task->heap_sec; }
-static inline struct section *task_stack(struct task *new_task) { return new_task->stack_sec; }
-static inline bool            task_is_sleeping(struct task *task)
+// See `src/proc/context.s`
+static_assert(offsetof(struct task, kernel_stack_base) == 48,
+              "Offset of `kernel_stack_base` in `struct task` must be 48.");
+
+static __always_inline struct section *task_text(struct task *task) { return task->text_sec; }
+static __always_inline struct section *task_data(struct task *task) { return task->data_sec; }
+static __always_inline struct section *task_heap(struct task *task) { return task->heap_sec; }
+static __always_inline struct section *task_stack(struct task *task) { return task->stack_sec; }
+
+static __always_inline bool task_is_sleeping(struct task *task)
 {
 	return task->state == TASK_WAITING && task->wq_data.head != NULL;
 }
 
-static inline bool task_stack_overflow(struct task *task)
+static __always_inline bool task_stack_overflow(struct task *task)
 {
 	return (*(uint32_t *)(task->kernel_stack_pointer) != STACK_CANARY_MAGIC);
 }
 
-static inline bool task_has_child_pid(struct task *parent, pid_t child_pid)
+static __always_inline bool task_has_child_pid(struct task *parent, pid_t child_pid)
 {
 	struct task *child;
 	list_for_each_entry(child, &parent->children, siblings)

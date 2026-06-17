@@ -2,17 +2,17 @@
 
 #include <types.h>
 
-static inline void outw(uint16_t port, uint16_t value)
+static __always_inline void outw(uint16_t port, uint16_t value)
 {
 	__asm__ volatile("outw %w0, %w1" : : "a"(value), "Nd"(port) : "memory");
 }
 
-static inline void outb(uint16_t port, uint8_t value)
+static __always_inline void outb(uint16_t port, uint8_t value)
 {
 	__asm__ volatile("outb %b0, %w1" : : "a"(value), "Nd"(port) : "memory");
 }
 
-static inline uint8_t inb(uint16_t port)
+static __always_inline uint8_t inb(uint16_t port)
 {
 	uint8_t value;
 
