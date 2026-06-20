@@ -40,6 +40,8 @@ enum PageFaultCauses {
 
 void page_fault_handler(struct trap_frame *frame)
 {
+	(void)frame;
+
 #define caused_by(cause) FLAG_IS_SET(frame->err_code, cause)
 
 	void *faulting_address;

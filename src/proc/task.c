@@ -139,6 +139,60 @@ void task_append_child(struct task *parent, struct task *child)
 	child->real_parent = parent;
 }
 
+struct task *task_clone(const struct task *task)
+{
+	const size_t name_len   = ft_strlen(task->name);
+	const size_t alloc_size = sizeof(struct task) + sizeof(struct section) * 4 + name_len;
+	struct task *const new  = kmalloc(alloc_size, __GFP_KERNEL | __GFP_ZERO);
+
+	if (new == NULL) {
+		return NULL;
+	}
+
+	ft_memcpy(new, task, sizeof(struct task));
+
+	INIT_SENTINEL(&new->children);
+	INIT_SENTINEL(&new->siblings);
+	INIT_SENTINEL(&new->vma_areas);
+	INIT_SENTINEL(&new->info_node);
+	INIT_SENTINEL(&new->sched_node);
+
+	wq_init(&new->child_wq);
+
+	new->kernel_stack_pointer = 0;
+	new->kernel_stack_base    = 0;
+
+	new->heap_sec  = (struct section *)(new + 1);
+	new->text_sec  = new->heap_sec++;
+	new->data_sec  = new->heap_sec++;
+	new->stack_sec = new->heap_sec++;
+
+	ft_memcpy(new->text_sec, task->text_sec, sizeof(struct section));
+	ft_memcpy(new->data_sec, task->data_sec, sizeof(struct section));
+	ft_memcpy(new->stack_sec, task->stack_sec, sizeof(struct section));
+	ft_memcpy(new->heap_sec, task->heap_sec, sizeof(struct section));
+
+	new->name = (char *)(new->heap_sec + 1);
+	ft_memcpy(new->name, task->name, name_len);
+
+	new->pid = id_manager_alloc(pid_manager);
+	if (new->pid < 0) {
+		kfree(new);
+		return NULL;
+	}
+
+	new->cr3 = (uintptr_t)buddy_alloc_pages(PAGE_SIZE, LOWMEM_ZONE);
+	if (!new->cr3) {
+		id_manager_free(pid_manager, new->pid);
+		kfree(new);
+		return NULL;
+	}
+
+	ft_bzero(PHYS_TO_VIRT_LINEAR(new->cr3), PAGE_SIZE);
+
+	return new;
+}
+
 // Text and data are used as templates; this function allocates its own internal sections
 // After return, the caller must free the input text and data if they were heap-allocated
 struct task *task_get_new(const char *name, size_t ring, struct section *text, struct section *data)
