@@ -7,6 +7,7 @@
 #include <memory/vma.h>
 #include <memory/vmm.h>
 #include <proc/task.h>
+#include <utils/kmacro.h>
 
 /*
  * Virtual-to-physical address translation (32-bit paging):
@@ -26,29 +27,98 @@
 
 uintptr_t kpage_dir = 0;
 
-// Internal APIs
-
-// External APIs
+enum PageFaultCauses {
+	PFC_PRESENT       = 1 << 0,
+	PFC_WRITE         = 1 << 1,
+	PFC_USER          = 1 << 2,
+	PFC_RESERVED      = 1 << 3,
+	PFC_INSTR_FETCH   = 1 << 4,
+	PFC_PROT_KEY      = 1 << 5,
+	PFC_SSTACK        = 1 << 6,
+	PFC_SOFT_GUARD_EX = 1 << 15,
+};
 
 void page_fault_handler(struct trap_frame *frame)
 {
-	uint32_t faulting_address;
+#define caused_by(cause) FLAG_IS_SET(frame->err_code, cause)
 
+	void *faulting_address;
 	__asm__ volatile("mov %%cr2, %0" : "=r"(faulting_address));
 
 	struct task    *cur_task   = task_get_current_task();
-	struct vm_area *fault_area = vma_find_by_addr((void *)faulting_address, &cur_task->vma_areas);
+	struct vm_area *fault_area = vma_find_by_addr(faulting_address, &cur_task->vma_areas);
+
 	if (fault_area && fault_area->state == VM_AREA_LAZY) {
 		if (!vma_map_area(fault_area, cur_task->cr3))
 			kpanic("Failed to map lazy VM area");
 		fault_area->state = VM_AREA_ALLOCATED;
-	} else {
-		vga_printf("Faulting address: 0x%x\n", faulting_address);
-		vga_printf("Error code: 0x%x\n", frame->err_code);
-		vga_printf("Cause: %s\n",
-		           (frame->err_code & 1) ? "Protection violation" : "Page not present");
-		kpanic("Page fault");
+		return;
 	}
+
+#ifndef NDEBUG
+
+	vga_printf("\n   === PAGE FAULT ===\n");
+	vga_printf("Faulting address: %p\n", faulting_address);
+	vga_printf("Instr. Pointer:   %p\n", frame->eip);
+	vga_printf("Page Directory:   %p\n", cur_task->cr3);
+	vga_printf("Page Dir. Index:  %d (+%p)\n", GET_PDE_INDEX(faulting_address),
+	           GET_PDE_INDEX(faulting_address) * sizeof(uint32_t));
+	vga_printf("Page Table:       %p\n", GET_ENTRY_ADDR(((uint32_t *)PHYS_TO_VIRT_LINEAR(
+	                                         cur_task->cr3))[GET_PDE_INDEX(faulting_address)]));
+	vga_printf("Page Table Index: %d (+%p)\n", GET_PTE_INDEX(faulting_address),
+	           GET_PTE_INDEX(faulting_address) * sizeof(uint32_t));
+	vga_printf("Error code:       0x%x\n", frame->err_code);
+	vga_printf("Task:             %t\n", cur_task);
+	vga_printf("Causes:\n");
+
+# define pr_err_cause(cause, msg)                                                                  \
+	 if (caused_by(cause))                                                                         \
+		 vga_printf("%s\n", msg);
+
+	if (caused_by(PFC_PRESENT)) {
+		vga_printf(" - Present (P): The page fault was caused by a "
+		           "page-protection violation.\n");
+	} else {
+		vga_printf(" - Present (P): The page fault was caused by a non-present page.\n");
+	}
+
+	pr_err_cause(PFC_WRITE, " - Write (W): The page fault was caused by a write "
+	                        "access.")
+
+	    pr_err_cause(PFC_USER,
+	                 " - User (U): The page fault was caused while CPL = 3. This "
+	                 "does not necessarily mean that the page fault was a privilege violation.");
+
+	pr_err_cause(PFC_RESERVED,
+	             " - Reserved write (R): One or more page directory "
+	             "entries contain reserved bits which are set to 1. This only applies "
+	             "when the PSE or PAE flags in CR4 are set to 1.");
+
+	pr_err_cause(PFC_INSTR_FETCH,
+	             " - Instruction Fetch (I): The page fault was caused by an instruction "
+	             "fetch. This only applies when the No-Execute bit is supported and enabled.");
+
+	pr_err_cause(PFC_PROT_KEY,
+	             " - Protection key (PK): The page fault was caused by a "
+	             "protection-key violation. The PKRU register (for user-mode accesses) or PKRS "
+	             "MSR (for supervisor-mode accesses) specifies the protection key rights.");
+
+	pr_err_cause(PFC_SSTACK, " - Shadow stack (SS): The page fault was caused by a "
+	                         "shadow stack access.");
+
+	pr_err_cause(PFC_SOFT_GUARD_EX,
+	             " - Software Guard Extensions (SGX): The fault was "
+	             "due to an SGX violation. The fault is unrelated to ordinary paging.");
+
+# undef pr_err_cause
+
+	vga_printf("\n");
+
+#endif
+
+#undef caused_by
+
+	kpanic("Page fault");
 }
 
 void vmm_finalize(void)
