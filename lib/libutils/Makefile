@@ -28,11 +28,11 @@ $(NAME): $(OBJ)
 
 .PHONY: clean
 clean:
-	@$(RM) -v $(OBJ)
+	@$(RM) $(OBJ)
 
 .PHONY: fclean
 fclean: clean
-	@$(RM) -v $(NAME)
+	@$(RM) $(NAME)
 
 .PHONY: re
 re: fclean all

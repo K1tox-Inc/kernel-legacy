@@ -2,77 +2,76 @@
 .code32
 
 .section .text
-	.global interrupt_dispatcher
-	.extern interrupt_handlers
-	.global interrupt_exit
+    .extern interrupt_handlers
+    .extern signal_call_curtask_handlers
+    .global interrupt_exit
 
 interrupt_dispatcher:
-	mov eax, [esp+4]
-	mov eax, [eax+48]
-	shl eax, 2
-	mov eax, [interrupt_handlers+eax]
-	test eax, eax
-	jz .no_int_handler
-	jmp eax
+    mov eax, [esp+4]
+    mov eax, [eax+48]
+    shl eax, 2
+    mov eax, [interrupt_handlers+eax]
+    test eax, eax
+    jz .no_int_handler
+    jmp eax
 .no_int_handler:
-	ret
+    ret
 
 interrupt_routine:
-	pusha
+    pusha
 
-	mov ax, ds
-	push eax
-	mov ax, es
-	push eax
-	mov ax, fs
-	push eax
-	mov ax, gs
-	push eax
+    mov ax, ds
+    push eax
+    mov ax, es
+    push eax
+    mov ax, fs
+    push eax
+    mov ax, gs
+    push eax
 
-	mov ax, 0x10
-	mov ds, ax
-	mov es, ax
-	mov fs, ax
-	mov gs, ax
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
 
-	mov eax, [esp+48]
-	cmp eax, 40
-	jl .skip_pic2
-	mov al, 0x20
-	out 0xA0, al
+    mov eax, [esp+48]
+    cmp eax, 40
+    jl .skip_pic2
+    mov al, 0x20
+    out 0xA0, al
 .skip_pic2:
-	mov al, 0x20
-	out 0x20, al
+    mov al, 0x20
+    out 0x20, al
 
-	lea eax, [esp]
-	push eax
-	call interrupt_dispatcher
-	add esp, 4
-
-.extern signal_call_curtask_handlers
+    lea eax, [esp]
+    push eax
+    call interrupt_dispatcher
+    add esp, 4
 
 interrupt_exit:
-	call signal_call_curtask_handlers
-	pop eax
-	mov gs, ax
-	pop eax
-	mov fs, ax
-	pop eax
-	mov es, ax
-	pop eax
-	mov ds, ax
+    call signal_call_curtask_handlers
 
-	popa
-	add esp, 8
-	iret
+    pop eax
+    mov gs, ax
+    pop eax
+    mov fs, ax
+    pop eax
+    mov es, ax
+    pop eax
+    mov ds, ax
+
+    popa
+    add esp, 8
+    iret
 
 .macro irq_stub num
 .global irq_\num
 irq_\num:
-	cli
-	push 0
-	push \num
-	jmp interrupt_routine
+    cli
+    push 0
+    push \num
+    jmp interrupt_routine
 .endm
 
 irq_stub 32

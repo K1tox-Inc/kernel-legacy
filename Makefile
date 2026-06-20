@@ -1,3 +1,5 @@
+-include config.mk
+
 ifneq ($(MAKEBUILDTYPE),Release)
 MAKEBUILDTYPE=Debug
 endif
@@ -17,34 +19,36 @@ SCRIPTS_DIR=scripts
 
 TOOLSDIR=tools
 
-AS=i686-linux-gnu-as
-ASFLAGS=
+CLANG_FORMAT ?= clang-format
 
-CC=i686-linux-gnu-gcc
-CFLAGS=-ffreestanding -fno-builtin -fno-exceptions -fno-stack-protector -nostdinc -MD -MP -Wall -Wextra
+AS ?= i686-linux-gnu-as
+CC ?= i686-linux-gnu-gcc
+AR ?= i686-linux-gnu-ar
+LD ?= i686-linux-gnu-ld
 
+ifeq ($(CFLAGS),)
+CFLAGS  = -ffreestanding -fno-builtin -fno-exceptions -fno-stack-protector -nostdinc -MD -MP -Wall -Wextra
 ifeq ($(MAKEBUILDTYPE),Release)
-CFLAGS+=-Werror -DNDEBUG
+CFLAGS += -Werror -DNDEBUG -O2
+else
+CFLAGS += -g
+endif
+CFLAGS += $(addprefix -I, ./include ./lib/libk ./lib/data_structs ./lib/libutils)
 endif
 
-CFLAGS+=-I./include -I./lib/libk -I./lib/data_structs -I./lib/libutils
-
-AR=i686-linux-gnu-ar
-
-LD=$(CC)
-LDFLAGS=-z noexecstack -nostdlib -nodefaultlibs -static
-
-ifeq ($(MAKEBUILDTYPE),Release)
-LDFLAGS+=-s
+ifeq ($(LDFLAGS),)
+LDFLAGS  = -z noexecstack -nostdlib -static
 endif
 
-LDLIBS=-L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
+LDLIBS ?= -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
 
-QEMU=qemu-system-i386
-QEMUFLAGS=-m 4G -smp 4 -cpu host -enable-kvm -net nic -net user -s -daemonize
+GRUB_MKRESCUE ?= grub-mkrescue
 
-DOCKERIMAGENAME=noalexan/cross-compiler
-DOCKERIMAGETAG=685b705
+QEMU      ?= qemu-system-i386
+QEMUFLAGS ?= -m 4096 -cpu host -enable-kvm -s -serial file:serial.log
+
+DOCKERIMAGENAME ?= noalexan/cross-compiler
+DOCKERIMAGETAG  ?= 685b705
 
 OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\(\.c\|\.cpp\|\.s\)' -not -path "src/generated/*" | sed 's/\(\.c\|\.cpp\|\.s\)/.o/g'))
 OBJ+=$(BINDIR)/generated/syscall_table.o
@@ -77,7 +81,7 @@ src/generated/syscall_table.c include/uapi/syscalls.h include/syscalls/ksyscalls
 
 .PHONY: format
 format:
-	@clang-format --verbose --Werror -i $(shell find src include -regex '.*\.\(c\|h\|cpp\|hpp\)' -not \( -path 'src/generated/*' -o -path 'include/generated/*' \))
+	@$(CLANG_FORMAT) --verbose --Werror -i $(shell find src include -regex '.*\.\(c\|h\|cpp\|hpp\)' -not \( -path 'src/generated/*' -o -path 'include/generated/*' \))
 
 .PHONY: clean
 clean:
@@ -90,7 +94,7 @@ clean:
 
 $(BUILDDIR)/boot.iso: $(ISODIR)/boot/kernel $(ISODIR)/boot/grub/grub.cfg
 	@mkdir -pv $(@D)
-	grub-mkrescue -o $@ $(ISODIR)
+	$(GRUB_MKRESCUE) -o $@ $(ISODIR)
 
 $(ISODIR)/boot/grub/grub.cfg: grub.cfg
 	@mkdir -pv $(@D)
@@ -110,15 +114,15 @@ else
 
 .PHONY: all
 all:
-	$(call docker_run, all)
+	$(call docker_run,all)
 
 .PHONY: format
 format:
-	$(call docker_run, format)
+	$(call docker_run,format)
 
 .PHONY: clean
 clean:
-	$(call docker_run, clean)
+	$(call docker_run,clean)
 
 endif
 
@@ -133,4 +137,4 @@ run: all
 .PHONY: re
 re: clean all
 
-.NOTPARALLEL: all clean format
+.NOTPARALLEL: re
