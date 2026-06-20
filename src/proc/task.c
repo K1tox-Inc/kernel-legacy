@@ -42,10 +42,6 @@ __attribute__((constructor)) static void init_pid_manager(void)
 
 extern void interrupt_exit(void);
 
-// ============================================================================
-// INTERNAL APIs
-// ============================================================================
-
 static inline const char *task_state_to_string(enum process_states state)
 {
 	if (state == TASK_NEW)
@@ -99,7 +95,7 @@ static void task_init_dummy(void)
 
 static void task_init_idle(void)
 {
-	idle_task = task_get_new("Idle", false, NULL, NULL);
+	idle_task = task_get_new("Idle", 0, NULL, NULL);
 	if (!idle_task)
 		kpanic("Failed to init Idle\n");
 
@@ -115,7 +111,7 @@ static void task_init_kitoxD(void)
 	if (!section_init_from_buffer(&text, 0, kitoxD_start, fn_size, 0))
 		kpanic("Failed to init kitoxD sections\n");
 
-	kitoxD_task = task_get_new("kitoxD", true, &text, NULL);
+	kitoxD_task = task_get_new("kitoxD", 3, &text, NULL);
 	if (!kitoxD_task)
 		kpanic("Failed to init kitoxD\n");
 
@@ -145,8 +141,7 @@ void task_append_child(struct task *parent, struct task *child)
 
 // Text and data are used as templates; this function allocates its own internal sections
 // After return, the caller must free the input text and data if they were heap-allocated
-struct task *task_get_new(const char *name, bool userspace, struct section *text,
-                          struct section *data)
+struct task *task_get_new(const char *name, size_t ring, struct section *text, struct section *data)
 {
 	if (!name)
 		return NULL;
@@ -206,15 +201,19 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	                              (sig_trampoline_end - sig_trampoline_start), USER_SECTION_RO))
 		goto free_kstack;
 
-	if (userspace) {
+	ret->ring = ring;
+	switch (ring) {
+	case 3:
 		if (!userspace_create_new(ret))
 			goto free_kstack;
-		ret->ring = 3;
-	}
+		break;
 
-	else {
-		ret->cr3  = vmm_get_kernel_directory();
-		ret->ring = 0;
+	case 0:
+		ret->cr3 = vmm_get_kernel_directory();
+		break;
+
+	default:
+		kpanic("yo you damn crazy wtf r u doing?!");
 	}
 
 	ret->state = TASK_NEW;
@@ -227,10 +226,13 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	wq_init(&ret->child_wq);
 
 	INIT_SENTINEL(&ret->sched_node);
+
 	list_add_tail(&ret->info_node, &info_queue);
 	signal_init_default_handlers(ret);
+
 	INIT_SENTINEL(&ret->vma_areas);
-	if (userspace)
+
+	if (ring == 3)
 		vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
 
 	/*
@@ -517,7 +519,7 @@ static void exec_fn(unsigned int *addr, unsigned int *function, unsigned int siz
 		text_ptr = &text;
 	}
 
-	struct task *sloppy_task = task_get_new("Sloppy", is_user, text_ptr, NULL);
+	struct task *sloppy_task = task_get_new("Sloppy", is_user ? 3 : 0, text_ptr, NULL);
 	if (!sloppy_task) {
 		vga_printf("exec_fn: Failed to allocate task structure\n");
 		return;
