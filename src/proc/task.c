@@ -365,21 +365,9 @@ struct task *task_find_by_pid(pid_t pid)
 	return NULL;
 }
 
-// ============================================================================
-// DEBUG APIs
-// ============================================================================
-
-void task_print_info(SHELL_ARGS)
+void task_print_info(struct task *task)
 {
-	if (argc != 2)
-		return;
-	pid_t        task_pid = ft_atoi(argv[1]);
-	struct task *task     = task_find_by_pid(task_pid);
-
-	if (!task) {
-		vga_printf("task_print_info: task pointer is NULL\n");
-		return;
-	}
+	assert(task);
 
 	vga_printf("Task Info (PID %d)\n", task->pid);
 	vga_printf("  - Name: %s\n", task->name);
@@ -407,6 +395,21 @@ void task_print_info(SHELL_ARGS)
 	}
 	vga_printf("\n");
 	vma_print_areas(&task->vma_areas);
+}
+
+void task_cmd_print_info(SHELL_ARGS)
+{
+	if (argc != 2)
+		return;
+	pid_t        task_pid = ft_atoi(argv[1]);
+	struct task *task     = task_find_by_pid(task_pid);
+
+	if (!task) {
+		vga_printf("task_print_info: task pointer is NULL\n");
+		return;
+	}
+
+	task_print_info(task);
 }
 
 void task_print_stack(const struct task *task)
