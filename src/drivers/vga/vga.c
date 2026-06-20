@@ -157,11 +157,17 @@ void vga_refresh_screen(void)
 	vga_set_cursor_position(current_tty->cursor.x, current_tty->cursor.y);
 }
 
-void vga_printf(const char *fmt, ...)
+void vga_printf(const char *restrict fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
 
+	vga_vprintf(fmt, ap);
+	va_end(ap);
+}
+
+void vga_vprintf(const char *fmt, va_list ap)
+{
 	for (unsigned long i = 0; fmt[i]; i++) {
 		if (fmt[i] == '%') {
 			switch (fmt[++i]) {
