@@ -26,7 +26,7 @@ struct segment_descriptor {
 	uint8_t  limit_high : 4; // 48 -> 51
 	uint8_t  flags : 4;      // 51 -> 55
 	uint8_t  base_high;      // 55 -> 63
-} __attribute__((packed));
+} __packed;
 
 // Code
 

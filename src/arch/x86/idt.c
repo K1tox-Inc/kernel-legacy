@@ -17,7 +17,7 @@ struct idt_entry {
 	uint8_t  zero;
 	uint8_t  type_attributes;
 	uint16_t offset_2;
-} __attribute__((packed));
+} __packed;
 
 enum IDTTypeAttributes {
 	TaskGate    = 0x05,
@@ -117,7 +117,6 @@ struct idtr      idtr = {.limit = sizeof(struct idt_entry) * IDT_SIZE - 1,
 irqHandler interrupt_handlers[256] = {
     [SYS_INT] = do_syscall,
 };
-syscallHandler syscall_handlers[256] = {};
 
 const char *interrupt_names[] = {"Divide Error",
                                  "Debug Exception",
@@ -157,12 +156,12 @@ void exception_handler(struct trap_frame *frame)
 	if (interrupt_handlers[frame->int_no] != NULL)
 		interrupt_handlers[frame->int_no](frame);
 	else if (frame->int_no < sizeof(interrupt_names) / sizeof(interrupt_names[0]))
-		kpanic(interrupt_names[frame->int_no]);
+		kpanic("Exception: %s", interrupt_names[frame->int_no]);
 	else
 		kpanic("Unknown Exception");
 }
 
-inline void idt_register_interrupt_handlers(uint8_t num, irqHandler handler)
+__always_inline void idt_register_interrupt_handlers(uint8_t num, irqHandler handler)
 {
 	interrupt_handlers[num] = handler;
 }

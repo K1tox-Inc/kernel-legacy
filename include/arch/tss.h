@@ -54,6 +54,6 @@ struct tss {
 
 	uint16_t : 16;
 	uint16_t iomap;
-} __attribute__((packed));
+} __packed;
 
 extern struct tss g_tss;

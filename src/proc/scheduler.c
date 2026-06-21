@@ -6,7 +6,7 @@
 #include <proc/timer.h>
 #include <utils/error.h>
 
-extern void switch_to(struct task *current, struct task *next);
+extern asmlinkage void switch_to(struct task *current, struct task *next);
 
 static struct list_head ready_queue = LIST_HEAD_INIT(ready_queue);
 

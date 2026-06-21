@@ -15,4 +15,4 @@ struct trap_frame {
 
 	uint32_t user_esp;
 	uint32_t user_ss;
-} __attribute__((packed));
+} __packed;

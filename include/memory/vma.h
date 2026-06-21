@@ -30,7 +30,8 @@ struct vm_area {
 	uintptr_t *pages;
 };
 
-static inline bool vma_areas_are_neighbors(struct vm_area *start_area, struct vm_area *next_area)
+static __always_inline bool vma_areas_are_neighbors(struct vm_area *start_area,
+                                                    struct vm_area *next_area)
 {
 	return (start_area->start_vaddr + start_area->size == next_area->start_vaddr);
 }

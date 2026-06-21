@@ -46,7 +46,7 @@ extern void interrupt_exit(void);
 // INTERNAL APIs
 // ============================================================================
 
-static const char *task_state_to_string(enum process_states state)
+static inline const char *task_state_to_string(enum process_states state)
 {
 	if (state == TASK_NEW)
 		return "NEW";
@@ -71,7 +71,7 @@ static void task_print_section(const char *label, const struct section *sec)
 	           sec->flags);
 }
 
-static void cpu_idle_loop(void)
+static inline void cpu_idle_loop(void)
 {
 	while (true)
 		__asm__ volatile("sti; hlt");

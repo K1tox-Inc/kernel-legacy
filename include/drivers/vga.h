@@ -49,7 +49,7 @@ enum vga_color {
 struct vga_entry {
 	uint8_t character;
 	uint8_t mode;
-} __attribute__((packed));
+} __packed;
 
 struct s_cursor {
 	uint8_t x;

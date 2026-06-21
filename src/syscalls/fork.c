@@ -39,7 +39,7 @@ SYSCALL_DEFINE0(fork)
 	new_pde     = PHYS_TO_VIRT_LINEAR(new->cr3);
 
 	for (int i = 0; i < 768; i++, current_pde++, new_pde++) {
-		if (FLAG_IS_SET(*current_pde, PDE_PRESENT_BIT))
+		if (!FLAG_IS_SET(*current_pde, PDE_PRESENT_BIT))
 			continue;
 
 		*new_pde = GET_ENTRY_ADDR(*new_pde) | (*current_pde & ENTRY_FLAGS_MASK);
@@ -48,10 +48,10 @@ SYSCALL_DEFINE0(fork)
 		new_pte     = PHYS_TO_VIRT_LINEAR(GET_ENTRY_ADDR(*new_pde));
 
 		for (int j = 0; j < 1024; j++, current_pte++, new_pte++) {
-			if (FLAG_IS_SET(*current_pte, PTE_PRESENT_BIT))
+			if (!FLAG_IS_SET(*current_pte, PTE_PRESENT_BIT))
 				continue;
 
-			FLAG_SET(*current_pte, PTE_RW_BIT);
+			FLAG_UNSET(*current_pte, PTE_RW_BIT);
 			*new_pte = *current_pte;
 		}
 	}

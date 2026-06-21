@@ -65,4 +65,3 @@ sig_trampoline_start:
   mov eax, 119
   int 0x80
 sig_trampoline_end:
-
