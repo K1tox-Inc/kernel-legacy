@@ -14,10 +14,10 @@ const struct multiboot_header mb2_header
         .header_length = sizeof(struct multiboot_header) +
                          sizeof(struct multiboot2_header_tag_information_request) +
                          sizeof(struct multiboot2_header_tag_end),
-        .checksum      = 0x100000000 - (MULTIBOOT2_HEADER_MAGIC + 0 +
-                                        (sizeof(struct multiboot_header) +
-                                         sizeof(struct multiboot2_header_tag_information_request) +
-                                         sizeof(struct multiboot2_header_tag_end)))};
+        .checksum = 0x100000000 - (MULTIBOOT2_HEADER_MAGIC + 0 +
+                                   (sizeof(struct multiboot_header) +
+                                    sizeof(struct multiboot2_header_tag_information_request) +
+                                    sizeof(struct multiboot2_header_tag_end)))};
 
 // Tag information request
 const struct multiboot2_header_tag_information_request mb2_tag_info_req
