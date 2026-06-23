@@ -465,8 +465,6 @@ void task_ps(void)
 // Sloppy Code
 // ============================================================================
 
-#include <syscalls/ksyscalls.h>
-
 extern char user_cafe_start[], user_cafe_end[];
 extern char user_dead_start[], user_dead_end[];
 
