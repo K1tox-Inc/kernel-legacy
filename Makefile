@@ -1,5 +1,3 @@
--include config.mk
-
 ifneq ($(MAKEBUILDTYPE),Release)
 MAKEBUILDTYPE=Debug
 endif
@@ -19,12 +17,12 @@ SCRIPTS_DIR=scripts
 
 TOOLSDIR=tools
 
-CLANG_FORMAT ?= clang-format
+CLANG_FORMAT := clang-format
 
-AS ?= i686-linux-gnu-as
-CC ?= i686-linux-gnu-gcc
-AR ?= i686-linux-gnu-ar
-LD ?= i686-linux-gnu-ld
+AS := i686-linux-gnu-as
+CC := i686-linux-gnu-gcc
+AR := i686-linux-gnu-ar
+LD := i686-linux-gnu-ld
 
 ifeq ($(CFLAGS),)
 CFLAGS  = -ffreestanding -fno-builtin -fno-exceptions -fno-stack-protector -nostdinc -MD -MP -Wall -Wextra
@@ -40,20 +38,22 @@ ifeq ($(LDFLAGS),)
 LDFLAGS  = -z noexecstack -nostdlib -static
 endif
 
-LDLIBS ?= -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
+LDLIBS := -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
 
-GRUB_MKRESCUE ?= grub-mkrescue
+GRUB_MKRESCUE := grub-mkrescue
 
-QEMU      ?= qemu-system-i386
-QEMUFLAGS ?= -m 4096 -cpu host -enable-kvm -s -serial file:serial.log
+QEMU      := qemu-system-i386
+QEMUFLAGS := -m 4096 -cpu host -enable-kvm -s -serial file:serial.log
 
-DOCKERIMAGENAME ?= noalexan/cross-compiler
-DOCKERIMAGETAG  ?= 685b705
+DOCKERIMAGENAME := noalexan/cross-compiler
+DOCKERIMAGETAG  := 685b705
 
 OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\(\.c\|\.cpp\|\.s\)' -not -path "src/generated/*" | sed 's/\(\.c\|\.cpp\|\.s\)/.o/g'))
 OBJ+=$(BINDIR)/generated/syscall_table.o
 
 DEPS=$(OBJ:.o=.d)
+
+-include config.mk
 
 $(BINDIR)/%.o: src/%.s
 	@mkdir -pv $(@D)
