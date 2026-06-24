@@ -73,4 +73,5 @@ void vga_set_cursor_position(uint8_t x, uint8_t y);
 void vga_set_mode(enum vga_color mode);
 void vga_setup_default_screen(void);
 void vga_refresh_screen(void);
-void vga_printf(const char *fmt, ...);
+void vga_printf(const char *restrict fmt, ...);
+void vga_vprintf(const char *restrict fmt, va_list ap);
