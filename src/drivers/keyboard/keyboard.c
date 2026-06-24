@@ -131,7 +131,7 @@ static void keyboard_backspace_handler(struct keyboard_key key)
 		}
 
 		vga_set_cursor_position(current_tty->cursor.x, current_tty->cursor.y);
-		uint8_t real_y = (uint8_t)current_tty->top_line_index + (uint8_t)current_tty->cursor.y;
+		uint8_t real_y = current_tty->top_line_index + current_tty->cursor.y;
 		int     offset = (real_y * VGA_WIDTH) + current_tty->cursor.x;
 		current_tty->framebuffer[offset].character = 0;
 	}
@@ -191,18 +191,15 @@ static void keyboard_init_default_table(void)
 void keyboard_switch_layout(enum layout new_layout)
 {
 	if (current_layout_type == new_layout) {
-		log("Layout already set.");
 		return;
 	}
 
 	switch (new_layout) {
 	case QWERTY:
-		log("Switching layout to QWERTY.");
 		keyboard_remap_layout(default_key_table, KEY_MAX);
 		break;
 
 	case AZERTY:
-		log("Switching layout to AZERTY.");
 		keyboard_remap_layout(azerty_layout, STOP_WHEN_UNDEFINED);
 		break;
 	}

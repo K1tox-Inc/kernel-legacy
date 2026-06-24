@@ -2,6 +2,7 @@
 #include <kernel/io_stream.h>
 #include <kernel/panic.h>
 #include <libk.h>
+#include <memory/memory.h>
 #include <memory/vmm.h>
 #include <proc/section.h>
 #include <proc/userspace.h>
@@ -36,7 +37,7 @@ static bool userspace_map_kernel(uint32_t uspace_pd_phy)
 		return false;
 
 	uint32_t *kspace_pd_virt = (uint32_t *)PHYS_TO_VIRT_LINEAR(kspace_pd_phy);
-	ft_memcpy(&uspace_pd_virt[768], &kspace_pd_virt[768], 224 * sizeof(uint32_t));
+	ft_memcpy(uspace_pd_virt + 768, kspace_pd_virt + 768, 224 * sizeof(uint32_t));
 	return true;
 }
 
@@ -123,15 +124,10 @@ bool userspace_create_new(struct task *new_task)
 		return false;
 
 	// Mapping
-	if (!userspace_map_kernel(uspace_pd_phy))
-		goto bad;
-	else if (!map_section(uspace_pd_phy, task_text(new_task)))
-		goto bad;
-	else if (!map_section(uspace_pd_phy, task_stack(new_task)))
-		goto bad;
-	else if ((data && data->data_size > 0) && !map_section(uspace_pd_phy, task_data(new_task)))
-		goto bad;
-	else if (!map_section(uspace_pd_phy, new_task->sig_trampoline))
+	if (!userspace_map_kernel(uspace_pd_phy) || !map_section(uspace_pd_phy, task_text(new_task)) ||
+	    !map_section(uspace_pd_phy, task_stack(new_task)) ||
+	    ((data && data->data_size > 0) && !map_section(uspace_pd_phy, task_data(new_task))) ||
+	    !map_section(uspace_pd_phy, new_task->sig_trampoline))
 		goto bad;
 
 	new_task->cr3 = uspace_pd_phy;

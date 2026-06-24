@@ -111,10 +111,6 @@ static int ft_puthexa(unsigned long nb, bool upper, bool addr)
 		return (ft_puthexa(nb / 16, upper, 0) + ft_puthexa(nb % 16, upper, 0));
 }
 
-// Internal APIs
-
-// External APIs
-
 void vga_setup_default_screen(void) { vga_printf("%s", KERNEL_BANNER); }
 
 void vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
@@ -148,7 +144,7 @@ void vga_refresh_screen(void)
 		return;
 
 	for (int vga_y = 0; vga_y < VGA_HEIGHT; vga_y++) {
-		uint8_t           line_buffer = (uint8_t)current_tty->top_line_index + (uint8_t)vga_y;
+		uint8_t           line_buffer = current_tty->top_line_index + (uint8_t)vga_y;
 		struct vga_entry *src         = &current_tty->framebuffer[line_buffer * VGA_WIDTH];
 		struct vga_entry *dst         = VGA_ENTRY(0, vga_y);
 		ft_memcpy(dst, src, VGA_WIDTH * sizeof(struct vga_entry));
@@ -157,11 +153,17 @@ void vga_refresh_screen(void)
 	vga_set_cursor_position(current_tty->cursor.x, current_tty->cursor.y);
 }
 
-void vga_printf(const char *fmt, ...)
+void vga_printf(const char *restrict fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
 
+	vga_vprintf(fmt, ap);
+	va_end(ap);
+}
+
+void vga_vprintf(const char *fmt, va_list ap)
+{
 	for (unsigned long i = 0; fmt[i]; i++) {
 		if (fmt[i] == '%') {
 			switch (fmt[++i]) {

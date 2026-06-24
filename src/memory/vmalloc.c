@@ -1,50 +1,34 @@
-// ============================================================================
-// INCLUDES
-// ============================================================================
-
 #include <kernel/panic.h>
 #include <libk.h>
 #include <list.h>
 #include <memory/buddy.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
-#include <memory/page.h>
 #include <memory/vma.h>
+#include <memory/vmalloc.h>
 #include <memory/vmm.h>
-
-// ============================================================================
-// DEFINE AND MACRO
-// ============================================================================
-
-// Defines
+#include <types.h>
+#include <utils/assert.h>
+#include <utils/compiler.h>
+#include <utils/kmacro.h>
 
 #define MAX_VMALLOC_SIZE ((MiB_SIZE * 128) - 8192)
 #define MIN_VMALLOC_SIZE PAGE_SIZE
 
-// ============================================================================
-// VARIABLES GLOBALES
-// ============================================================================
-
 static struct list_head vmalloc_areas;
-
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
 
 size_t vsize(void *ptr) { return vma_size(ptr, &vmalloc_areas); }
 
 void vfree(void *ptr)
 {
-	if (!ptr)
-		return;
 	struct vm_area *area = vma_find_by_start(ptr, &vmalloc_areas);
 	if (!area)
 		return;
 
-	uintptr_t current_page_dir = get_current_page_directory_phys();
+	uintptr_t cr3 = get_current_page_directory_phys();
 
 	for (size_t i = 0; i < area->nr_pages; i++) {
-		vmm_unmap_page(current_page_dir, area->start_vaddr + (i * PAGE_SIZE));
+		vmm_unmap_page(cr3, area->start_vaddr + (i * PAGE_SIZE));
 		buddy_free_block((void *)area->pages[i]);
 	}
 

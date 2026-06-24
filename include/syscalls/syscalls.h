@@ -5,7 +5,6 @@
 
 #define MAX_SYSCALL 200
 #define SYS_INT     0x80
-#define asmlinkage  __attribute__((regparm(0)))
 
 typedef asmlinkage long (*syscallHandler)(long, long, long, long, long, long);
 

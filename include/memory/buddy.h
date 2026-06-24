@@ -19,7 +19,7 @@
 
 // Macros
 
-#define PAGE_BY_ORDER(order)  (1 << order)
+#define PAGE_BY_ORDER(order)  (1 << (order))
 #define ORDER_TO_BYTES(order) (PAGE_BY_ORDER(order) * PAGE_SIZE)
 
 // ============================================================================

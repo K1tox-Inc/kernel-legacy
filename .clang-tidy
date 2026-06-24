@@ -1,0 +1,10 @@
+Checks: "-*,bugprone-*,-bugprone-reserved-identifier,-bugprone-easily-swappable-parameters,readabilty-redundant-casting"
+WarningsAsErrors: ""
+HeaderFilterRegex: ".*"
+FormatStyle: none
+ExtraArgs:
+  - --target=i386
+  - -Iinclude
+  - -Ilib/libk
+  - -Ilib/data_structs
+  - -Ilib/libutils

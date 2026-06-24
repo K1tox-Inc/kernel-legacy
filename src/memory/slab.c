@@ -158,8 +158,7 @@ void slab_shrink_caches(enum zone_type zone)
 			struct slab      *slab = list_entry(empty_list, struct slab, list);
 
 			void *phys_addr_in_page =
-			    (void *)(SLAB_IS_EXTERNAL(cache->object_size) ? VIRT_TO_PHYS_LINEAR(slab->freelist)
-			                                                  : VIRT_TO_PHYS_LINEAR(slab));
+			    VIRT_TO_PHYS_LINEAR(SLAB_IS_EXTERNAL(cache->object_size) ? slab->freelist : slab);
 
 			struct page *page = page_addr_to_page((uintptr_t)phys_addr_in_page);
 			PAGE_SET_STATE(page, PAGE_STATE_ALLOCATED);

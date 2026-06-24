@@ -1,12 +1,13 @@
 #include <arch/acpi.h>
+#include <arch/x86.h>
+#include <drivers/vga.h>
+#include <kernel/mb2_info.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/boot_allocator.h>
 #include <memory/memory.h>
 #include <types.h>
 #include <utils/kmacro.h>
-
-#include <arch/x86.h>
 
 // Header
 
@@ -36,9 +37,9 @@ static uint32_t boot_allocator_merge_contiguous_regions(struct region *reg, uint
 #define BOOT_ALLOC_RESERVED_COUNT(alloc) ((alloc)->count[RESERVED_MEMORY])
 #define BOOT_ALLOC_HOLE_COUNT(alloc)     ((alloc)->count[HOLES_MEMORY])
 
-#define BOOT_ALLOC_DMA_COUNT(count)     (count[DMA])
-#define BOOT_ALLOC_LOWMEM_COUNT(count)  (count[LOWMEM])
-#define BOOT_ALLOC_HIGHMEM_COUNT(count) (count[HIGHMEM])
+#define BOOT_ALLOC_DMA_COUNT(count)     ((count)[DMA])
+#define BOOT_ALLOC_LOWMEM_COUNT(count)  ((count)[LOWMEM])
+#define BOOT_ALLOC_HIGHMEM_COUNT(count) ((count)[HIGHMEM])
 
 #define BOOT_ALLOC_FREE_REGIONS(alloc)     ((alloc)->regions[FREE_MEMORY])
 #define BOOT_ALLOC_RESERVED_REGIONS(alloc) ((alloc)->regions[RESERVED_MEMORY])
@@ -446,25 +447,30 @@ void boot_allocator_init(struct multiboot_tag_mmap *mmap, uint8_t *mmap_end)
 	BOOT_ALLOC_RESERVED_COUNT(&bootmem) = 0;
 	BOOT_ALLOC_HOLE_COUNT(&bootmem)     = 0;
 	bootmem.num_allocations             = 0;
+
 	// Zone VGA/BIOS_ROM (0xa0000-0x100000)
 	boot_allocator_add_region(&bootmem, 0xa0000, 0x100000, RESERVED_MEMORY);
+
 	// Zone Low memory
 	const struct gdtr *gdtr = get_gdtr();
 	const struct idtr *idtr = get_idtr();
-	boot_allocator_add_region(&bootmem, VIRT_TO_PHYS_LINEAR(gdtr->base),
-	                          VIRT_TO_PHYS_LINEAR(gdtr->base + gdtr->limit + 1), RESERVED_MEMORY);
-	boot_allocator_add_region(&bootmem, VIRT_TO_PHYS_LINEAR(idtr->base),
-	                          VIRT_TO_PHYS_LINEAR(idtr->base + idtr->limit + 1), RESERVED_MEMORY);
+	boot_allocator_add_region(&bootmem, (uintptr_t)VIRT_TO_PHYS_LINEAR(gdtr->base),
+	                          (uintptr_t)VIRT_TO_PHYS_LINEAR(gdtr->base + gdtr->limit + 1),
+	                          RESERVED_MEMORY);
+	boot_allocator_add_region(&bootmem, (uintptr_t)VIRT_TO_PHYS_LINEAR(idtr->base),
+	                          (uintptr_t)VIRT_TO_PHYS_LINEAR(idtr->base + idtr->limit + 1),
+	                          RESERVED_MEMORY);
 	boot_allocator_add_region(&bootmem, 0x0, 0x1000, RESERVED_MEMORY);
 	// Zone Inconnu --> todo : understand wtf is this shit, marked as problematic at the moment
 	boot_allocator_add_region(&bootmem, 0x1000, 0x9fc00, RESERVED_MEMORY);
 	// Zone Kernel Code
-	boot_allocator_add_region(&bootmem, VIRT_TO_PHYS_LINEAR(kernel_start),
-	                          VIRT_TO_PHYS_LINEAR(kernel_end), RESERVED_MEMORY);
+	boot_allocator_add_region(&bootmem, (uintptr_t)VIRT_TO_PHYS_LINEAR(kernel_start),
+	                          (uintptr_t)VIRT_TO_PHYS_LINEAR(kernel_end), RESERVED_MEMORY);
 
-	// Zone Boot_info
-	boot_allocator_add_region(&bootmem, VIRT_TO_PHYS_LINEAR(mb2info),
-	                          VIRT_TO_PHYS_LINEAR(mb2info + mb2info->total_size), RESERVED_MEMORY);
+	// Note: Do not use `VIRT_TO_PHYS_LINEAR` with `mb2_info` because of `mb2_info + 0xC0000000`
+	// overflows Zone Boot_info
+	boot_allocator_add_region(&bootmem, (uintptr_t)mb2info,
+	                          (uintptr_t)mb2info + mb2info->total_size, RESERVED_MEMORY);
 
 	mb2_mmap_iter(mmap, mmap_end, boot_allocator_reserved_wrapper, false);
 	BOOT_ALLOCATOR_SORT_AND_MERGE(bootmem.regions[RESERVED_MEMORY], bootmem.count[RESERVED_MEMORY]);
