@@ -96,7 +96,7 @@ SYSCALL_DEFINE0(fork)
 
 	sched_enqueue(new);
 
-	uint32_t *stack = (void *)child_tf;
+	uint32_t *stack = (uint32_t *)(new->kernel_stack_base - sizeof(struct trap_frame));
 	*(--stack)      = (uint32_t)interrupt_exit;
 
 	return new->pid;
