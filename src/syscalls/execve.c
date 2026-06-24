@@ -13,7 +13,7 @@
 enum mok_idx { IDX_CAFEBABE, IDX_DEADBEEF, MOK_SENTINEL };
 
 #define iter_over_array(p, a)                                                                      \
-	for (p = a; (uintptr_t)p - (uintptr_t)a <= sizeof(a) - sizeof(typeof(*a)); p++)
+	for ((p) = a; (uintptr_t)(p) - (uintptr_t)(a) <= sizeof(a) - sizeof(typeof(*(a))); (p)++)
 
 extern char user_cafe_start[], user_cafe_end[];
 extern char user_dead_start[], user_dead_end[];
@@ -37,8 +37,6 @@ const struct exec_fn_mok mok_registry[] = {
  * 1. Cleans up old memory (CR3/Sections) via task_exit_cleanup.
  * 2. Loads new text and creates a fresh userspace/context.
  * 3. Switches stack and jumps to entry point via ASM.
- *
- * Does not return.
  */
 SYSCALL_DEFINE1(execve, int, index)
 {
@@ -59,9 +57,10 @@ SYSCALL_DEFINE1(execve, int, index)
 
 	if (fn_info.is_user) {
 		if (!userspace_create_new(cur))
-			kpanic("Error: execve fail to create a userspace clean");
-	} else
+			kpanic("Failed to create new clean userspace");
+	} else {
 		cur->cr3 = vmm_get_kernel_directory();
+	}
 
 	INIT_SENTINEL(&cur->vma_areas);
 	if (fn_info.is_user)
@@ -82,6 +81,5 @@ SYSCALL_DEFINE1(execve, int, index)
 	                 "pop %%ebp\n\t"
 	                 "ret" ::"r"(cur->esp));
 
-	kpanic("execve: reached unreachable code");
-	return -EUNREACH;
+	unreachable();
 }

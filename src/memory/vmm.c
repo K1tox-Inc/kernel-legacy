@@ -17,18 +17,12 @@
  * See: https://wiki.osdev.org/Paging#32-bit_Paging_(Protected_Mode)
  */
 
-// Defines
-
 #define PD_SLOT                1022
 #define FIRST_PAGE_TABLE_VADDR (PD_SLOT << 22)
 #define PAGE_DIR_VADDR         ((PD_SLOT << 22) | (PD_SLOT << 12))
-#define GET_PT_WITH_INDEX(idx) (FIRST_PAGE_TABLE_VADDR + (idx * PAGE_SIZE))
+#define GET_PT_WITH_INDEX(idx) (FIRST_PAGE_TABLE_VADDR + ((idx) * PAGE_SIZE))
 
 uintptr_t kpage_dir = 0;
-
-// Internal APIs
-
-// External APIs
 
 void page_fault_handler(struct trap_frame *frame)
 {
@@ -92,36 +86,39 @@ bool vmm_map_page(uintptr_t page_dir_phys, uintptr_t v_addr, uintptr_t p_addr, u
 	uint32_t pde_idx = GET_PDE_INDEX(v_addr);
 	uint32_t pte_idx = GET_PTE_INDEX(v_addr);
 
-	uint32_t *pd_virt = (uint32_t *)PHYS_TO_VIRT_LINEAR(page_dir_phys);
-	uint32_t  pde     = pd_virt[pde_idx];
+	uint32_t *pd_virt = PHYS_TO_VIRT_LINEAR(page_dir_phys);
+	assert(pd_virt);
+	uint32_t *pde = pd_virt + pde_idx;
 
 	uint32_t *pt_virt;
 	uintptr_t pt_phys;
 	bool      needs_cr3_reload = false;
 
-	if (!(pde & PDE_PRESENT_BIT)) {
+	if (!FLAG_IS_SET(*pde, PDE_PRESENT_BIT)) {
 		pt_phys = (uintptr_t)buddy_alloc_pages(PAGE_SIZE, LOWMEM_ZONE);
 		if (!pt_phys)
 			return false;
 
-		pt_virt = (uint32_t *)PHYS_TO_VIRT_LINEAR(pt_phys);
+		pt_virt = PHYS_TO_VIRT_LINEAR(pt_phys);
+		assert(pt_virt);
 		ft_bzero(pt_virt, PAGE_SIZE);
 
-		pd_virt[pde_idx] = pt_phys | PDE_PRESENT_BIT | PDE_RW_BIT | (flags & PDE_US_BIT);
+		*pde = pt_phys | PDE_PRESENT_BIT | PDE_RW_BIT | (flags & PDE_US_BIT);
 
 		needs_cr3_reload = true;
 	}
 
 	else {
-		if ((flags & PDE_US_BIT) && !(pde & PDE_US_BIT)) {
-			pd_virt[pde_idx] |= PDE_US_BIT;
+		if (FLAG_IS_SET(flags, PDE_US_BIT) && !FLAG_IS_SET(*pde, PDE_US_BIT)) {
+			FLAG_SET(*pde, PDE_US_BIT);
 			needs_cr3_reload = true;
 		}
 
-		pt_phys = GET_ENTRY_ADDR(pde);
-		pt_virt = (uint32_t *)PHYS_TO_VIRT_LINEAR(pt_phys);
+		pt_phys = GET_ENTRY_ADDR(*pde);
+		pt_virt = PHYS_TO_VIRT_LINEAR(pt_phys);
 	}
 
+	assert(pt_virt);
 	pt_virt[pte_idx] = p_addr | flags;
 
 	uintptr_t current_pd = get_current_page_directory_phys();
@@ -132,6 +129,7 @@ bool vmm_map_page(uintptr_t page_dir_phys, uintptr_t v_addr, uintptr_t p_addr, u
 			paging_invalid_TLB_addr(v_addr);
 		}
 	}
+
 	return true;
 }
 

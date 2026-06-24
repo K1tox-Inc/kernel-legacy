@@ -5,6 +5,7 @@
 // ============================================================================
 
 #include <memory/memory.h>
+#include <stdarg.h>
 #include <types.h>
 
 // ============================================================================
@@ -16,7 +17,7 @@
 #define VGA_HEIGHT        25
 #define VGA_COLOR(bg, fg) ((bg) << 4 | (fg))
 #define VGA_DEFAULT_MODE  VGA_COLOR(VGA_COLOR_BLUE, VGA_COLOR_WHITE)
-#define VGA_BUFFER        ((struct vga_entry *)((uintptr_t)0xB8000 + KERNEL_VADDR_BASE))
+#define VGA_BUFFER        ((struct vga_entry *)PHYS_TO_VIRT_LINEAR(0xB8000))
 #define VGA_ENTRY(x, y)   (VGA_BUFFER + ((y) * VGA_WIDTH + (x)))
 
 // Macros

@@ -1,10 +1,6 @@
 .intel_syntax noprefix
 .code32
 
-# ============================================================
-# SYSCALL MACROS
-# ============================================================
-
 .macro SYSCALL_MMAP addr, length, prot, flags
     mov eax, 90
     mov ebx, \addr
@@ -69,10 +65,6 @@
     int 0x80
 .endm
 
-# ============================================================
-# GLOBALS
-# ============================================================
-
 .section .text
 
 .global user_cafe_start
@@ -82,91 +74,56 @@
 .global kitoxD_start
 .global kitoxD_end
 
-# ============================================================
-# INIT PROCESS — kitoxD (PID 1)
-# ============================================================
-
 .align 4
 kitoxD_start:
-    xor esi, esi                # esi = index = 0
+    xor esi, esi
 
 .kitox_spawn_loop:
-    cmp esi, 2                  # MOK_SENTINEL
-    jge .kitox_reap
+
+    cmp esi, 2
+    jge .kitox_hang
 
     SYSCALL_FORK
     test eax, eax
-    jnz .kitox_parent
+    jz .kitox_child
 
-    # Child: exec mok[esi]
-    mov eax, 11
-    mov ebx, esi
-    int 0x80
-    # unreachable
+    mov ecx, 0xbeef
 
-.kitox_parent:
     inc esi
     jmp .kitox_spawn_loop
 
-.kitox_reap:
-    jmp .kitox_after_msg
-.kitox_msg:
-    .ascii "kitoxD: going to sleep\n"
-.kitox_after_msg:
-    call .kitox_getpc
-.kitox_getpc:
-    pop ecx
-    sub ecx, (.kitox_getpc - .kitox_msg)
-    SYSCALL_WRITE 1, ecx, 23
+.kitox_child:
 
-1:
+    mov ecx, 0xdead
+
+    SYSCALL_EXEC_FN esi
+    SYSCALL_EXIT 1
+
+.kitox_hang:
+
     SYSCALL_WAITPID -1, 0, 0
-    jmp 1b
-kitoxD_end:
+    jmp .kitox_hang
 
-# ============================================================
-# MOK — CAFEBABE
-# ============================================================
+kitoxD_end:
 
 .align 4
 user_cafe_start:
-    call .cafe_get_handler_addr
-.cafe_get_handler_addr:
-    pop ecx
-    add ecx, (.cafe_handler - .cafe_get_handler_addr)
-    SYSCALL_SIGNAL 2, ecx
 
-    jmp .cafe_after_msg
-.cafe_msg:
-    .ascii "Cafe: waiting for signal...\n"
-.cafe_after_msg:
-    call .cafe_getpc
-.cafe_getpc:
-    pop ecx
-    sub ecx, (.cafe_getpc - .cafe_msg)
-    SYSCALL_WRITE 1, ecx, 28
+    call .write
 
-.cafe_loop:
-    SYSCALL_SLEEP 2
-    jmp .cafe_loop
+.exit:
+    SYSCALL_EXIT eax
 
-.align 4
-.cafe_handler:
-    jmp .cafe_h_after_msg
-.cafe_h_msg:
-    .ascii "[SIGINT] caught! returning...\n"
-.cafe_h_after_msg:
-    call .cafe_h_getpc
-.cafe_h_getpc:
-    pop ecx
-    sub ecx, (.cafe_h_getpc - .cafe_h_msg)
-    SYSCALL_WRITE 1, ecx, 30
+.msg:
+.ascii "Hello from forked!\n"
+
+.write:
+    mov ecx, [esp]
+    add ecx, (.msg - .exit)
+    SYSCALL_WRITE 1, ecx, (.write - .msg)
     ret
-user_cafe_end:
 
-# ============================================================
-# MOK — DEADBEEF
-# ============================================================
+user_cafe_end:
 
 .align 4
 user_dead_start:
@@ -188,7 +145,7 @@ user_dead_start:
 
     SYSCALL_WRITE 1, esi, 5
 
-3:
-    SYSCALL_SLEEP 2
-    jmp 3b
+    mov eax, 0xDEADBEEF
+    SYSCALL_EXIT 1
+
 user_dead_end:

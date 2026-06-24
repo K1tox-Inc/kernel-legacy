@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utils/compiler.h>
+
 #if __has_attribute(__fallthrough__)
 # define fallthrough __attribute__((__fallthrough__))
 #else
@@ -10,7 +12,10 @@
 
 #ifndef NDEBUG
 
-# define log(msg, ...) vga_printf("[" __FILE__ ":%i]: " msg "\n", __LINE__, ##__VA_ARGS__)
+extern void vga_printf(const char *fmt, ...);
+
+# define log(msg, ...)                                                                             \
+	 vga_printf("[" __FILE__ ":%i]: %s: " msg "\n", __LINE__, __func__, ##__VA_ARGS__)
 
 # define dbg(variable_name)                                                                        \
 	 ({                                                                                            \
@@ -22,11 +27,10 @@
 #else
 
 # define log(msg, ...)
-# define dbg(variable_name) (variable_name)
+# define dbg(variable_name) variable_name
 
 #endif
 
-// Macro
 #define ALIGN(x, a)              __ALIGN_MASK(x, (typeof(x))(a) - 1)
 #define __ALIGN_MASK(x, mask)    (((x) + (mask)) & ~(mask))
 #define ALIGN_DOWN(x, a)         ((x) & ~((typeof(x))(a) - 1))
@@ -50,7 +54,6 @@
 		(type *)((char *)__mptr - offsetof(type, member));                                         \
 	})
 #define BITS_TO_BYTES(nb_bits) DIV_ROUND_UP((nb_bits), 8)
-#define SHELL_ARGS             int argc, char **argv
-#define SHELL_ARGS_UNUSED      int argc __attribute__((unused)), char **argv __attribute__((unused))
 
-// Define
+#define SHELL_ARGS        int argc, char **argv
+#define SHELL_ARGS_UNUSED __always_unused int argc, __always_unused char **argv

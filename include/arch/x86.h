@@ -6,12 +6,12 @@
 struct gdtr {
 	uint16_t  limit;
 	uintptr_t base;
-} __attribute__((packed));
+} __packed;
 
 struct idtr {
 	uint16_t  limit;
 	uintptr_t base;
-} __attribute__((packed));
+} __packed;
 
 ///////////////////////////////////////////////////
 // Gdt flags
@@ -65,14 +65,14 @@ enum Gdt_Access_Byte {
 #define EFLAGS_OF (1 << 11) // Overflow Flag
 
 // System Flags
-#define EFLAGS_IOPL(x) ((x & 3) << 12) // I/O Privilege Level (must be 0)
-#define EFLAGS_NT      (1 << 14)       // Nested Task
-#define EFLAGS_RF      (1 << 16)       // Resume Flag
-#define EFLAGS_VM      (1 << 17)       // Virtual 8086 Mode
-#define EFLAGS_AC      (1 << 18)       // Alignment Check
-#define EFLAGS_VIF     (1 << 19)       // Virtual Interrupt Flag
-#define EFLAGS_VIP     (1 << 20)       // Virtual Interrupt Pending
-#define EFLAGS_ID      (1 << 21)       // ID Flag
+#define EFLAGS_IOPL(x) (((x) & 3) << 12) // I/O Privilege Level (must be 0)
+#define EFLAGS_NT      (1 << 14)         // Nested Task
+#define EFLAGS_RF      (1 << 16)         // Resume Flag
+#define EFLAGS_VM      (1 << 17)         // Virtual 8086 Mode
+#define EFLAGS_AC      (1 << 18)         // Alignment Check
+#define EFLAGS_VIF     (1 << 19)         // Virtual Interrupt Flag
+#define EFLAGS_VIP     (1 << 20)         // Virtual Interrupt Pending
+#define EFLAGS_ID      (1 << 21)         // ID Flag
 
 #define EFLAGS_USER_DEFAULT   (EFLAGS_FIXED | EFLAGS_IF)
 #define EFLAGS_KERNEL_DEFAULT (EFLAGS_FIXED | EFLAGS_IF)

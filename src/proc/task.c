@@ -1,12 +1,9 @@
-// ============================================================================
-// INCLUDES
-// ============================================================================
-
 #include <arch/x86.h>
 #include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
+#include <memory/memory.h>
 #include <memory/vma.h>
 #include <memory/vmm.h>
 #include <proc/scheduler.h>
@@ -16,12 +13,9 @@
 #include <proc/userspace.h>
 #include <proc/waitqueue.h>
 #include <types.h>
+#include <utils/assert.h>
 #include <utils/error.h>
 #include <utils/id_manager.h>
-
-// ============================================================================
-// DEFINE AND MACRO
-// ============================================================================
 
 static struct task        dummy_task;
 static struct task       *idle_task        = NULL;
@@ -48,15 +42,18 @@ extern void interrupt_exit(void);
 
 static inline const char *task_state_to_string(enum process_states state)
 {
-	if (state == TASK_NEW)
+	switch (state) {
+	case TASK_NEW:
 		return "NEW";
-	if (state == TASK_RUNNING)
+	case TASK_RUNNING:
 		return "RUNNING";
-	if (state == TASK_WAITING)
+	case TASK_WAITING:
 		return "WAITING";
-	if (state == TASK_ZOMBIE)
+	case TASK_ZOMBIE:
 		return "ZOMBIE";
-	return "UNKNOWN";
+	default:
+		return "UNKNOWN";
+	}
 }
 
 static void task_print_section(const char *label, const struct section *sec)
@@ -66,8 +63,9 @@ static void task_print_section(const char *label, const struct section *sec)
 		return;
 	}
 
-	vga_printf("  - %s: vaddr=%p | paddr=%p | data=%p | size=%u | map=%u | flags=0x%x\n", label,
-	           sec->v_addr, sec->p_addr, sec->data_start, sec->data_size, sec->mapping_size,
+	vga_printf("  - %s:\n\t| vaddr=%p \n\t| paddr=%p \n\t| data=%p \n\t| size=%u \n\t| map=%u "
+	           "\n\t| flags=0x%x\n",
+	           label, sec->v_addr, sec->p_addr, sec->data_start, sec->data_size, sec->mapping_size,
 	           sec->flags);
 }
 
@@ -124,10 +122,6 @@ static void task_init_kitoxD(void)
 	sched_enqueue(kitoxD_task);
 }
 
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
-
 struct task *task_get_current_task(void) { return current_task; }
 struct task *task_get_kitoxD(void) { return kitoxD_task; }
 struct task *task_get_idle(void) { return idle_task; }
@@ -152,15 +146,15 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 		return NULL;
 
 	size_t name_len = ft_strlen(name);
-	name_len        = name_len > 15 ? 15 : name_len;
+	name_len        = name_len > 16 ? 16 : name_len;
 
 	// Ensure PID manager is initialized before allocating a PID
 	if (!pid_manager)
 		return NULL;
 
 	// `kmalloc` use slabs caches here
-	char *memory_zone =
-	    kmalloc(sizeof(struct task) + 16 + (sizeof(struct section) * 5), GFP_KERNEL | __GFP_ZERO);
+	const size_t   alloc_size  = sizeof(struct task) + sizeof(struct section) * 5 + name_len;
+	unsigned char *memory_zone = kmalloc(alloc_size, GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
 		return NULL;
 
@@ -237,14 +231,13 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
 	 * and must be initialized by the caller if needed (like `fork`) :
 	 *
-	 *  uid_t uid;
-	 *  gid_t gid;
-	 *  bool			 need_resched
-	 *  struct task		*real_parent;
-	 *  struct task		*parent;
+	 *  uid_t            uid;
+	 *  gid_t            gid;
+	 *  bool             need_resched
+	 *  struct task     *real_parent;
+	 *  struct task     *parent;
 	 *  struct list_head sched_node; // Used for scheduler run-queue linkage
-	 *	uint32_t         exit_code;
-	 *
+	 *  uint32_t         exit_code;
 	 */
 
 	return ret;
@@ -276,30 +269,38 @@ void __task_reparent_children(struct task *parent)
 
 void task_exit_cleanup(struct task *task)
 {
-
 	struct section *text = task_text(task);
-	if (text && text->p_addr)
+	if (text && text->p_addr) {
 		buddy_free_block((void *)text->p_addr);
+	}
 
 	struct section *data = task_data(task);
-	if (data && data->p_addr)
+	if (data && data->p_addr) {
 		buddy_free_block((void *)data->p_addr);
+	}
 
 	struct section *stack = task_stack(task);
-	if (stack && stack->p_addr)
+	if (stack && stack->p_addr) {
 		buddy_free_block((void *)stack->p_addr);
+	}
 
 	struct section *trampo = task->sig_trampoline;
-	if (trampo && trampo->p_addr)
+	if (trampo && trampo->p_addr) {
 		buddy_free_block((void *)trampo->p_addr);
+	}
 
-	if (task->ring > 0)
+	if (task->ring > 0) {
 		vma_destroy_areas(&task->vma_areas, task->cr3);
+	}
 
+	// Bug prone: section should always be allocated aside and text first.
 	ft_bzero(task->text_sec, sizeof(struct section) * 4);
-	if (task->ring)
+
+	if (task->ring) {
 		vmm_destroy_user_pd(task->cr3);
-	// close all fds in futur
+	}
+
+	// TODO: Close all fds in future
 }
 
 void task_release(struct task *task)
@@ -364,10 +365,6 @@ struct task *task_find_by_pid(pid_t pid)
 	}
 	return NULL;
 }
-
-// ============================================================================
-// DEBUG APIs
-// ============================================================================
 
 void task_print_info(SHELL_ARGS)
 {
@@ -459,12 +456,6 @@ void task_ps(void)
 		vga_printf("%s\n", task->name);
 	}
 }
-
-// ============================================================================
-// Sloppy Code
-// ============================================================================
-
-#include <syscalls/ksyscalls.h>
 
 extern char user_cafe_start[], user_cafe_end[];
 extern char user_dead_start[], user_dead_end[];

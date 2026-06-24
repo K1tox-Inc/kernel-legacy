@@ -90,25 +90,11 @@ enum Page_Directory_Entry {
 	PDE_AVAIL4_BIT = 0b0000100000000000
 };
 
-// Macros
-
 #define GET_PDE_INDEX(vaddr)    ((vaddr) >> 22)
 #define GET_PTE_INDEX(vaddr)    (((vaddr) >> 12) & 0x3FF)
 #define ENTRY_FLAGS_MASK        (0xFFF)
 #define GET_ENTRY_ADDR(entry)   ((entry) & ~ENTRY_FLAGS_MASK)
 #define GET_PD_RANGE_SIZE(size) (DIV_ROUND_UP(ALIGN(size, PAGE_SIZE), 1024 * PAGE_SIZE))
-
-// STRUCT
-
-// Enums
-
-// Structures
-
-// Typedefs
-
-// VARIABLES GLOBALES
-
-// EXTERNAL APIs
 
 void      page_fault_handler(struct trap_frame *frame);
 uintptr_t vmm_get_mapping(uintptr_t page_dir_phys, uintptr_t v_addr);
@@ -141,8 +127,7 @@ static __always_inline void paging_invalid_TLB_addr(uint32_t addr)
 
 static __always_inline void paging_flush_TLB(void)
 {
-	uint32_t cr3;
-	__asm__ volatile("mov %%cr3, %0" : "=r"(cr3));
+	uintptr_t cr3 = get_current_page_directory_phys();
 	__asm__ volatile("mov %0, %%cr3" ::"r"(cr3));
 }
 

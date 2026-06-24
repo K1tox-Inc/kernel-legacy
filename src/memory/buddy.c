@@ -120,7 +120,7 @@ static uintptr_t *split_block_to_order(size_t order_needed, size_t cur_order, ui
 	if (!order_is_valid(order_needed) || !order_is_valid(cur_order))
 		kpanic("Error: %s: Invalid Order\n", __func__);
 	if (cur_order == order_needed) {
-		return (uintptr_t *)ptr;
+		return ptr;
 	}
 
 	cur_order--;
@@ -234,7 +234,7 @@ size_t buddy_get_var_size(void *var)
 	return PAGE_BY_ORDER(page->private_data) * PAGE_SIZE;
 }
 
-uintptr_t *buddy_alloc_pages(size_t size, enum zone_type zone)
+void *buddy_alloc_pages(size_t size, enum zone_type zone)
 {
 	size_t order_needed = size_to_order(size);
 	if (!order_is_valid(order_needed))
@@ -256,7 +256,7 @@ uintptr_t *buddy_alloc_pages(size_t size, enum zone_type zone)
 
 	struct page *first_page = page_addr_to_page((uintptr_t)ret);
 	set_block_metadata(first_page, order_needed, PAGE_STATE_ALLOCATED);
-	return (uintptr_t *)ret;
+	return ret;
 }
 
 // TODO : Compound page
@@ -267,12 +267,11 @@ void buddy_free_block(void *ptr)
 	uint32_t     current_state = PAGE_GET_STATE(page);
 
 	if (current_state == PAGE_STATE_FREE)
-		kpanic("Error: %s: Double free detected on address %p\n", __func__, ptr);
+		kpanic("Double free detected on address %p\n", ptr);
 	else if (current_state != PAGE_STATE_ALLOCATED && current_state != PAGE_STATE_AVAILABLE)
-		kpanic("Error: %s: Attempt to free a page with invalid state (%d) at %p\n", __func__,
-		       current_state, ptr);
+		kpanic("Attempt to free a page with invalid state (%d) at %p\n", current_state, ptr);
 	else if (!order_is_valid(block_order)) {
-		kpanic("Error: buddy_free_block: incorrect block order: %x\n", block_order);
+		kpanic("Incorrect block order: %x\n", block_order);
 	}
 
 	enum zone_type zone = page_zone_flags_to_zone_type(PAGE_GET_ZONE(page));

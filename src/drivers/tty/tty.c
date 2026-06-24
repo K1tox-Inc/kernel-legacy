@@ -8,7 +8,6 @@
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <proc/task.h>
-#include <syscalls/ksyscalls.h>
 #include <utils/kmacro.h>
 
 struct tty ttys[12], *current_tty = ttys;
@@ -78,8 +77,8 @@ void tty_history_scroll_down(void)
 {
 	if (!current_tty->history.status)
 		return;
-	uint8_t real_y = (uint8_t)current_tty->history.top_line_save + (uint8_t)current_tty->cursor.y;
-	uint8_t cur_y  = (uint8_t)current_tty->top_line_index + (uint8_t)current_tty->cursor.y;
+	uint8_t real_y = (uint8_t)current_tty->history.top_line_save + current_tty->cursor.y;
+	uint8_t cur_y  = current_tty->top_line_index + current_tty->cursor.y;
 	if (real_y == cur_y)
 		return;
 	current_tty->top_line_index++;
@@ -90,7 +89,7 @@ void tty_framebuffer_scroll_down(void)
 	current_tty->top_line_index++;
 	if (current_tty->top_line_index == 0)
 		current_tty->history.stop_scroll = false;
-	uint8_t bottom_line = (uint8_t)current_tty->top_line_index + (uint8_t)(VGA_HEIGHT - 1);
+	uint8_t bottom_line = current_tty->top_line_index + (uint8_t)(VGA_HEIGHT - 1);
 	for (size_t x = 0; x < VGA_WIDTH; x++) {
 		int offset = (bottom_line * VGA_WIDTH) + x;
 		current_tty->framebuffer[offset] =
@@ -106,7 +105,7 @@ void tty_framebuffer_write(struct tty *tty, char c)
 	if (tty->history.status)
 		tty_history_disable();
 
-	uint8_t real_y           = (uint8_t)tty->top_line_index + (uint8_t)tty->cursor.y;
+	uint8_t real_y           = tty->top_line_index + tty->cursor.y;
 	int     offset           = (real_y * VGA_WIDTH) + tty->cursor.x;
 	tty->framebuffer[offset] = (struct vga_entry){c, tty->mode};
 }
@@ -149,12 +148,12 @@ struct shell_command shell_commands[] = {
     {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
     {"hello", "Run the mok process: hello.", exec_mok_hello},
     {"pid", "Run the mok process: pid.", exec_mok_pid},
-    {"task_info", "Print task data using pid.", task_print_info},
+    {"task_info", "Print task data using pid.", task_cmd_print_info},
     {"kill", "Send signal to process .", sys_kill_wrapper},
     {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \
-	for (p = a; (uintptr_t)p - (uintptr_t)a <= sizeof(a) - sizeof(typeof(*a)); p++)
+	for ((p) = a; (uintptr_t)(p) - (uintptr_t)(a) <= sizeof(a) - sizeof(typeof(*(a))); (p)++)
 
 static void print_help(SHELL_ARGS_UNUSED)
 {
@@ -211,12 +210,12 @@ void ttys_init(void)
 	struct tty *tty;
 	iter_over_array(tty, ttys) { tty_init(tty); }
 	tty_load(ttys);
-	vga_enable_cursor(14, 15);
+	vga_enable_cursor(0, 16);
 }
 
 static void tty_framebuffer_init(struct tty *tty)
 {
-	tty->framebuffer = kmalloc(tty->framebuffer_size, (GFP_KERNEL | __GFP_ZERO));
+	tty->framebuffer = kmalloc(tty->framebuffer_size, __GFP_KERNEL | __GFP_ZERO);
 	if (tty->framebuffer == NULL)
 		kpanic("No space left to init ttys.");
 

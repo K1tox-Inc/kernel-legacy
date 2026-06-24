@@ -111,10 +111,6 @@ static int ft_puthexa(unsigned long nb, bool upper, bool addr)
 		return (ft_puthexa(nb / 16, upper, 0) + ft_puthexa(nb % 16, upper, 0));
 }
 
-// Internal APIs
-
-// External APIs
-
 void vga_setup_default_screen(void) { vga_printf("%s", KERNEL_BANNER); }
 
 void vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end)
@@ -148,7 +144,7 @@ void vga_refresh_screen(void)
 		return;
 
 	for (int vga_y = 0; vga_y < VGA_HEIGHT; vga_y++) {
-		uint8_t           line_buffer = (uint8_t)current_tty->top_line_index + (uint8_t)vga_y;
+		uint8_t           line_buffer = current_tty->top_line_index + (uint8_t)vga_y;
 		struct vga_entry *src         = &current_tty->framebuffer[line_buffer * VGA_WIDTH];
 		struct vga_entry *dst         = VGA_ENTRY(0, vga_y);
 		ft_memcpy(dst, src, VGA_WIDTH * sizeof(struct vga_entry));

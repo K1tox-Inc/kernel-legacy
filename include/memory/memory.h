@@ -6,6 +6,7 @@
 
 #include <arch/register.h>
 #include <types.h>
+#include <utils/assert.h>
 #include <utils/kmacro.h>
 
 // ============================================================================
@@ -46,8 +47,19 @@
 #define VMALLOC_END   0xFFFFDFFF
 
 // Macros
-#define PHYS_TO_VIRT_LINEAR(p_addr) ((void *)((uintptr_t)(p_addr) + KERNEL_VADDR_BASE))
-#define VIRT_TO_PHYS_LINEAR(v_addr) ((uintptr_t)((v_addr) - KERNEL_VADDR_BASE))
+#define PHYS_TO_VIRT_LINEAR(p_addr)                                                                \
+	({                                                                                             \
+		uintptr_t addr = (uintptr_t)(p_addr);                                                      \
+		assert(addr <= ~KERNEL_VADDR_BASE);                                                        \
+		((void *)(addr + KERNEL_VADDR_BASE));                                                      \
+	})
+
+#define VIRT_TO_PHYS_LINEAR(v_addr)                                                                \
+	({                                                                                             \
+		uintptr_t addr = (uintptr_t)(v_addr);                                                      \
+		assert(addr >= KERNEL_VADDR_BASE);                                                         \
+		((void *)(addr - KERNEL_VADDR_BASE));                                                      \
+	})
 
 #define __GFP_KERNEL 0b00000001 // For lazy allocation
 #define __GFP_ATOMIC 0b00000010 // Usefull in futur when scheduler is OK
@@ -93,7 +105,7 @@ typedef unsigned int gfp_t;
 // EXTERNAL APIs
 // ============================================================================
 
-uintptr_t *buddy_alloc_pages(size_t size, enum zone_type zone);
-void       buddy_free_block(void *ptr);
-void       buddy_init(void);
-void       vmm_finalize(void);
+void *buddy_alloc_pages(size_t size, enum zone_type zone);
+void  buddy_free_block(void *ptr);
+void  buddy_init(void);
+void  vmm_finalize(void);
