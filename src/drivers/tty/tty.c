@@ -8,7 +8,6 @@
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <proc/task.h>
-#include <syscalls/ksyscalls.h>
 #include <utils/kmacro.h>
 
 struct tty ttys[12], *current_tty = ttys;
@@ -135,7 +134,7 @@ static void sys_kill_wrapper(SHELL_ARGS)
 	int   sig = ft_atoi(argv[1]);
 	pid_t pid = ft_atoi(argv[2]);
 
-	sys_kill(pid, sig);
+	kill_pid(pid, sig);
 }
 
 struct shell_command shell_commands[] = {

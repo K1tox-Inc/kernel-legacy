@@ -3,8 +3,8 @@ ENTRY(_start)
 SECTIONS {
     . = 1M;
 
-    .multiboot2_header ALIGN(8) : {
-        *(.multiboot2_header)
+    .multiboot2 ALIGN(8) : {
+        *(.multiboot2)
     }
 
 	. += 0xC0000000;
