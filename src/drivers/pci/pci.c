@@ -5,7 +5,7 @@
 #include <utils/compiler.h>
 #include <utils/kmacro.h>
 
-static LIST_HEAD(pci_devices);
+/* static */ LIST_HEAD(pci_devices);
 
 static __always_inline uint16_t get_vendor_id(uint8_t bus, uint8_t slot, uint8_t func)
 {
