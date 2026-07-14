@@ -149,7 +149,7 @@ struct shell_command shell_commands[] = {
     {"hello", "Run the mok process: hello.", exec_mok_hello},
     {"pid", "Run the mok process: pid.", exec_mok_pid},
     {"task_info", "Print task data using pid.", task_cmd_print_info},
-    {"kill", "Send signal to process .", sys_kill_wrapper},
+    {"kill", "Send signal to process.", sys_kill_wrapper},
     {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \
