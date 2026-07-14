@@ -1,3 +1,4 @@
+#include "list.h"
 #include <arch/acpi.h>
 #include <drivers/keyboard.h>
 #include <drivers/tty.h>
@@ -11,6 +12,9 @@
 #include <utils/kmacro.h>
 
 struct tty ttys[12], *current_tty = ttys;
+
+extern struct list_head pci_devices;
+#include "../pci/pci.h"
 
 static void print_help(SHELL_ARGS_UNUSED);
 
@@ -137,6 +141,16 @@ static void sys_kill_wrapper(SHELL_ARGS)
 	kill_pid(pid, sig);
 }
 
+static void pci_list_devices(SHELL_ARGS_UNUSED)
+{
+	struct pci_device *tmp;
+	vga_printf("PCI devices:\n");
+	list_for_each_entry(tmp, &pci_devices, node)
+	{
+		vga_printf("\t| [%x:%x]\n", tmp->bus, tmp->slot);
+	}
+}
+
 struct shell_command shell_commands[] = {
     {"poweroff", "Power off the system.", tty_handle_kprimitive},
     {"reboot", "Reboot the system.", tty_handle_kprimitive},
@@ -148,8 +162,9 @@ struct shell_command shell_commands[] = {
     {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
     {"hello", "Run the mok process: hello.", exec_mok_hello},
     {"pid", "Run the mok process: pid.", exec_mok_pid},
-    {"task_info", "Print task data using pid.", task_print_info},
-    {"kill", "Send signal to process .", sys_kill_wrapper},
+    {"task_info", "Print task data using pid.", task_cmd_print_info},
+    {"kill", "Send signal to process.", sys_kill_wrapper},
+    {"pcilist", "Print discovered PCI devices.", pci_list_devices},
     {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \

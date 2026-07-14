@@ -43,10 +43,6 @@ __attribute__((constructor)) static void init_pid_manager(void)
 
 extern void interrupt_exit(void);
 
-// ============================================================================
-// INTERNAL APIs
-// ============================================================================
-
 static inline const char *task_state_to_string(enum process_states state)
 {
 	if (state == TASK_NEW)
@@ -100,7 +96,7 @@ static void task_init_dummy(void)
 
 static void task_init_idle(void)
 {
-	idle_task = task_get_new("Idle", false, NULL, NULL);
+	idle_task = task_get_new("Idle", 0, NULL, NULL);
 	if (!idle_task)
 		kpanic("Failed to init Idle\n");
 
@@ -116,7 +112,7 @@ static void task_init_kitoxD(void)
 	if (!section_init_from_buffer(&text, 0, kitoxD_start, fn_size, 0))
 		kpanic("Failed to init kitoxD sections\n");
 
-	kitoxD_task = task_get_new("kitoxD", true, &text, NULL);
+	kitoxD_task = task_get_new("kitoxD", 3, &text, NULL);
 	if (!kitoxD_task)
 		kpanic("Failed to init kitoxD\n");
 
@@ -144,10 +140,63 @@ void task_append_child(struct task *parent, struct task *child)
 	child->real_parent = parent;
 }
 
+struct task *task_clone(const struct task *task)
+{
+	const size_t name_len   = ft_strlen(task->name);
+	const size_t alloc_size = sizeof(struct task) + sizeof(struct section) * 4 + name_len;
+	struct task *const new  = kmalloc(alloc_size, __GFP_KERNEL | __GFP_ZERO);
+
+	if (new == NULL) {
+		return NULL;
+	}
+
+	ft_memcpy(new, task, sizeof(struct task));
+
+	INIT_SENTINEL(&new->children);
+	INIT_SENTINEL(&new->siblings);
+	INIT_SENTINEL(&new->vma_areas);
+	INIT_SENTINEL(&new->info_node);
+	INIT_SENTINEL(&new->sched_node);
+
+	wq_init(&new->child_wq);
+
+	new->kernel_stack_pointer = 0;
+	new->kernel_stack_base    = 0;
+
+	new->heap_sec  = (struct section *)(new + 1);
+	new->text_sec  = new->heap_sec++;
+	new->data_sec  = new->heap_sec++;
+	new->stack_sec = new->heap_sec++;
+
+	ft_memcpy(new->text_sec, task->text_sec, sizeof(struct section));
+	ft_memcpy(new->data_sec, task->data_sec, sizeof(struct section));
+	ft_memcpy(new->stack_sec, task->stack_sec, sizeof(struct section));
+	ft_memcpy(new->heap_sec, task->heap_sec, sizeof(struct section));
+
+	new->name = (char *)(new->heap_sec + 1);
+	ft_memcpy(new->name, task->name, name_len);
+
+	new->pid = id_manager_alloc(pid_manager);
+	if (new->pid < 0) {
+		kfree(new);
+		return NULL;
+	}
+
+	new->cr3 = (uintptr_t)buddy_alloc_pages(PAGE_SIZE, LOWMEM_ZONE);
+	if (!new->cr3) {
+		id_manager_free(pid_manager, new->pid);
+		kfree(new);
+		return NULL;
+	}
+
+	ft_bzero(PHYS_TO_VIRT_LINEAR(new->cr3), PAGE_SIZE);
+
+	return new;
+}
+
 // Text and data are used as templates; this function allocates its own internal sections
 // After return, the caller must free the input text and data if they were heap-allocated
-struct task *task_get_new(const char *name, bool userspace, struct section *text,
-                          struct section *data)
+struct task *task_get_new(const char *name, size_t ring, struct section *text, struct section *data)
 {
 	if (!name)
 		return NULL;
@@ -207,15 +256,19 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	                              (sig_trampoline_end - sig_trampoline_start), USER_SECTION_RO))
 		goto free_kstack;
 
-	if (userspace) {
+	ret->ring = ring;
+	switch (ring) {
+	case 3:
 		if (!userspace_create_new(ret))
 			goto free_kstack;
-		ret->ring = 3;
-	}
+		break;
 
-	else {
-		ret->cr3  = vmm_get_kernel_directory();
-		ret->ring = 0;
+	case 0:
+		ret->cr3 = vmm_get_kernel_directory();
+		break;
+
+	default:
+		kpanic("yo you damn crazy wtf r u doing?!");
 	}
 
 	ret->state = TASK_NEW;
@@ -228,10 +281,13 @@ struct task *task_get_new(const char *name, bool userspace, struct section *text
 	wq_init(&ret->child_wq);
 
 	INIT_SENTINEL(&ret->sched_node);
+
 	list_add_tail(&ret->info_node, &info_queue);
 	signal_init_default_handlers(ret);
+
 	INIT_SENTINEL(&ret->vma_areas);
-	if (userspace)
+
+	if (ring == 3)
 		vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
 
 	/*
@@ -366,21 +422,9 @@ struct task *task_find_by_pid(pid_t pid)
 	return NULL;
 }
 
-// ============================================================================
-// DEBUG APIs
-// ============================================================================
-
-void task_print_info(SHELL_ARGS)
+void task_print_info(struct task *task)
 {
-	if (argc != 2)
-		return;
-	pid_t        task_pid = ft_atoi(argv[1]);
-	struct task *task     = task_find_by_pid(task_pid);
-
-	if (!task) {
-		vga_printf("task_print_info: task pointer is NULL\n");
-		return;
-	}
+	assert(task);
 
 	vga_printf("Task Info (PID %d)\n", task->pid);
 	vga_printf("  - Name: %s\n", task->name);
@@ -408,6 +452,21 @@ void task_print_info(SHELL_ARGS)
 	}
 	vga_printf("\n");
 	vma_print_areas(&task->vma_areas);
+}
+
+void task_cmd_print_info(SHELL_ARGS)
+{
+	if (argc != 2)
+		return;
+	pid_t        task_pid = ft_atoi(argv[1]);
+	struct task *task     = task_find_by_pid(task_pid);
+
+	if (!task) {
+		vga_printf("task_print_info: task pointer is NULL\n");
+		return;
+	}
+
+	task_print_info(task);
 }
 
 void task_print_stack(const struct task *task)
@@ -515,7 +574,7 @@ static void exec_fn(unsigned int *addr, unsigned int *function, unsigned int siz
 		text_ptr = &text;
 	}
 
-	struct task *sloppy_task = task_get_new("Sloppy", is_user, text_ptr, NULL);
+	struct task *sloppy_task = task_get_new("Sloppy", is_user ? 3 : 0, text_ptr, NULL);
 	if (!sloppy_task) {
 		vga_printf("exec_fn: Failed to allocate task structure\n");
 		return;

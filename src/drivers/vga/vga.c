@@ -5,6 +5,10 @@
 #include <stdarg.h>
 #include <utils/kmacro.h>
 
+#ifndef NDEBUG
+# include <proc/task.h>
+#endif
+
 #define KERNEL_BANNER                                                                              \
 	"\n"                                                                                           \
 	"  /$$   /$$   /$$   /$$               /$$   /$$\n"                                            \
@@ -197,6 +201,24 @@ void vga_printf(const char *fmt, ...)
 			case 'c':
 				ft_putchar(va_arg(ap, uint32_t));
 				break;
+
+#ifndef NDEBUG
+			case 't': {
+				struct task *task = va_arg(ap, struct task *);
+				ft_putstr("task<");
+				if (task) {
+					ft_puthexa((uintptr_t)task, false, true);
+					ft_putstr(",name=\"");
+					ft_putstr(task->name);
+					ft_putstr("\",pid=");
+					ft_putnbr(task->pid);
+				} else {
+					ft_putstr("null");
+				}
+				ft_putchar('>');
+				break;
+			}
+#endif
 
 			case '%':
 				ft_putchar('%');
