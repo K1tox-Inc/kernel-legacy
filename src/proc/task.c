@@ -157,6 +157,7 @@ struct task *task_clone(const struct task *task)
 	INIT_SENTINEL(&new->info_node);
 	INIT_SENTINEL(&new->sched_node);
 
+	wq_entry_init(&new->wq_data, new, TASK_INTERRUPTIBLE);
 	wq_init(&new->child_wq);
 
 	new->kernel_stack_pointer = 0;
