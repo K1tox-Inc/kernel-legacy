@@ -99,6 +99,11 @@ SYSCALL_DEFINE0(fork)
 	uint32_t *stack = (uint32_t *)(new->kernel_stack_base - sizeof(struct trap_frame));
 	*(--stack)      = (uint32_t)interrupt_exit;
 
+	*(--stack) = 0; // ebp
+	*(--stack) = 0; // ebx
+	*(--stack) = 0; // esi
+	*(--stack) = 0; // edi
+
 	return new->pid;
 
 fail:
