@@ -16,6 +16,7 @@ SYSCALL_DEFINE6(mmap, void *, addr, size_t, length, int, prot, int, flags, int, 
 	(void)fd;
 	(void)offset;
 	(void)flags;
+
 	if (!length)
 		return -EINVAL;
 

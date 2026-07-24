@@ -15,6 +15,7 @@
 #include <proc/timer.h>
 #include <proc/userspace.h>
 #include <proc/waitqueue.h>
+#include <syscalls/exit.h>
 #include <types.h>
 #include <utils/error.h>
 #include <utils/id_manager.h>
@@ -524,17 +525,17 @@ void task_ps(void)
 // Sloppy Code
 // ============================================================================
 
-#include <syscalls/ksyscalls.h>
-
 extern char user_cafe_start[], user_cafe_end[];
 extern char user_dead_start[], user_dead_end[];
+
+/* Mok */
 
 static void sloppy_hello(void)
 {
 	struct task *cur = task_get_current_task();
 	vga_printf("[PID %d] Hello! lets sleep and die\n", cur->pid);
 	timer_ksleep(3);
-	sys_exit(0);
+	do_exit(0);
 }
 
 static void sloppy_pid(void)
@@ -544,7 +545,7 @@ static void sloppy_pid(void)
 		vga_printf("[PID %d] I am alive and sloppy!\n", cur->pid);
 		timer_ksleep(2);
 	}
-	sys_exit(0);
+	do_exit(0);
 }
 
 static void sloppy_fibo(void)
@@ -557,7 +558,7 @@ static void sloppy_fibo(void)
 		vga_printf("fibo[%u] = %u\n", i, next);
 		timer_ksleep(1);
 	}
-	sys_exit(0);
+	do_exit(0);
 }
 
 static void exec_fn(unsigned int *addr, unsigned int *function, unsigned int size)

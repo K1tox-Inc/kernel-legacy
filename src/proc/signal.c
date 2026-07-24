@@ -5,7 +5,7 @@
 #include <proc/signal.h>
 #include <proc/task.h>
 #include <proc/waitqueue.h>
-#include <syscalls/ksyscalls.h>
+#include <syscalls/exit.h>
 #include <utils/error.h>
 
 // ============================================================================
@@ -61,7 +61,7 @@ static const char *default_msg[] = {
 static void signal_default_handler(int sig)
 {
 	vga_printf("%s\n", default_msg[sig]);
-	sys_exit(-1);
+	do_exit(-1);
 }
 
 static void signal_ignore_handler(int sig) { (void)sig; }
@@ -141,6 +141,7 @@ void signal_init_default_handlers(struct task *task)
 			task->sig_handlers[i] = signal_default_handler;
 	}
 }
+
 #define ESP_ALIGN 16
 
 void signal_call_curtask_handlers(void)
@@ -169,7 +170,7 @@ void signal_call_curtask_handlers(void)
 				ft_memcpy(&kframe.tf_backup, tf, sizeof(struct trap_frame));
 
 				if (copy_to_user((void *)new_esp, &kframe, sizeof(struct sigframe)))
-					sys_exit(-EFAULT);
+					do_exit(-EFAULT);
 
 				tf->eip      = (uintptr_t)handler;
 				tf->user_esp = new_esp;
