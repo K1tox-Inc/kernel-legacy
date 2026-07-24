@@ -38,9 +38,9 @@ void vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
 
 static int ft_putchar(char c)
 {
-	// #ifndef NDEBUG
+#ifndef NDEBUG
 	outb(0x3f8, c);
-	// #endif
+#endif
 
 	switch (c) {
 	case '\n':
