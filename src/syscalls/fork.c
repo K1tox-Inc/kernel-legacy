@@ -41,7 +41,7 @@ SYSCALL_DEFINE0(fork)
 	new->heap_sec->p_addr  = 0;
 	new->stack_sec->p_addr = 0;
 
-	for (int i = 0; i < 768; i++, current_pde++, new_pde++) {
+	for (uint32_t i = 0; i < 768; i++, current_pde++, new_pde++) {
 		if (FLAG_IS_SET(*current_pde, PDE_PRESENT_BIT)) {
 			uintptr_t new_pt_phys = (uintptr_t)buddy_alloc_pages(PAGE_SIZE, LOWMEM_ZONE);
 			if (!new_pt_phys)
@@ -54,7 +54,7 @@ SYSCALL_DEFINE0(fork)
 
 			ft_bzero(new_pte, PAGE_SIZE);
 
-			for (int j = 0; j < 1024; j++, current_pte++, new_pte++) {
+			for (uint32_t j = 0; j < 1024; j++, current_pte++, new_pte++) {
 				if (FLAG_IS_SET(*current_pte, PTE_PRESENT_BIT)) {
 					const uintptr_t page = (uintptr_t)buddy_alloc_pages(PAGE_SIZE, HIGHMEM_ZONE);
 					if (!page) {
@@ -70,15 +70,16 @@ SYSCALL_DEFINE0(fork)
 						goto fail_page_copy;
 					}
 
-					if (!vmm_map_page(new->cr3, i << 22 | j << 12, page,
-					                  GET_ENTRY_FLAGS(*current_pte))) {
+					const uintptr_t vaddr = ((uintptr_t)i << 22) | ((uintptr_t)j << 12);
+
+					if (!vmm_map_page(new->cr3, vaddr, page, GET_ENTRY_FLAGS(*current_pte))) {
 						vga_printf("fork: failed to map page into child page directory\n");
 						vmm_kunmap();
 						buddy_free_block((void *)page);
 						goto fail_page_copy;
 					}
 
-					ft_memcpy(window, (void *)(i << 22 | j << 12), PAGE_SIZE);
+					ft_memcpy(window, (void *)vaddr, PAGE_SIZE);
 					vmm_kunmap();
 				}
 			}
