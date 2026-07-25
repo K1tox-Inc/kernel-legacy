@@ -143,7 +143,7 @@ void task_append_child(struct task *parent, struct task *child)
 struct task *task_clone(const struct task *task)
 {
 	const size_t name_len   = ft_strlen(task->name);
-	const size_t alloc_size = sizeof(struct task) + sizeof(struct section) * 4 + name_len;
+	const size_t alloc_size = sizeof(struct task) + sizeof(struct section) * 5 + name_len;
 	struct task *const new  = kmalloc(alloc_size, __GFP_KERNEL | __GFP_ZERO);
 
 	if (new == NULL) {
@@ -164,17 +164,19 @@ struct task *task_clone(const struct task *task)
 	new->kernel_stack_pointer = 0;
 	new->kernel_stack_base    = 0;
 
-	new->heap_sec  = (struct section *)(new + 1);
-	new->text_sec  = new->heap_sec++;
-	new->data_sec  = new->heap_sec++;
-	new->stack_sec = new->heap_sec++;
+	new->heap_sec       = (struct section *)(new + 1);
+	new->text_sec       = new->heap_sec++;
+	new->data_sec       = new->heap_sec++;
+	new->stack_sec      = new->heap_sec++;
+	new->sig_trampoline = new->heap_sec++;
 
 	ft_memcpy(new->text_sec, task->text_sec, sizeof(struct section));
 	ft_memcpy(new->data_sec, task->data_sec, sizeof(struct section));
 	ft_memcpy(new->stack_sec, task->stack_sec, sizeof(struct section));
 	ft_memcpy(new->heap_sec, task->heap_sec, sizeof(struct section));
+	ft_memcpy(new->sig_trampoline, task->sig_trampoline, sizeof(struct section));
 
-	new->name = (char *)(new->heap_sec + 1);
+	new->name = (char *)(new->sig_trampoline + 1);
 	ft_memcpy(new->name, task->name, name_len);
 
 	new->pid = id_manager_alloc(pid_manager);
