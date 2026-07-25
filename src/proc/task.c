@@ -276,7 +276,6 @@ struct task *task_get_new(const char *name, size_t ring, struct section *text, s
 
 	ret->name = (char *)(ret->sig_trampoline + 1);
 	ft_memcpy(ret->name, name, name_len);
-	ret->name[name_len] = 0;
 
 	wq_entry_init(&ret->wq_data, ret, TASK_INTERRUPTIBLE);
 	wq_init(&ret->child_wq);
