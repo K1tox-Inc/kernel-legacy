@@ -1,5 +1,4 @@
 #include <arch/trap_frame.h>
-#include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <list.h>
@@ -9,6 +8,7 @@
 #include <proc/scheduler.h>
 #include <proc/task.h>
 #include <syscalls/syscalls.h>
+#include <utils/assert.h>
 #include <utils/error.h>
 #include <utils/kmacro.h>
 
@@ -16,60 +16,112 @@ extern void interrupt_exit(void);
 
 SYSCALL_DEFINE0(fork)
 {
-	struct trap_frame *parent_tf = NULL, *child_tf;
-	struct task       *current   = task_get_current_task(), *new;
-	uint32_t          *current_pde, *new_pde, *current_pte, *new_pte, *kstack;
+	struct task *current = task_get_current_task(), *new;
+	assert(current);
 
-	__asm__ volatile("mov (%%ebp), %%eax\n\t"
-	                 "mov 8(%%eax), %0"
-	                 : "=r"(parent_tf)
-	                 :
-	                 : "eax");
+	struct trap_frame *child_tf;
+	uint32_t          *current_pde, *new_pde, *current_pte, *new_pte;
 
-	if (!parent_tf)
-		return -EINVAL;
-
-	new = task_get_new(current->name, current->ring == 3, current->text_sec, current->data_sec);
+	new = task_clone(current);
 	if (!new)
 		return -ENOMEM;
 
-	task_append_child(current, new);
+	new->kernel_stack_pointer = (uintptr_t)kmalloc(DEFAULT_STACK_SIZE, __GFP_KERNEL | __GFP_ZERO);
+	if (!new->kernel_stack_pointer)
+		goto fail_kernel_stack;
+
+	new->kernel_stack_base = new->kernel_stack_pointer + DEFAULT_STACK_SIZE;
 
 	current_pde = PHYS_TO_VIRT_LINEAR(current->cr3);
 	new_pde     = PHYS_TO_VIRT_LINEAR(new->cr3);
 
-	for (int i = 0; i < 768; i++, current_pde++, new_pde++) {
-		if (!FLAG_IS_SET(*current_pde, PDE_PRESENT_BIT))
-			continue;
+	// Quick fix, should be really fixed further
+	new->text_sec->p_addr  = 0;
+	new->data_sec->p_addr  = 0;
+	new->heap_sec->p_addr  = 0;
+	new->stack_sec->p_addr = 0;
 
-		*new_pde = GET_ENTRY_ADDR(*new_pde) | (*current_pde & ENTRY_FLAGS_MASK);
+	for (uint32_t i = 0; i < 768; i++, current_pde++, new_pde++) {
+		if (FLAG_IS_SET(*current_pde, PDE_PRESENT_BIT)) {
+			uintptr_t new_pt_phys = (uintptr_t)buddy_alloc_pages(PAGE_SIZE, LOWMEM_ZONE);
+			if (!new_pt_phys)
+				goto fail_page_copy;
 
-		current_pte = PHYS_TO_VIRT_LINEAR(GET_ENTRY_ADDR(*current_pde));
-		new_pte     = PHYS_TO_VIRT_LINEAR(GET_ENTRY_ADDR(*new_pde));
+			*new_pde = GET_ENTRY_ADDR(new_pt_phys) | GET_ENTRY_FLAGS(*current_pde);
 
-		for (int j = 0; j < 1024; j++, current_pte++, new_pte++) {
-			if (!FLAG_IS_SET(*current_pte, PTE_PRESENT_BIT))
-				continue;
+			current_pte = PHYS_TO_VIRT_LINEAR(GET_ENTRY_ADDR(*current_pde));
+			new_pte     = PHYS_TO_VIRT_LINEAR(GET_ENTRY_ADDR(*new_pde));
 
-			FLAG_UNSET(*current_pte, PTE_RW_BIT);
-			*new_pte = *current_pte;
+			ft_bzero(new_pte, PAGE_SIZE);
+
+			for (uint32_t j = 0; j < 1024; j++, current_pte++, new_pte++) {
+				if (FLAG_IS_SET(*current_pte, PTE_PRESENT_BIT)) {
+					const uintptr_t page = (uintptr_t)buddy_alloc_pages(PAGE_SIZE, HIGHMEM_ZONE);
+					if (!page) {
+						vga_printf("fork: failed to allocate page for child process\n");
+						goto fail_page_copy;
+					}
+
+					void *const window = vmm_kmap(page);
+
+					if (!window) {
+						vga_printf("fork: failed to map page in kernel virtual memory\n");
+						buddy_free_block((void *)page);
+						goto fail_page_copy;
+					}
+
+					const uintptr_t vaddr = ((uintptr_t)i << 22) | ((uintptr_t)j << 12);
+
+					if (!vmm_map_page(new->cr3, vaddr, page, GET_ENTRY_FLAGS(*current_pte))) {
+						vga_printf("fork: failed to map page into child page directory\n");
+						vmm_kunmap();
+						buddy_free_block((void *)page);
+						goto fail_page_copy;
+					}
+
+					ft_memcpy(window, (void *)vaddr, PAGE_SIZE);
+					vmm_kunmap();
+				}
+			}
 		}
 	}
 
+	ft_memcpy(new_pde, current_pde, 224 * sizeof(uint32_t));
+
+	ft_memcpy((void *)new->kernel_stack_pointer, (void *)current->kernel_stack_pointer,
+	          DEFAULT_STACK_SIZE);
+
+	assert(*(uint32_t *)(new->kernel_stack_pointer) == STACK_CANARY_MAGIC);
+	assert(*(uint32_t *)(current->kernel_stack_base - 4) ==
+	       *(uint32_t *)(new->kernel_stack_base - 4));
+
 	child_tf = (struct trap_frame *)(new->kernel_stack_base - sizeof(struct trap_frame));
-	ft_memcpy(child_tf, parent_tf, sizeof(struct trap_frame));
+	assert(ft_memcmp(child_tf, (void *)current->kernel_stack_base - sizeof(struct trap_frame),
+	                 sizeof(struct trap_frame)) == 0);
 	child_tf->regs.eax = 0;
 
-	kstack      = (uint32_t *)(new->kernel_stack_base - sizeof(struct trap_frame));
-	*(--kstack) = (uint32_t)interrupt_exit;
-	*(--kstack) = 0;
-	*(--kstack) = 0;
-	*(--kstack) = 0;
-	*(--kstack) = 0;
+	task_append_child(current, new);
 
-	new->esp   = (uintptr_t)kstack;
+	new->esp   = new->kernel_stack_pointer - (current->kernel_stack_pointer - current->esp);
 	new->state = TASK_RUNNING;
+
 	sched_enqueue(new);
 
+	uint32_t *stack = (uint32_t *)(new->kernel_stack_base - sizeof(struct trap_frame));
+	*(--stack)      = (uint32_t)interrupt_exit;
+
+	*(--stack) = 0; // ebp
+	*(--stack) = 0; // ebx
+	*(--stack) = 0; // esi
+	*(--stack) = 0; // edi
+
 	return new->pid;
+
+fail_page_copy:
+	kfree((void *)new->kernel_stack_pointer);
+
+fail_kernel_stack:
+	vmm_destroy_user_pd(new->cr3);
+	task_release(new);
+	return -ENOMEM;
 }

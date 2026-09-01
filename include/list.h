@@ -17,7 +17,7 @@ struct list_head {
 
 #define list_is_empty(head) ((head) == (head)->next)
 
-#define list_entry(ptr, type, member) container_of(ptr, type, member)
+#define list_entry container_of
 
 #define list_next_entry(pos, member) list_entry((pos)->member.next, typeof(*(pos)), member)
 

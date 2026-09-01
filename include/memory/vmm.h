@@ -92,10 +92,11 @@ enum Page_Directory_Entry {
 
 // Macros
 
-#define GET_PDE_INDEX(vaddr)    ((vaddr) >> 22)
-#define GET_PTE_INDEX(vaddr)    (((vaddr) >> 12) & 0x3FF)
+#define GET_PDE_INDEX(vaddr)    ((uintptr_t)(vaddr) >> 22)
+#define GET_PTE_INDEX(vaddr)    (((uintptr_t)(vaddr) >> 12) & 0x3FF)
 #define ENTRY_FLAGS_MASK        (0xFFF)
-#define GET_ENTRY_ADDR(entry)   ((entry) & ~ENTRY_FLAGS_MASK)
+#define GET_ENTRY_FLAGS(entry)  ((uintptr_t)(entry) & ENTRY_FLAGS_MASK)
+#define GET_ENTRY_ADDR(entry)   ((uintptr_t)(entry) & ~ENTRY_FLAGS_MASK)
 #define GET_PD_RANGE_SIZE(size) (DIV_ROUND_UP(ALIGN(size, PAGE_SIZE), 1024 * PAGE_SIZE))
 
 // STRUCT
