@@ -29,7 +29,7 @@ static __always_inline uint16_t inw(uint16_t port)
 {
 	uint16_t value;
 
-	__asm__ volatile("inb %1, %0" : "=a"(value) : "Nd"(port) : "memory");
+	__asm__ volatile("inw %1, %0" : "=a"(value) : "Nd"(port) : "memory");
 	return value;
 }
 
