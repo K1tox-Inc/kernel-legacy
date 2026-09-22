@@ -141,13 +141,44 @@ static void sys_kill_wrapper(SHELL_ARGS)
 	kill_pid(pid, sig);
 }
 
-static void pci_list_devices(SHELL_ARGS_UNUSED)
+static const char *pci_class_str(uint8_t class_code, uint8_t subclass)
+{
+	if (class_code == 0x00)
+		return "Unclassified device";
+
+	if (class_code == 0x01) {
+		if (subclass == 0x01)
+			return "IDE controller";
+		return "Bridge device";
+	}
+
+	if (class_code == 0x02) {
+		if (subclass == 0x00)
+			return "Ethernet controller";
+		return "Network controller";
+	}
+
+	if (class_code == 0x03)
+		return "VGA compatible controller";
+
+	if (class_code == 0x06) {
+		if (subclass == 0x00)
+			return "Host bridge";
+		if (subclass == 0x01)
+			return "ISA bridge";
+		return "Bridge device";
+	}
+
+	return "Unknown device";
+}
+
+static void lspci_cmd(SHELL_ARGS_UNUSED)
 {
 	struct pci_device *tmp;
-	vga_printf("PCI devices:\n");
 	list_for_each_entry(tmp, &pci_devices, node)
 	{
-		vga_printf("\t| [%x:%x]\n", tmp->bus, tmp->slot);
+		vga_printf("[%x:%x.%x] %s\n", tmp->bus, tmp->slot, tmp->func,
+		           pci_class_str(tmp->class_code, tmp->subclass));
 	}
 }
 
@@ -164,7 +195,7 @@ struct shell_command shell_commands[] = {
     {"pid", "Run the mok process: pid.", exec_mok_pid},
     {"task_info", "Print task data using pid.", task_cmd_print_info},
     {"kill", "Send signal to process.", sys_kill_wrapper},
-    {"pcilist", "Print discovered PCI devices.", pci_list_devices},
+    {"lspci", "List PCI devices.", lspci_cmd},
     {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \
