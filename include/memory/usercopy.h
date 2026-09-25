@@ -11,5 +11,5 @@ static __always_inline bool access_ok(const void *ptr, size_t size)
 	uintptr_t start = (uintptr_t)ptr;
 	uintptr_t end   = start + size;
 
-	return !(end < start && end > KERNEL_VADDR_BASE);
+	return !(end < start || end > KERNEL_VADDR_BASE);
 }
