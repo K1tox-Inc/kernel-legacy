@@ -22,7 +22,7 @@ static const char *debug_buddy_zone_to_str(enum zone_type zone);
 static struct buddy_allocator buddy[MAX_ZONE];
 
 // Internals APIs
-static const char *debug_buddy_order_to_string(int order)
+static const char *debug_buddy_order_to_string(size_t order)
 {
 	switch (order) {
 	case 0:
@@ -52,7 +52,7 @@ static const char *debug_buddy_order_to_string(int order)
 	}
 }
 
-static inline bool order_is_valid(int order) { return order >= 0 && order <= MAX_ORDER; }
+static inline bool order_is_valid(size_t order) { return order <= MAX_ORDER; }
 
 static inline uintptr_t *page_node_to_phys(struct list_head *page_node)
 {
@@ -398,10 +398,9 @@ static void print_buddy_free_list(size_t order, enum zone_type zone)
 // refactor
 static void debug_buddy_check_lost_pages(void)
 {
-	size_t         lost        = 0;
-	size_t         total_buddy = 0;
-	size_t         free_count  = boot_allocator_get_regions_count(FREE_MEMORY);
-	struct region *free_reg    = boot_allocator_get_regions(FREE_MEMORY);
+	size_t         lost       = 0;
+	size_t         free_count = boot_allocator_get_regions_count(FREE_MEMORY);
+	struct region *free_reg   = boot_allocator_get_regions(FREE_MEMORY);
 
 	for (uint32_t i = 0; i < total_pages; i++) {
 		if (PAGE_IS_FREE(&page_descriptors[i])) {
@@ -416,8 +415,6 @@ static void debug_buddy_check_lost_pages(void)
 			if (!in_buddy) {
 				vga_printf("Lost page: 0x%x\n", addr);
 				lost++;
-			} else {
-				total_buddy++;
 			}
 		}
 	}
