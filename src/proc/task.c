@@ -136,9 +136,9 @@ void task_append_child(struct task *parent, struct task *child)
 
 struct task *task_clone(const struct task *task)
 {
-	const size_t       name_len   = ft_strlen(task->name);
-	const size_t       alloc_size = sizeof(struct task) + sizeof(struct section) * 5 + name_len + 1;
-	struct task *const new        = kmalloc(alloc_size, __GFP_KERNEL | __GFP_ZERO);
+	const size_t name_len   = ft_strlen(task->name);
+	const size_t alloc_size = sizeof(struct task) + sizeof(struct section) * 5 + name_len + 1;
+	struct task *const new  = kmalloc(alloc_size, __GFP_KERNEL | __GFP_ZERO);
 
 	if (new == NULL) {
 		return NULL;
@@ -207,86 +207,84 @@ struct task *task_get_new(const char *name, size_t ring, struct section *text, s
 		return NULL;
 
 	// `kmalloc` use slabs caches here
-	const size_t   alloc_size  = sizeof(struct task) + sizeof(struct section) * 5 + name_len + 1;
-	unsigned char *memory_zone = kmalloc(alloc_size, GFP_KERNEL | __GFP_ZERO);
-	if (!memory_zone)
+	const size_t alloc_size = sizeof(struct task) + sizeof(struct section) * 5 + name_len + 1;
+	struct task *const new  = kmalloc(alloc_size, GFP_KERNEL | __GFP_ZERO);
+	if (!new)
 		return NULL;
 
-	struct task *ret = (struct task *)memory_zone;
-
-	ret->text_sec       = (struct section *)(ret + 1);
-	ret->data_sec       = ret->text_sec + 1;
-	ret->stack_sec      = ret->data_sec + 1;
-	ret->heap_sec       = ret->stack_sec + 1;
-	ret->sig_trampoline = ret->heap_sec + 1;
+	new->text_sec       = (struct section *)(new + 1);
+	new->data_sec       = new->text_sec + 1;
+	new->stack_sec      = new->data_sec + 1;
+	new->heap_sec       = new->stack_sec + 1;
+	new->sig_trampoline = new->heap_sec + 1;
 
 	if (text)
-		ft_memcpy(ret->text_sec, text, sizeof(struct section));
+		ft_memcpy(new->text_sec, text, sizeof(struct section));
 
 	if (data)
-		ft_memcpy(ret->data_sec, data, sizeof(struct section));
+		ft_memcpy(new->data_sec, data, sizeof(struct section));
 
-	ret->pid = id_manager_alloc(pid_manager);
-	if (ret->pid == -1)
+	new->pid = id_manager_alloc(pid_manager);
+	if (new->pid == -1)
 		goto free_task;
 
-	INIT_SENTINEL(&ret->children);
-	INIT_SENTINEL(&ret->siblings);
+	INIT_SENTINEL(&new->children);
+	INIT_SENTINEL(&new->siblings);
 
 	// `kmalloc` use buddy allocator here
 	void *kstack = kmalloc(DEFAULT_STACK_SIZE, GFP_KERNEL | __GFP_ZERO);
 	if (!kstack)
 		goto free_pid;
 
-	ret->kernel_stack_pointer = (uintptr_t)kstack;
-	ret->kernel_stack_base    = (uintptr_t)kstack + DEFAULT_STACK_SIZE;
+	new->kernel_stack_pointer = (uintptr_t)kstack;
+	new->kernel_stack_base    = (uintptr_t)kstack + DEFAULT_STACK_SIZE;
 
 	/*
 	 * Stack Canary: Replaces hardware guard pages in higher-half linear mapping
 	 * Placed at the stack lowest address to detect downward overflows
 	 * MUST be verified by the scheduler during every context switch
 	 */
-	*(uint32_t *)(ret->kernel_stack_pointer) = STACK_CANARY_MAGIC;
+	*(uint32_t *)(new->kernel_stack_pointer) = STACK_CANARY_MAGIC;
 
-	ret->esp = ret->kernel_stack_base;
+	new->esp = new->kernel_stack_base;
 
-	if (!section_init_from_buffer(ret->sig_trampoline, USER_TRAMPOLINE_VADDR, sig_trampoline_start,
+	if (!section_init_from_buffer(new->sig_trampoline, USER_TRAMPOLINE_VADDR, sig_trampoline_start,
 	                              (sig_trampoline_end - sig_trampoline_start), USER_SECTION_RO))
 		goto free_kstack;
 
-	ret->ring = ring;
+	new->ring = ring;
 	switch (ring) {
 	case 3:
-		if (!userspace_create_new(ret))
+		if (!userspace_create_new(new))
 			goto free_kstack;
 		break;
 
 	case 0:
-		ret->cr3 = vmm_get_kernel_directory();
+		new->cr3 = vmm_get_kernel_directory();
 		break;
 
 	default:
 		kpanic("yo you damn crazy wtf r u doing?!");
 	}
 
-	ret->state = TASK_NEW;
+	new->state = TASK_NEW;
 
-	ret->name = (char *)(ret->sig_trampoline + 1);
-	ft_memcpy(ret->name, name, name_len);
-	ret->name[name_len] = 0;
+	new->name = (char *)(new->sig_trampoline + 1);
+	ft_memcpy(new->name, name, name_len);
+	new->name[name_len] = 0;
 
-	wq_entry_init(&ret->wq_data, ret, TASK_INTERRUPTIBLE);
-	wq_init(&ret->child_wq);
+	wq_entry_init(&new->wq_data, new, TASK_INTERRUPTIBLE);
+	wq_init(&new->child_wq);
 
-	INIT_SENTINEL(&ret->sched_node);
+	INIT_SENTINEL(&new->sched_node);
 
-	list_add_tail(&ret->info_node, &info_queue);
-	signal_init_default_handlers(ret);
+	list_add_tail(&new->info_node, &info_queue);
+	signal_init_default_handlers(new);
 
-	INIT_SENTINEL(&ret->vma_areas);
+	INIT_SENTINEL(&new->vma_areas);
 
 	if (ring == 3)
-		vma_init_area(&ret->vma_areas, ret->heap_sec->v_addr, ret->stack_sec->v_addr - PAGE_SIZE);
+		vma_init_area(&new->vma_areas, new->heap_sec->v_addr, new->stack_sec->v_addr - PAGE_SIZE);
 
 	/*
 	 * All these fields are zeroed by `kmalloc` with `__GFP_ZERO`
@@ -301,14 +299,14 @@ struct task *task_get_new(const char *name, size_t ring, struct section *text, s
 	 *  uint32_t         exit_code;
 	 */
 
-	return ret;
+	return new;
 
 free_kstack:
 	kfree(kstack);
 free_pid:
-	id_manager_free(pid_manager, ret->pid);
+	id_manager_free(pid_manager, new->pid);
 free_task:
-	kfree(ret);
+	kfree(new);
 	return NULL;
 }
 
