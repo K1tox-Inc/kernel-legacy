@@ -108,8 +108,6 @@ void vma_merge_area(struct list_head *head, struct vm_area *area)
 		struct vm_area *prev_area = list_entry(area->vma_node.prev, struct vm_area, vma_node);
 		merge_neighbor(prev_area, area);
 	}
-
-	kpanic("Tried to merge a node to itself");
 }
 
 struct vm_area *vma_find_by_start(void *ptr, struct list_head *head)
