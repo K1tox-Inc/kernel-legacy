@@ -12,6 +12,7 @@
 #include <proc/task.h>
 #include <utils/kmacro.h>
 
+#include "../../drivers/ata/ata.h"
 #include "../../drivers/pci/pci.h"
 
 extern void (*__init_array_start[])(void);
@@ -42,5 +43,6 @@ void init(void)
 	keyboard_init();
 	ttys_init();
 	pci_init();
+	ide_init();
 	schedule();
 }
