@@ -6,12 +6,12 @@
 struct gdtr {
 	uint16_t  limit;
 	uintptr_t base;
-} __attribute__((packed));
+} __packed;
 
 struct idtr {
 	uint16_t  limit;
 	uintptr_t base;
-} __attribute__((packed));
+} __packed;
 
 ///////////////////////////////////////////////////
 // Gdt flags

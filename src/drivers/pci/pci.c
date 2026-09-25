@@ -5,175 +5,102 @@
 #include <utils/compiler.h>
 #include <utils/kmacro.h>
 
+/* non-static because of the debug function `pci_list_devices` (see `src/drivers/tty.c`) */
 /* static */ LIST_HEAD(pci_devices);
 
-static __always_inline uint16_t get_vendor_id(uint8_t bus, uint8_t slot, uint8_t func)
+static __always_inline uint16_t get_vendor_id(const struct pci_device *dev)
 {
-	return pci_config_read_word(bus, slot, func, offsetof(struct pci_common_headers, vendor_id));
+	return pci_config_read_word(dev, PCI_COMMON_VENDOR_ID);
 }
 
-static __always_inline uint16_t get_device_id(uint8_t bus, uint8_t slot, uint8_t func)
+static __always_inline uint16_t get_device_id(const struct pci_device *dev)
 {
-	return pci_config_read_word(bus, slot, func, offsetof(struct pci_common_headers, device_id));
+	return pci_config_read_word(dev, PCI_COMMON_DEVICE_ID);
 }
 
-static __always_inline uint8_t get_class(uint8_t bus, uint8_t slot, uint8_t func)
+static __always_inline uint8_t get_class(const struct pci_device *dev)
 {
-	return pci_config_read_byte(bus, slot, func, offsetof(struct pci_common_headers, class_code));
+	return pci_config_read_byte(dev, PCI_COMMON_CLASS_CODE);
 }
 
-static __always_inline uint8_t get_subclass(uint8_t bus, uint8_t slot, uint8_t func)
+static __always_inline uint8_t get_subclass(const struct pci_device *dev)
 {
-	return pci_config_read_byte(bus, slot, func, offsetof(struct pci_common_headers, subclass));
+	return pci_config_read_byte(dev, PCI_COMMON_SUBCLASS);
 }
 
-static __always_inline uint8_t get_prog_if(uint8_t bus, uint8_t slot, uint8_t func)
+static __always_inline uint8_t get_prog_if(const struct pci_device *dev)
 {
-	return pci_config_read_byte(bus, slot, func, offsetof(struct pci_common_headers, prog_if));
+	return pci_config_read_byte(dev, PCI_COMMON_PROG_IF);
 }
 
-static __always_inline uint8_t get_header_type(uint8_t bus, uint8_t slot, uint8_t func)
+static __always_inline uint8_t get_header_type(const struct pci_device *dev)
 {
-	return pci_config_read_byte(bus, slot, func, offsetof(struct pci_common_headers, header_type));
+	return pci_config_read_byte(dev, PCI_COMMON_HEADER_TYPE);
 }
 
-/*
- * Allocates and fills a `struct pci_device` for the given function and
- * links it into the global registry. Re-reads the identifying fields
- * directly rather than trusting the caller, so the registry stays correct
- * even if callers are reorganized later.
- */
-static struct pci_device *pci_register_device(uint8_t bus, uint8_t slot, uint8_t func,
-                                              enum pci_device_type type)
+static struct pci_device *pci_register_device(const struct pci_device *probe)
 {
+	uint8_t class_code = get_class(probe);
+	uint8_t subclass   = get_subclass(probe);
+
 	struct pci_device *dev = kmalloc(sizeof(struct pci_device), GFP_KERNEL);
 
-	if (!dev)
+	if (!dev) {
+		pci_log(probe, "Failed to allocate `pci_device', registry entry skipped.");
 		return NULL;
+	}
 
-	dev->bus        = bus;
-	dev->slot       = slot;
-	dev->func       = func;
-	dev->vendor_id  = get_vendor_id(bus, slot, func);
-	dev->device_id  = get_device_id(bus, slot, func);
-	dev->class_code = get_class(bus, slot, func);
-	dev->subclass   = get_subclass(bus, slot, func);
-	dev->prog_if    = get_prog_if(bus, slot, func);
-	dev->type       = type;
+	dev->bus        = probe->bus;
+	dev->slot       = probe->slot;
+	dev->func       = probe->func;
+	dev->vendor_id  = get_vendor_id(dev);
+	dev->device_id  = get_device_id(dev);
+	dev->prog_if    = get_prog_if(dev);
+	dev->class_code = class_code;
+	dev->subclass   = subclass;
 
 	list_add_tail(&dev->node, &pci_devices);
 	return dev;
 }
 
-/* Identifies, logs, and registers a single (bus, slot, func) PCI function. */
-static void pci_scan_function(uint8_t bus, uint8_t slot, uint8_t func)
+void pci_for_each_device(enum pci_device_type type,
+                         void (*fn)(const struct pci_device *dev, void *ctx), void *ctx)
 {
-	uint8_t              class_code = get_class(bus, slot, func);
-	uint8_t              subclass   = get_subclass(bus, slot, func);
-	enum pci_device_type type       = PCI_DEVICE_UNKNOWN;
-
-	switch (class_code) {
-	case 0x00: {
-		switch (subclass) {
-		case 0x00:
-			log("[%x:%x.%x] Non-VGA-compatible unclassified device discovered.", bus, slot, func);
-			break;
-		default:
-			log("[%x:%x.%x] Unknown unclassified device: subclass=0x%x", bus, slot, func, subclass);
-		}
-		break;
-	}
-	case 0x01: {
-		switch (subclass) {
-		case 0x01:
-			log("[%x:%x.%x] IDE controller discovered (prog_if=0x%x).", bus, slot, func,
-			    get_prog_if(bus, slot, func));
-			type = PCI_DEVICE_IDE_CONTROLLER;
-			break;
-		default:
-			log("[%x:%x.%x] Unknown mass storage controller: subclass=0x%x", bus, slot, func,
-			    subclass);
-		}
-		break;
-	}
-	case 0x02: {
-		switch (subclass) {
-		case 0x00:
-			log("[%x:%x.%x] Ethernet controller discovered.", bus, slot, func);
-			type = PCI_DEVICE_ETHERNET_CONTROLLER;
-			break;
-		default:
-			log("[%x:%x.%x] Unknown network controller: subclass=0x%x", bus, slot, func, subclass);
-		}
-		break;
-	}
-	case 0x03: {
-		log("[%x:%x.%x] VGA compatible controller discovered.", bus, slot, func);
-		type = PCI_DEVICE_VGA_CONTROLLER;
-		break;
-	}
-	case 0x06: {
-		switch (subclass) {
-		case 0x00:
-			log("[%x:%x.%x] Host bridge discovered.", bus, slot, func);
-			type = PCI_DEVICE_HOST_BRIDGE;
-			break;
-		case 0x01:
-			log("[%x:%x.%x] ISA bridge discovered.", bus, slot, func);
-			type = PCI_DEVICE_ISA_BRIDGE;
-			break;
-		default:
-			log("[%x:%x.%x] Unknown bridge device: subclass=0x%x", bus, slot, func, subclass);
-		}
-		break;
-	}
-	default:
-		log("[%x:%x.%x] Unknown device class: class=0x%x subclass=0x%x", bus, slot, func,
-		    class_code, subclass);
-	}
-
-	if (!pci_register_device(bus, slot, func, type))
-		log("[%x:%x.%x] Failed to allocate pci_device, registry entry skipped.", bus, slot, func);
-}
-
-/*
- * Scans function 0 of a slot; if it reports itself as multi-function, scans
- * functions 1-7 too. Each function has to be probed independently since a
- * multi-function device is not required to populate every function slot.
- */
-static void pci_scan_slot(uint8_t bus, uint8_t slot)
-{
-	if (get_vendor_id(bus, slot, 0) == PCI_VENDOR_ID_INVALID)
-		return;
-
-	pci_scan_function(bus, slot, 0);
-
-	if (!(get_header_type(bus, slot, 0) & PCI_HEADER_TYPE_MULTIFUNCTION))
-		return;
-
-	for (uint8_t func = 1; func < PCI_MAX_FUNC; func++) {
-		if (get_vendor_id(bus, slot, func) == PCI_VENDOR_ID_INVALID)
-			continue;
-		pci_scan_function(bus, slot, func);
+	struct pci_device *dev;
+	list_for_each_entry(dev, &pci_devices, node)
+	{
+		if (dev->type == type)
+			fn(dev, ctx);
 	}
 }
 
 void pci_init(void)
 {
-	for (int bus = 0; bus < PCI_MAX_BUS; bus++)
-		for (int slot = 0; slot < PCI_MAX_SLOT; slot++)
-			pci_scan_slot((uint8_t)bus, (uint8_t)slot);
-}
+	struct pci_device probe;
 
-struct pci_device *pci_find_device(enum pci_device_type type)
-{
-	struct pci_device *dev;
+	probe.bus = 0;
+	do {
+		for (probe.slot = 0; probe.slot < PCI_MAX_SLOT; probe.slot++) {
+			probe.func = 0;
 
-	list_for_each_entry(dev, &pci_devices, node)
-	{
-		if (dev->type == type)
-			return dev;
-	}
+			if (get_vendor_id(&probe) == PCI_VENDOR_ID_INVALID)
+				continue;
 
-	return NULL;
+			struct pci_device *dev = pci_register_device(&probe);
+			if (!dev)
+				continue;
+
+			if (!(get_header_type(dev) & PCI_HEADER_TYPE_MULTIFUNCTION))
+				continue;
+
+			for (probe.func = 1; probe.func < PCI_MAX_FUNC; probe.func++) {
+				if (get_vendor_id(&probe) == PCI_VENDOR_ID_INVALID)
+					continue;
+
+				struct pci_device *fdev = pci_register_device(&probe);
+				if (!fdev)
+					continue;
+			}
+		}
+	} while (++probe.bus != 0); /* uint8_t overflow after PCI_MAX_BUS (256 buses) */
 }
