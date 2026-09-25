@@ -1,5 +1,6 @@
 #pragma once
 
+#include <arch/trap_frame.h>
 #include <types.h>
 
 #define PIT_BASE_FREQUENCY 1193180
@@ -7,10 +8,8 @@
 #define DEFAULT_QUANTUM    10
 #define TICKS_PER_SECOND   TIMER_HZ
 
-#define TICKS_TO_SECONDS(ticks)   (ticks / TICKS_PER_SECOND)
-#define SECONDS_TO_TICKS(seconds) (seconds * TICKS_PER_SECOND)
-
-struct trap_frame;
+#define TICKS_TO_SECONDS(ticks)   ((ticks) / TICKS_PER_SECOND)
+#define SECONDS_TO_TICKS(seconds) ((seconds) * TICKS_PER_SECOND)
 
 void     timer_set_cycle(int hz);
 void     timer_handle(struct trap_frame *frame);

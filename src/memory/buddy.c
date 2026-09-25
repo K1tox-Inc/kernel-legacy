@@ -22,7 +22,7 @@ static const char *debug_buddy_zone_to_str(enum zone_type zone);
 static struct buddy_allocator buddy[MAX_ZONE];
 
 // Internals APIs
-static const char *debug_buddy_order_to_string(int order)
+static const char *debug_buddy_order_to_string(size_t order)
 {
 	switch (order) {
 	case 0:
@@ -52,19 +52,19 @@ static const char *debug_buddy_order_to_string(int order)
 	}
 }
 
-static inline bool order_is_valid(int order) { return order >= 0 && order <= MAX_ORDER; }
+static __always_inline bool order_is_valid(size_t order) { return order <= MAX_ORDER; }
 
-static inline uintptr_t *page_node_to_phys(struct list_head *page_node)
+static __always_inline uintptr_t *page_node_to_phys(struct list_head *page_node)
 {
 	return (uintptr_t *)page_to_phys(list_entry(page_node, struct page, node));
 }
 
-static inline struct list_head *order_to_free_list(size_t order, enum zone_type zone)
+static __always_inline struct list_head *order_to_free_list(size_t order, enum zone_type zone)
 {
 	return &buddy[zone].areas[order].free_list[MIGRATE_MOVABLE];
 }
 
-static inline size_t order_to_nrFree(size_t order, enum zone_type zone)
+static __always_inline size_t order_to_nrFree(size_t order, enum zone_type zone)
 {
 	return buddy[zone].areas[order].nr_free;
 }
@@ -120,7 +120,7 @@ static uintptr_t *split_block_to_order(size_t order_needed, size_t cur_order, ui
 	if (!order_is_valid(order_needed) || !order_is_valid(cur_order))
 		kpanic("Error: %s: Invalid Order\n", __func__);
 	if (cur_order == order_needed) {
-		return (uintptr_t *)ptr;
+		return ptr;
 	}
 
 	cur_order--;
@@ -137,7 +137,7 @@ static uintptr_t *split_block_to_order(size_t order_needed, size_t cur_order, ui
 	return split_block_to_order(order_needed, cur_order, ptr, zone);
 }
 
-static inline enum zone_type page_zone_flags_to_zone_type(uint32_t zone_flags)
+static __always_inline enum zone_type page_zone_flags_to_zone_type(uint32_t zone_flags)
 {
 	switch (zone_flags) {
 	case PAGE_ZONE_DMA:
@@ -234,7 +234,7 @@ size_t buddy_get_var_size(void *var)
 	return PAGE_BY_ORDER(page->private_data) * PAGE_SIZE;
 }
 
-uintptr_t *buddy_alloc_pages(size_t size, enum zone_type zone)
+void *buddy_alloc_pages(size_t size, enum zone_type zone)
 {
 	size_t order_needed = size_to_order(size);
 	if (!order_is_valid(order_needed))
@@ -256,7 +256,7 @@ uintptr_t *buddy_alloc_pages(size_t size, enum zone_type zone)
 
 	struct page *first_page = page_addr_to_page((uintptr_t)ret);
 	set_block_metadata(first_page, order_needed, PAGE_STATE_ALLOCATED);
-	return (uintptr_t *)ret;
+	return ret;
 }
 
 // TODO : Compound page
@@ -267,12 +267,11 @@ void buddy_free_block(void *ptr)
 	uint32_t     current_state = PAGE_GET_STATE(page);
 
 	if (current_state == PAGE_STATE_FREE)
-		kpanic("Error: %s: Double free detected on address %p\n", __func__, ptr);
+		kpanic("Double free detected on address %p\n", ptr);
 	else if (current_state != PAGE_STATE_ALLOCATED && current_state != PAGE_STATE_AVAILABLE)
-		kpanic("Error: %s: Attempt to free a page with invalid state (%d) at %p\n", __func__,
-		       current_state, ptr);
+		kpanic("Attempt to free a page with invalid state (%d) at %p\n", current_state, ptr);
 	else if (!order_is_valid(block_order)) {
-		kpanic("Error: buddy_free_block: incorrect block order: %x\n", block_order);
+		kpanic("Incorrect block order: %x\n", block_order);
 	}
 
 	enum zone_type zone = page_zone_flags_to_zone_type(PAGE_GET_ZONE(page));
@@ -399,10 +398,9 @@ static void print_buddy_free_list(size_t order, enum zone_type zone)
 // refactor
 static void debug_buddy_check_lost_pages(void)
 {
-	size_t         lost        = 0;
-	size_t         total_buddy = 0;
-	size_t         free_count  = boot_allocator_get_regions_count(FREE_MEMORY);
-	struct region *free_reg    = boot_allocator_get_regions(FREE_MEMORY);
+	size_t         lost       = 0;
+	size_t         free_count = boot_allocator_get_regions_count(FREE_MEMORY);
+	struct region *free_reg   = boot_allocator_get_regions(FREE_MEMORY);
 
 	for (uint32_t i = 0; i < total_pages; i++) {
 		if (PAGE_IS_FREE(&page_descriptors[i])) {
@@ -417,8 +415,6 @@ static void debug_buddy_check_lost_pages(void)
 			if (!in_buddy) {
 				vga_printf("Lost page: 0x%x\n", addr);
 				lost++;
-			} else {
-				total_buddy++;
 			}
 		}
 	}
@@ -443,7 +439,7 @@ static void debug_buddy_alloc_still_free(size_t order, void *phys, enum zone_typ
 	}
 }
 
-static inline uintptr_t *alloc_block_with_order(size_t order, enum zone_type zone)
+static __always_inline uintptr_t *alloc_block_with_order(size_t order, enum zone_type zone)
 {
 	return buddy_alloc_pages(PAGE_BY_ORDER(order) * PAGE_SIZE, zone);
 }

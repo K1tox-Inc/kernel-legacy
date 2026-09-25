@@ -1,4 +1,5 @@
 #include <arch/trap_frame.h>
+#include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <list.h>

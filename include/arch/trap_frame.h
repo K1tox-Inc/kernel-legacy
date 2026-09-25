@@ -3,6 +3,7 @@
 #include <arch/register.h>
 #include <types.h>
 #include <utils/assert.h>
+#include <utils/kmacro.h>
 
 struct trap_frame {
 	struct registers regs;
