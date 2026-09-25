@@ -52,19 +52,19 @@ static const char *debug_buddy_order_to_string(size_t order)
 	}
 }
 
-static inline bool order_is_valid(size_t order) { return order <= MAX_ORDER; }
+static __always_inline bool order_is_valid(size_t order) { return order <= MAX_ORDER; }
 
-static inline uintptr_t *page_node_to_phys(struct list_head *page_node)
+static __always_inline uintptr_t *page_node_to_phys(struct list_head *page_node)
 {
 	return (uintptr_t *)page_to_phys(list_entry(page_node, struct page, node));
 }
 
-static inline struct list_head *order_to_free_list(size_t order, enum zone_type zone)
+static __always_inline struct list_head *order_to_free_list(size_t order, enum zone_type zone)
 {
 	return &buddy[zone].areas[order].free_list[MIGRATE_MOVABLE];
 }
 
-static inline size_t order_to_nrFree(size_t order, enum zone_type zone)
+static __always_inline size_t order_to_nrFree(size_t order, enum zone_type zone)
 {
 	return buddy[zone].areas[order].nr_free;
 }
@@ -137,7 +137,7 @@ static uintptr_t *split_block_to_order(size_t order_needed, size_t cur_order, ui
 	return split_block_to_order(order_needed, cur_order, ptr, zone);
 }
 
-static inline enum zone_type page_zone_flags_to_zone_type(uint32_t zone_flags)
+static __always_inline enum zone_type page_zone_flags_to_zone_type(uint32_t zone_flags)
 {
 	switch (zone_flags) {
 	case PAGE_ZONE_DMA:
@@ -439,7 +439,7 @@ static void debug_buddy_alloc_still_free(size_t order, void *phys, enum zone_typ
 	}
 }
 
-static inline uintptr_t *alloc_block_with_order(size_t order, enum zone_type zone)
+static __always_inline uintptr_t *alloc_block_with_order(size_t order, enum zone_type zone)
 {
 	return buddy_alloc_pages(PAGE_BY_ORDER(order) * PAGE_SIZE, zone);
 }

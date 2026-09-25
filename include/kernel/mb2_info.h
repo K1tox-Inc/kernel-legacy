@@ -31,8 +31,8 @@ extern const struct multiboot2_header_tag_information_request mb2_tag_info_req;
 extern const struct multiboot2_header_tag_end                 mb2_tag_end;
 extern struct multiboot_info                                 *mb2info;
 
-static inline struct multiboot_mmap_entry *next_entry(struct multiboot_mmap_entry *mmap_entry,
-                                                      struct multiboot_tag_mmap   *mmap)
+static __always_inline struct multiboot_mmap_entry *
+next_entry(struct multiboot_mmap_entry *mmap_entry, struct multiboot_tag_mmap *mmap)
 {
 	return (struct multiboot_mmap_entry *)((uint8_t *)mmap_entry + mmap->entry_size);
 }

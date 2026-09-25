@@ -37,7 +37,7 @@ __attribute__((constructor)) static void init_pid_manager(void)
 
 extern void interrupt_exit(void);
 
-static inline const char *task_state_to_string(enum process_states state)
+static __always_inline const char *task_state_to_string(enum process_states state)
 {
 	switch (state) {
 	case TASK_NEW:
@@ -66,7 +66,7 @@ static void task_print_section(const char *label, const struct section *sec)
 	           sec->flags);
 }
 
-static inline void cpu_idle_loop(void)
+static __always_inline void cpu_idle_loop(void)
 {
 	while (true)
 		__asm__ volatile("sti; hlt");

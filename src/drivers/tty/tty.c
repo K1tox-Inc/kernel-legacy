@@ -21,7 +21,7 @@ void tty_framebuffer_set_screen_mode(struct tty *tty, enum vga_color mode)
 		tty->framebuffer[i].mode = mode;
 }
 
-static inline void tty_print_prompt(void) { vga_printf("%s", TTY_PROMPT); }
+static __always_inline void tty_print_prompt(void) { vga_printf("%s", TTY_PROMPT); }
 
 static void tty_handle_kprimitive(SHELL_ARGS)
 {

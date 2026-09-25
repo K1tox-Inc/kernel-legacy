@@ -7,7 +7,7 @@
 #include <proc/section.h>
 #include <proc/userspace.h>
 
-static inline void init_heap_section(struct section *prev, struct section *heap)
+static __always_inline void init_heap_section(struct section *prev, struct section *heap)
 {
 	ft_bzero(heap, sizeof(struct section));
 	heap->v_addr       = get_next_section_start_after_page_guard(prev->v_addr, prev->mapping_size);
@@ -17,7 +17,7 @@ static inline void init_heap_section(struct section *prev, struct section *heap)
 	heap->flags        = USER_SECTION_RW;
 }
 
-static inline void init_stack_section(struct section *stack)
+static __always_inline void init_stack_section(struct section *stack)
 {
 	ft_bzero(stack, sizeof(struct section));
 	stack->v_addr       = get_prev_section_start(USER_STACK_START, DEFAULT_STACK_SIZE);

@@ -189,8 +189,8 @@ static void init_pic(void)
 	outb(PIC2_DATA, 0x00);
 }
 
-static inline void idt_set_entry(struct idt_entry *ptr, uint16_t selector, uint8_t type,
-                                 uint32_t offset)
+static __always_inline void idt_set_entry(struct idt_entry *ptr, uint16_t selector, uint8_t type,
+                                          uint32_t offset)
 {
 	ptr->offset_1        = offset & 0xffff;
 	ptr->offset_2        = (offset & 0xffff0000) >> 16;

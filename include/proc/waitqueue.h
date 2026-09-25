@@ -36,8 +36,9 @@ struct wq_head {
 // EXTERNAL APIs
 // ============================================================================
 
-static inline void wq_init(struct wq_head *wq) { INIT_SENTINEL(&wq->head); }
-static inline void wq_entry_init(struct wq_entry *entry, struct task *task, enum wq_state state)
+static __always_inline void wq_init(struct wq_head *wq) { INIT_SENTINEL(&wq->head); }
+static __always_inline void wq_entry_init(struct wq_entry *entry, struct task *task,
+                                          enum wq_state state)
 {
 	entry->task    = task;
 	entry->head    = NULL;
