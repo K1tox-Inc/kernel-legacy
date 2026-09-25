@@ -21,6 +21,9 @@ size_t vsize(void *ptr) { return vma_size(ptr, &vmalloc_areas); }
 
 void vfree(void *ptr)
 {
+	if (!ptr)
+		return;
+
 	struct vm_area *area = vma_find_by_start(ptr, &vmalloc_areas);
 	if (!area)
 		return;
