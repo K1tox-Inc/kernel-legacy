@@ -3,7 +3,7 @@
 #include <syscalls/syscalls.h>
 #include <utils/error.h>
 
-SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
+int kill_pid(pid_t pid, int sig)
 {
 	struct task *task_target = task_find_by_pid(pid);
 
@@ -17,3 +17,5 @@ SYSCALL_DEFINE2(kill, pid_t, pid, int, sig)
 	signal_send(sig, task_target);
 	return SUCCESS;
 }
+
+SYSCALL_DEFINE2(kill, pid_t, pid, int, sig) { return kill_pid(pid, sig); }

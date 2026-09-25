@@ -2,6 +2,7 @@
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/usercopy.h>
+#include <proc/task.h>
 #include <syscalls/syscalls.h>
 #include <utils/error.h>
 
@@ -11,11 +12,12 @@ SYSCALL_DEFINE3(write, int, fd, const char *, str, size_t, size)
 
 	if (size >= MAX_KMALLOC_SIZE)
 		return -EINVAL;
-	char *dup = kmalloc(size + 1, __GFP_KERNEL);
+
+	char *const dup = kmalloc(size + 1, __GFP_KERNEL);
 	if (!dup)
 		return -ENOMEM;
-	unsigned long ret = copy_from_user(dup, str, size);
-	if (ret != 0) {
+
+	if (copy_from_user(dup, str, size) != 0) {
 		kfree(dup);
 		return -EFAULT;
 	}

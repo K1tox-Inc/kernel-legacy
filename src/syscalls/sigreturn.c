@@ -3,13 +3,12 @@
 #include <memory/usercopy.h>
 #include <proc/signal.h>
 #include <proc/task.h>
-#include <syscalls/ksyscalls.h>
+#include <syscalls/exit.h>
 #include <syscalls/syscalls.h>
 #include <utils/error.h>
 
 SYSCALL_DEFINE0(sigreturn)
 {
-
 	struct task *cur = task_get_current_task();
 	if (!cur)
 		return -EINVAL;
@@ -19,7 +18,7 @@ SYSCALL_DEFINE0(sigreturn)
 
 	struct sigframe *old_frame = container_of((void *)tf->user_esp, struct sigframe, sig_num);
 	if (copy_from_user(tf, &old_frame->tf_backup, sizeof(struct trap_frame)))
-		sys_exit(-EFAULT);
+		do_exit(-EFAULT);
 
 	tf->user_ss = USER_DS;
 	tf->eflags  = (tf->eflags & 0x00000DD5) | 0x202;

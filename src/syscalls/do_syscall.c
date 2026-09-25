@@ -16,6 +16,7 @@ void do_syscall(struct trap_frame *tf)
 
 	tf->regs.eax =
 	    handler(tf->regs.ebx, tf->regs.ecx, tf->regs.edx, tf->regs.esi, tf->regs.edi, tf->regs.ebp);
+
 	return;
 
 bad:

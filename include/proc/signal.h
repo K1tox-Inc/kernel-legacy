@@ -75,12 +75,13 @@ struct sigframe {
 	struct trap_frame tf_backup;
 } __packed;
 
-bool signal_is_valid(enum signals sig);
-bool signal_check_perm(struct task *target);
-void signal_send(enum signals sig, struct task *dst);
-bool signal_is_set(enum signals sig, struct task *dst);
-void signal_reset(struct task *dst);
-void signal_dequeue(enum signals sig, struct task *dst);
-int  signal_dequeue_yield(struct task *task);
-void signal_init_default_handlers(struct task *task);
-void signal_call_curtask_handlers(void);
+bool       signal_is_valid(enum signals sig);
+bool       signal_check_perm(struct task *target);
+void       signal_send(enum signals sig, struct task *dst);
+bool       signal_is_set(enum signals sig, struct task *dst);
+void       signal_reset(struct task *dst);
+void       signal_dequeue(enum signals sig, struct task *dst);
+int        signal_dequeue_yield(struct task *task);
+void       signal_init_default_handlers(struct task *task);
+void       signal_call_curtask_handlers(void);
+extern int kill_pid(pid_t pid, int sig);

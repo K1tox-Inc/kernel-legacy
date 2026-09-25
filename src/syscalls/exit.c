@@ -4,8 +4,9 @@
 #include <proc/scheduler.h>
 #include <proc/task.h>
 #include <syscalls/syscalls.h>
+#include <utils/compiler.h>
 
-SYSCALL_DEFINE1(exit, int, status)
+void __noreturn do_exit(int status)
 {
 	struct task *init     = task_get_kitoxD();
 	struct task *idle     = task_get_idle();
@@ -27,10 +28,13 @@ SYSCALL_DEFINE1(exit, int, status)
 
 	// TODO: send_signal to parent (when implemented)
 	paging_reload_cr3(vmm_get_kernel_directory());
+
 	task_exit_cleanup(cur_task);
+
 	schedule();
 
 	// the current task/address space.
-	kpanic("sys_exit: returned after `task_exit_cleanup()'");
-	return status;
+	kpanic("Returned after `task_exit_cleanup()'");
 }
+
+SYSCALL_DEFINE1(exit, int, status) { do_exit(status); }

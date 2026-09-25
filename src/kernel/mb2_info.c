@@ -8,7 +8,7 @@ struct multiboot_info *mb2info = NULL;
 
 // Principal Header
 const struct multiboot_header mb2_header
-    __attribute__((used, section(".multiboot2_header"), aligned(8))) = {
+    __attribute__((used, section(".multiboot2"), aligned(8))) = {
         .magic         = MULTIBOOT2_HEADER_MAGIC,
         .architecture  = 0,
         .header_length = sizeof(struct multiboot_header) +
@@ -21,7 +21,7 @@ const struct multiboot_header mb2_header
 
 // Tag information request
 const struct multiboot2_header_tag_information_request mb2_tag_info_req
-    __attribute__((used, section(".multiboot2_header"), aligned(8))) = {
+    __attribute__((used, section(".multiboot2"), aligned(8))) = {
         .type     = 1,
         .flags    = 0,
         .size     = sizeof(struct multiboot2_header_tag_information_request),
@@ -30,7 +30,7 @@ const struct multiboot2_header_tag_information_request mb2_tag_info_req
 
 // End Tag
 const struct multiboot2_header_tag_end mb2_tag_end
-    __attribute__((used, section(".multiboot2_header"), aligned(8))) = {
+    __attribute__((used, section(".multiboot2"), aligned(8))) = {
         .type = 0, .flags = 0, .size = sizeof(struct multiboot2_header_tag_end)};
 
 // Functions
@@ -58,20 +58,22 @@ extern uint32_t mb2_mbi;
 void mb2_init(void)
 {
 	/* Make sure the magic number matches for memory mapping*/
-	if (mb2_magic != MULTIBOOT2_BOOTLOADER_MAGIC)
+	if (unlikely(mb2_magic != MULTIBOOT2_BOOTLOADER_MAGIC))
 		kpanic("Invalid magic number: expected 0x%x | used 0x%x\n", MULTIBOOT2_BOOTLOADER_MAGIC,
 		       mb2_magic);
+
 	int tags_found            = 0;
 	mb2info                   = (struct multiboot_info *)mb2_mbi;
-	struct multiboot_tag *tag = (struct multiboot_tag *)&mb2info->tags[0];
+	struct multiboot_tag *tag = (&mb2info->tags[0]);
 
 	while (tag->type != MULTIBOOT_TAG_TYPE_END) {
 		switch (tag->type) {
-		case MULTIBOOT_TAG_TYPE_MMAP:
+		case MULTIBOOT_TAG_TYPE_MMAP: {
 			struct multiboot_tag_mmap *mmap = (struct multiboot_tag_mmap *)tag;
 			boot_allocator_init(mmap, (uint8_t *)mmap + mmap->size);
 			tags_found++;
 			break;
+		}
 
 		default:
 			break;

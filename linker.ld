@@ -3,11 +3,12 @@ ENTRY(_start)
 SECTIONS {
     . = 1M;
 
-    .multiboot2_header ALIGN(8) : {
-        *(.multiboot2_header)
+    .multiboot2 ALIGN(8) : {
+        *(.multiboot2)
     }
 
 	. += 0xC0000000;
+
     PROVIDE(kernel_start = .);
 
     .text ALIGN(4K) : AT(ADDR(.text) - 0xC0000000) {
@@ -33,10 +34,12 @@ SECTIONS {
         *(COMMON)
         *(.bss)
     }
+
     .stack ALIGN(16) : AT(ADDR(.stack) - 0xC0000000) {
         kernel_stack = .;
         *(.stack)
         kernel_stack_top = .;
     }
+
     PROVIDE(kernel_end = .);
 }

@@ -134,7 +134,7 @@ static void sys_kill_wrapper(SHELL_ARGS)
 	int   sig = ft_atoi(argv[1]);
 	pid_t pid = ft_atoi(argv[2]);
 
-	sys_kill(pid, sig);
+	kill_pid(pid, sig);
 }
 
 struct shell_command shell_commands[] = {
