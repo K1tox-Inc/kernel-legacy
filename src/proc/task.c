@@ -136,9 +136,9 @@ void task_append_child(struct task *parent, struct task *child)
 
 struct task *task_clone(const struct task *task)
 {
-	const size_t name_len   = ft_strlen(task->name);
-	const size_t alloc_size = sizeof(struct task) + sizeof(struct section) * 5 + name_len;
-	struct task *const new  = kmalloc(alloc_size, __GFP_KERNEL | __GFP_ZERO);
+	const size_t       name_len   = ft_strlen(task->name);
+	const size_t       alloc_size = sizeof(struct task) + sizeof(struct section) * 5 + name_len + 1;
+	struct task *const new        = kmalloc(alloc_size, __GFP_KERNEL | __GFP_ZERO);
 
 	if (new == NULL) {
 		return NULL;
@@ -172,6 +172,7 @@ struct task *task_clone(const struct task *task)
 
 	new->name = (char *)(new->sig_trampoline + 1);
 	ft_memcpy(new->name, task->name, name_len);
+	new->name[name_len] = 0;
 
 	new->pid = id_manager_alloc(pid_manager);
 	if (new->pid < 0) {
@@ -206,7 +207,7 @@ struct task *task_get_new(const char *name, size_t ring, struct section *text, s
 		return NULL;
 
 	// `kmalloc` use slabs caches here
-	const size_t   alloc_size  = sizeof(struct task) + sizeof(struct section) * 5 + name_len;
+	const size_t   alloc_size  = sizeof(struct task) + sizeof(struct section) * 5 + name_len + 1;
 	unsigned char *memory_zone = kmalloc(alloc_size, GFP_KERNEL | __GFP_ZERO);
 	if (!memory_zone)
 		return NULL;
@@ -272,6 +273,7 @@ struct task *task_get_new(const char *name, size_t ring, struct section *text, s
 
 	ret->name = (char *)(ret->sig_trampoline + 1);
 	ft_memcpy(ret->name, name, name_len);
+	ret->name[name_len] = 0;
 
 	wq_entry_init(&ret->wq_data, ret, TASK_INTERRUPTIBLE);
 	wq_init(&ret->child_wq);
