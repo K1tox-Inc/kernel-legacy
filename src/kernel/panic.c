@@ -2,7 +2,12 @@
 #include <drivers/tty.h>
 #include <drivers/vga.h>
 #include <kernel/panic.h>
+#include <memory/kmalloc.h>
+#include <memory/memory.h>
+#include <proc/lock.h>
+#include <stdarg.h>
 #include <types.h>
+#include <utils/compiler.h>
 
 static uint8_t stack_snapshot[4096];
 
@@ -45,4 +50,19 @@ void print_stack_frame(void)
 	vga_printf("ESP = %p | EBP = %p\n", esp, ebp);
 	uint32_t eip = *(ebp + 1);
 	vga_printf("Return address: 0x%x\n", eip);
+}
+
+void __noreturn __kpanic(const char *fmt, ...)
+{
+	va_list ap;
+
+	lock_irq();
+	tty_framebuffer_set_screen_mode(current_tty, VGA_COLOR(VGA_COLOR_RED, VGA_COLOR_WHITE));
+	vga_disable_cursor();
+
+	va_start(ap, fmt);
+	vga_vprintf(fmt, ap);
+	va_end(ap);
+
+	halt();
 }

@@ -112,4 +112,5 @@ struct task *task_get_kitoxD(void);
 struct task *task_find_by_pid(pid_t pid);
 struct task *task_get_new(const char *name, size_t ring, struct section *text,
                           struct section *data);
+struct task *task_clone(const struct task *task);
 void         sloppy_exec(char *sloppy_name);
