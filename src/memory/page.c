@@ -49,7 +49,7 @@ static uint32_t page_get_zone_flag(uintptr_t addr_start)
 	return PAGE_ZONE_DMA;
 }
 
-static inline uint32_t page_get_appropriate_flag(uintptr_t addr_start)
+static __always_inline uint32_t page_get_appropriate_flag(uintptr_t addr_start)
 {
 	return page_get_state_flag(addr_start) | page_get_zone_flag(addr_start);
 }
@@ -66,9 +66,9 @@ static void count_reserved_pages(struct page *page, void *counter)
 		(*(uint32_t *)counter)++;
 }
 
-static inline struct page *last_page() { return &page_descriptors[total_pages - 1]; }
+static __always_inline struct page *last_page() { return &page_descriptors[total_pages - 1]; }
 
-static inline struct page *first_page() { return &page_descriptors[0]; }
+static __always_inline struct page *first_page() { return &page_descriptors[0]; }
 
 static void page_descriptor_foreach(pages_foreach_fn handler, void *data)
 {

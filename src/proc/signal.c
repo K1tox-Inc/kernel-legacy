@@ -13,7 +13,7 @@
 // ============================================================================
 
 #define iter_over_array(p, a)                                                                      \
-	for (p = a; (uintptr_t)p - (uintptr_t)a <= sizeof(a) - sizeof(typeof(*a)); p++)
+	for ((p) = a; (uintptr_t)(p) - (uintptr_t)(a) <= sizeof(a) - sizeof(typeof(*(a))); (p)++)
 
 #define SIG_IGN_MASK                                                                               \
 	((1U << SIGCHLD) | (1U << SIGCONT) | (1U << SIGSTOP) | (1U << SIGTSTP) | (1U << SIGTTIN) |     \

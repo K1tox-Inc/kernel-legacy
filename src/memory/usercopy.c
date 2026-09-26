@@ -4,15 +4,14 @@
 #include <memory/vmm.h>
 #include <proc/task.h>
 
-static unsigned long usercopy(void *kernel_buf, void *user_buf, unsigned long n,
-                              bool copy_into_kbuf)
+static size_t usercopy(void *kernel_buf, void *user_buf, size_t n, bool copy_into_kbuf)
 {
 	if (!access_ok(user_buf, n))
 		return n;
 
-	uint32_t *pd_virt = (uint32_t *)PHYS_TO_VIRT_LINEAR(task_get_current_task()->cr3);
+	uint32_t *pd_virt = PHYS_TO_VIRT_LINEAR(task_get_current_task()->cr3);
 
-	uint32_t flags = PDE_PRESENT_BIT | PDE_US_BIT;
+	uint32_t flags = PDE_US_BIT;
 	if (!copy_into_kbuf)
 		flags |= PDE_RW_BIT;
 
@@ -27,12 +26,12 @@ static unsigned long usercopy(void *kernel_buf, void *user_buf, unsigned long n,
 	return 0;
 }
 
-unsigned long copy_from_user(void *to, const void *from, unsigned long n)
+size_t copy_from_user(void *to, const void *from, size_t n)
 {
 	return usercopy(to, (void *)from, n, true);
 }
 
-unsigned long copy_to_user(void *to, const void *from, unsigned long n)
+size_t copy_to_user(void *to, const void *from, size_t n)
 {
 	return usercopy((void *)from, to, n, false);
 }

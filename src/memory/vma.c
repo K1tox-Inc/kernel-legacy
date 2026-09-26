@@ -8,12 +8,9 @@
 #include <memory/vma.h>
 #include <memory/vmm.h>
 #include <types.h>
+#include <utils/assert.h>
 #include <utils/compiler.h>
 #include <utils/kmacro.h>
-
-// ============================================================================
-// INTERNAL APIs
-// ============================================================================
 
 static void merge_neighbor(struct vm_area *start_area, struct vm_area *next_area)
 {
@@ -41,10 +38,12 @@ static struct vm_area *vma_alloc_in_area(struct list_head *head, uintptr_t pd, s
 	new_area->nr_pages  = number_of_pages;
 	new_area->pte_flags = pte_flags;
 
-	if (alloc_mode == VMA_EAGER) {
+	switch (alloc_mode) {
+	case VMA_EAGER:
 		if (!vma_map_area(new_area, pd))
 			goto free_on_error;
-	} else {
+		break;
+	default:
 		new_area->state = VM_AREA_LAZY;
 	}
 
@@ -54,10 +53,6 @@ free_on_error:
 	vma_destroy_area(head, new_area, pd);
 	return NULL;
 }
-
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
 
 struct vm_area *vma_first_fit_alloc(struct list_head *head, size_t size)
 {
@@ -72,6 +67,8 @@ struct vm_area *vma_first_fit_alloc(struct list_head *head, size_t size)
 
 struct vm_area *vma_split_area(struct vm_area *area, size_t size)
 {
+	assert(area != NULL);
+
 	size_t needed_size  = ALIGN(size, PAGE_SIZE);
 	size_t num_of_pages = DIV_ROUND_UP(needed_size, PAGE_SIZE);
 
@@ -115,9 +112,9 @@ void vma_merge_area(struct list_head *head, struct vm_area *area)
 
 struct vm_area *vma_find_by_start(void *ptr, struct list_head *head)
 {
-	if (!ptr)
-		return NULL;
-	struct vm_area *area = NULL;
+	assert(ptr != NULL);
+
+	struct vm_area *area;
 	list_for_each_entry(area, head, vma_node)
 	{
 		if (area->start_vaddr == (uintptr_t)ptr)
@@ -128,8 +125,8 @@ struct vm_area *vma_find_by_start(void *ptr, struct list_head *head)
 
 struct vm_area *vma_find_by_addr(void *ptr, struct list_head *head)
 {
-	if (!ptr)
-		return NULL;
+	assert(head != NULL);
+
 	struct vm_area *area;
 	list_for_each_entry(area, head, vma_node)
 	{
@@ -141,19 +138,17 @@ struct vm_area *vma_find_by_addr(void *ptr, struct list_head *head)
 
 size_t vma_size(void *ptr, struct list_head *head)
 {
-	if (!ptr)
-		return 0;
+	assert(ptr != NULL);
 	struct vm_area *area = vma_find_by_start(ptr, head);
-	if (area)
-		return area->size;
-	return 0;
+	assert(area);
+	return area->size;
 }
 
 void vma_init_area(struct list_head *head, uintptr_t start, uintptr_t end)
 {
 	struct vm_area *initial_hole = kmalloc(sizeof(struct vm_area), GFP_KERNEL | __GFP_ZERO);
 	if (!initial_hole)
-		kpanic("vma_init_area failed!");
+		kpanic("Failed to allocate `initial_hole'");
 
 	initial_hole->state       = VM_AREA_FREE;
 	initial_hole->start_vaddr = start;
@@ -165,8 +160,8 @@ void vma_init_area(struct list_head *head, uintptr_t start, uintptr_t end)
 struct vm_area *vma_alloc(struct list_head *head, uintptr_t pd, size_t size, uint32_t pte_flags,
                           void *hint_vaddr, enum vma_alloc_mode alloc_mode)
 {
+	struct vm_area *free_area = hint_vaddr ? vma_find_by_start(hint_vaddr, head) : NULL;
 
-	struct vm_area *free_area = vma_find_by_start(hint_vaddr, head);
 	if (!free_area || free_area->state != VM_AREA_FREE || free_area->size < size)
 		free_area = vma_first_fit_alloc(head, size);
 	if (!free_area)
@@ -237,10 +232,6 @@ bool vma_map_area(struct vm_area *new_area, uintptr_t pd)
 	}
 	return true;
 }
-
-// ============================================================================
-// DEBUG APIs
-// ============================================================================
 
 void vma_print_areas(struct list_head *head)
 {

@@ -19,10 +19,14 @@ TOOLSDIR=tools
 
 CLANG_FORMAT := clang-format
 
-AS := i686-linux-gnu-as
-CC := i686-linux-gnu-gcc
-AR := i686-linux-gnu-ar
-LD := i686-linux-gnu-ld
+# `i686-linux-gnu` assumes a hosted environment (Linux + glibc), which
+# doesn't apply to freestanding kernel code. TODO: switch to `i686-elf`.
+TARGET := i686-linux-gnu
+
+AS := $(TARGET)-as
+CC := $(TARGET)-gcc
+AR := $(TARGET)-ar
+LD := $(TARGET)-ld
 
 ifeq ($(CFLAGS),)
 CFLAGS  = -ffreestanding -fno-builtin -fno-exceptions -fno-stack-protector -nostdinc -MD -MP -Wall -Wextra

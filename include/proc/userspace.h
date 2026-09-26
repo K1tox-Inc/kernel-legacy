@@ -12,7 +12,7 @@
 
 #define get_next_section_start(start, size) ALIGN(((start) + (size)), PAGE_SIZE)
 #define get_next_section_start_after_page_guard(start, size)                                       \
-	ALIGN(((start) + (size + PAGE_SIZE)), PAGE_SIZE)
+	ALIGN(((start) + ((size) + PAGE_SIZE)), PAGE_SIZE)
 #define get_prev_section_start(end, size) ALIGN_DOWN(((end) - (size)), PAGE_SIZE)
 
 // ============================================================================

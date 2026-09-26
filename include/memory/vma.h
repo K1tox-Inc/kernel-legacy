@@ -1,25 +1,15 @@
 #pragma once
 
-// ============================================================================
-// INCLUDES
-// ============================================================================
-
 #include <list.h>
 #include <types.h>
-
-// ============================================================================
-// DEFINE AND MACRO
-// ============================================================================
-
-// ============================================================================
-// STRUCT
-// ============================================================================
+#include <utils/compiler.h>
 
 enum vm_area_state { VM_AREA_FREE, VM_AREA_ALLOCATED, VM_AREA_LAZY };
 enum vma_alloc_mode { VMA_EAGER, VMA_LAZY };
 
 struct vm_area {
-	struct list_head   vma_node;
+	struct list_head vma_node;
+
 	enum vm_area_state state;
 	uintptr_t          start_vaddr;
 	size_t             size;
@@ -35,14 +25,6 @@ static __always_inline bool vma_areas_are_neighbors(struct vm_area *start_area,
 {
 	return (start_area->start_vaddr + start_area->size == next_area->start_vaddr);
 }
-
-// ============================================================================
-// VARIABLES GLOBALES
-// ============================================================================
-
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
 
 void            vma_print_areas(struct list_head *head);
 void            vma_merge_area(struct list_head *head, struct vm_area *area);

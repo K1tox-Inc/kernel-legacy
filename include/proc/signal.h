@@ -49,7 +49,7 @@ typedef typeof(void(int)) *sighandler_t;
 
 #define SIG_ERR ((sighandler_t) - 1)
 
-static inline const char *signal_to_string(enum signals sig)
+static __always_inline const char *signal_to_string(enum signals sig)
 {
 	static const char *names[] = {
 	    [SIGHUP] = "SIGHUP",       [SIGINT] = "SIGINT",       [SIGQUIT] = "SIGQUIT",
