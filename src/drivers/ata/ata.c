@@ -1,4 +1,6 @@
 #include <arch/io.h>
+#include <arch/x86.h>
+#include <libk.h>
 #include <list.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
@@ -7,13 +9,15 @@
 #include <utils/kmacro.h>
 
 #include "ata.h"
+#include "kernel/panic.h"
+#include "types.h"
 
-#define ATA_PRIMARY_BASE      0x1F0
-#define ATA_PRIMARY_CONTROL   0x3F6
-#define ATA_SECONDARY_BASE    0x170
-#define ATA_SECONDARY_CONTROL 0x376
+static LIST_HEAD(ide_channels);
+LIST_HEAD(ide_devices);
 
-static void ide_write_reg(struct ide_channel *channel, uint8_t reg, uint8_t value)
+void memory_dump(const uint8_t *addr_start, const uint8_t *addr_end);
+
+static void ide_write_reg(const struct ide_channel *channel, uint8_t reg, uint8_t value)
 {
 	if (reg > 0x07 && reg < 0x0C)
 		ide_write_reg(channel, ATA_REG_CONTROL, 0x80 | channel->nIEN);
@@ -31,7 +35,7 @@ static void ide_write_reg(struct ide_channel *channel, uint8_t reg, uint8_t valu
 		ide_write_reg(channel, ATA_REG_CONTROL, channel->nIEN);
 }
 
-static uint8_t ide_read_reg(struct ide_channel *channel, uint8_t reg)
+static uint8_t ide_read_reg(const struct ide_channel *channel, uint8_t reg)
 {
 	uint8_t result;
 
@@ -55,8 +59,30 @@ static uint8_t ide_read_reg(struct ide_channel *channel, uint8_t reg)
 	return result;
 }
 
-static LIST_HEAD(ide_channels);
-static LIST_HEAD(ide_devices);
+uint8_t ide_polling(const struct ide_channel *channel, bool advanced_check)
+{
+
+	for (int i = 0; i < 4; i++)
+		ide_read_reg(channel, ATA_REG_ALTSTATUS);
+
+	while (ide_read_reg(channel, ATA_REG_STATUS) & ATA_SR_BSY)
+		;
+
+	if (advanced_check) {
+		unsigned char state = ide_read_reg(channel, ATA_REG_STATUS);
+
+		if (state & ATA_SR_DF)
+			return 1;
+
+		if (state & ATA_SR_ERR)
+			return 2;
+
+		if ((state & ATA_SR_DRQ) == 0)
+			return 3;
+	}
+
+	return 0;
+}
 
 static void ide_id_extract_string(const uint16_t *buf, size_t byte_off, char *out, size_t max_len)
 {
@@ -79,91 +105,47 @@ static void ide_id_extract_string(const uint16_t *buf, size_t byte_off, char *ou
 	}
 }
 
-#ifndef NDEBUG
-static void ide_log_channels(void)
-{
-	struct ide_channel *ch;
-	int                 n = 0;
-	list_for_each_entry(ch, &ide_channels, node)
-	{
-		log("[ide][ctrl] channel[%d]: base=0x%04x ctrl=0x%04x bmide=0x%04x nIEN=0x%02x", n++,
-		    ch->base_port, ch->control_port, ch->bmide, ch->nIEN);
-	}
-	if (n == 0)
-		log("[ide][ctrl] NO IDE channels registered");
-}
-#endif
-
 static void ide_probe_controller(const ide_controller_t *ctrlr, __always_unused void *ctx)
 {
-#define bar(x) pci_config_read_dword(ctrlr, PCI_GENERAL_BASE_ADDRESS_##x)
+	uint32_t            bar[6];
+	struct ide_channel *channels = kmalloc(sizeof(struct ide_channel) * 2, GFP_KERNEL);
 
-	uint32_t            bar0, bar1, bar2, bar3, bar4, bar5;
-	struct ide_channel *channels;
+	bar[0] = pci_config_read_dword(ctrlr, PCI_GENERAL_BASE_ADDRESS_0);
+	bar[1] = pci_config_read_dword(ctrlr, PCI_GENERAL_BASE_ADDRESS_1);
+	bar[2] = pci_config_read_dword(ctrlr, PCI_GENERAL_BASE_ADDRESS_2);
+	bar[3] = pci_config_read_dword(ctrlr, PCI_GENERAL_BASE_ADDRESS_3);
+	bar[4] = pci_config_read_dword(ctrlr, PCI_GENERAL_BASE_ADDRESS_4);
+	bar[5] = pci_config_read_dword(ctrlr, PCI_GENERAL_BASE_ADDRESS_5);
 
-	bar0 = bar(0);
-	bar1 = bar(1);
-	bar2 = bar(2);
-	bar3 = bar(3);
-	bar4 = bar(4);
-	bar5 = bar(5);
+	if (bar[0] == 0)
+		bar[0] = ATA_PRIMARY_BASE;
+	if (bar[1] == 0)
+		bar[1] = ATA_PRIMARY_CONTROL;
+	if (bar[2] == 0)
+		bar[2] = ATA_SECONDARY_BASE;
+	if (bar[3] == 0)
+		bar[3] = ATA_SECONDARY_CONTROL;
 
-	log("[ide][ctrl] --- controller @ %02x:%02x.%02x ---", ctrlr->bus, ctrlr->slot, ctrlr->func);
-	log("[ide][ctrl]   BAR0=0x%08x  BAR1=0x%08x  BAR2=0x%08x  BAR3=0x%08x", bar0, bar1, bar2, bar3);
-	log("[ide][ctrl]   BAR4=0x%08x  BAR5=0x%08x", bar4, bar5);
-
-	channels = kmalloc(sizeof(struct ide_channel) * 2, GFP_KERNEL);
-	if (!channels) {
-		pci_log(ctrlr, "Failed to allocate channels. Skipping...");
-		return;
-	}
-
-	/*
-	 * PIIX3 IDE in QEMU: BAR0-3 = 0 (no MMIO), legacy I/O ports are
-	 * hardcoded at 0x1F0/0x3F6 (primary) and 0x170/0x376 (secondary).
-	 * BAR4/5 (bmide, optional DMA window) may also be 0.
-	 * Fall back to legacy ports when the BAR is zero.
-	 */
-	if (bar0 == 0)
-		bar0 = ATA_PRIMARY_BASE;
-	if (bar1 == 0)
-		bar1 = ATA_PRIMARY_CONTROL;
-	if (bar2 == 0)
-		bar2 = ATA_SECONDARY_BASE;
-	if (bar3 == 0)
-		bar3 = ATA_SECONDARY_CONTROL;
-
-	channels->base_port    = bar0;
-	channels->control_port = bar1;
-	channels->bmide        = bar4; /* bar4 may be 0 -> legacy nIEN path */
+	channels->base_port    = bar[0];
+	channels->control_port = bar[1];
+	channels->bmide        = bar[4];
 	channels->nIEN         = 0x02;
 	list_add_tail(&channels->node, &ide_channels);
-	log("[ide][ctrl]   [0] master: base=0x%04x ctrl=0x%04x bmide=0x%04x", channels->base_port,
-	    channels->control_port, channels->bmide);
 
 	channels++;
 
-	channels->base_port    = bar2;
-	channels->control_port = bar3;
-	channels->bmide        = bar5;
+	channels->base_port    = bar[2];
+	channels->control_port = bar[3];
+	channels->bmide        = bar[5];
 	channels->nIEN         = 0x02;
 	list_add_tail(&channels->node, &ide_channels);
-	log("[ide][ctrl]   [1] slave : base=0x%04x ctrl=0x%04x bmide=0x%04x", channels->base_port,
-	    channels->control_port, channels->bmide);
-
-#ifndef NDEBUG
-	ide_log_channels();
-#endif
-
-#undef bar
 }
 
-static int ide_identify(struct ide_channel *channel, struct ide_device *dev, uint16_t *buf)
+static int ide_identify(const struct ide_channel *channel, const struct ide_device *dev,
+                        uint16_t *buf)
 {
 	int     i;
 	uint8_t st;
-
-	log("[ide][id] slave=%d: waiting !BSY (max 1000 polls)", dev->slave);
 
 	for (i = 0; i < 1000; i++) {
 		st = ide_read_reg(channel, ATA_REG_STATUS);
@@ -172,53 +154,39 @@ static int ide_identify(struct ide_channel *channel, struct ide_device *dev, uin
 	}
 
 	if (st & ATA_SR_BSY) {
-		log("[ide][id] slave=%d: TIMEOUT waiting for !BSY (last status=0x%02x)", dev->slave, st);
 		return -1;
 	}
 
-	log("[ide][id] slave=%d: !BSY reached, status=0x%02x", dev->slave, st);
-
 	ide_write_reg(channel, ATA_REG_HDDEVSEL, (uint8_t)(0xA0 | (dev->slave << 4)));
 	ide_write_reg(channel, ATA_REG_COMMAND, ATA_CMD_IDENTIFY);
-	log("[ide][id] slave=%d: issued IDENTIFY (HDDEVSEL=0x%02x)", dev->slave,
-	    (uint8_t)(0xA0 | (dev->slave << 4)));
 
 	for (i = 0; i < 10000; i++) {
 		st = ide_read_reg(channel, ATA_REG_STATUS);
 		if (!(st & ATA_SR_BSY) && (st & ATA_SR_DRQ))
 			break;
 		if (st & ATA_SR_ERR) {
-			log("[ide][id] slave=%d: ERR flag set (status=0x%02x)", dev->slave, st);
 			return -1;
 		}
 	}
 
 	if (!(st & ATA_SR_DRQ)) {
-		log("[ide][id] slave=%d: no DRQ (status=0x%02x, i=%d)", dev->slave, st, i);
 		return -1;
 	}
-	log("[ide][id] slave=%d: DRQ ready, reading 128 dwords (status=0x%02x, i=%d)", dev->slave, st,
-	    i);
 
 	insl(channel->base_port + ATA_REG_DATA, buf, 128);
 	st = ide_read_reg(channel, ATA_REG_STATUS);
 	if (st & ATA_SR_ERR) {
-		log("[ide][id] slave=%d: ERR after IDENTIFY transfer (status=0x%02x)", dev->slave, st);
 		return -1;
 	}
-	log("[ide][id] slave=%d: IDENTIFY complete, post-status=0x%02x", dev->slave, st);
 
 	return 0;
 }
 
-static int ide_populate_drive(struct ide_channel *channel, struct ide_device *dev)
+static int ide_populate_drive(const struct ide_channel *channel, struct ide_device *dev)
 {
 	uint16_t id_buf[256];
 
-	log("[ide][pop] slave=%d: base_port=0x%04x", dev->slave, channel->base_port);
-
 	if (ide_identify(channel, dev, id_buf) != 0) {
-		log("[ide][pop] slave=%d: ide_identify FAILED", dev->slave);
 		return -1;
 	}
 
@@ -236,11 +204,6 @@ static int ide_populate_drive(struct ide_channel *channel, struct ide_device *de
 	ide_id_extract_string(id_buf, ATA_IDENT_MODEL, dev->model, sizeof(dev->model));
 	ide_id_extract_string(id_buf, ATA_IDENT_SERIAL, dev->serial, sizeof(dev->serial));
 
-	log("[ide][pop] slave=%d: OK  model=\"%s\" serial=\"%s\" type=%u cyl=%u head=%u sect=%u lba=%u "
-	    "cap=0x%04x fvalid=0x%02x",
-	    dev->slave, dev->model, dev->serial, dev->dev_type, dev->cylinders, dev->heads,
-	    dev->sectors, dev->lba_max_sectors, dev->capabilities, dev->field_valid);
-
 	return 0;
 }
 
@@ -253,50 +216,121 @@ static void ide_probe_channels(void)
 	{
 		int slave;
 
-		log("[ide][chan] probing channel base=0x%04x", channel->base_port);
-
 		for (slave = 0; slave < 2; slave++) {
 			dev = kmalloc(sizeof(struct ide_device), GFP_KERNEL);
 			if (!dev) {
-				log("[ide][chan] channel base=0x%04x slave=%d: kmalloc FAILED", channel->base_port,
-				    slave);
 				continue;
 			}
+
 			dev->channel = channel;
 			dev->slave   = slave;
 			dev->present = (ide_populate_drive(channel, dev) == 0);
+
 			if (dev->present) {
 				list_add_tail(&dev->node, &ide_devices);
 			} else {
-				log("[ide][chan] channel base=0x%x slave=%d: NOT PRESENT", channel->base_port,
-				    slave);
 				kfree(dev);
 			}
 		}
 	}
 }
 
+uint8_t ata_access_sector(const struct ide_device *dev, uint32_t lba,
+                          enum ide_access_direction direction, uint8_t numsects, void *edi)
+{
+	uint8_t lba_io[6], head;
+
+	ide_write_reg(dev->channel, ATA_REG_CONTROL, 0x02);
+
+	if (lba >= 0x10000000) {
+		kpanic("LBA48 not implemented");
+	} else if (dev->capabilities & (1 << 9)) {
+		lba_io[0] = (lba & 0x00000FF) >> 0;
+		lba_io[1] = (lba & 0x000FF00) >> 8;
+		lba_io[2] = (lba & 0x0FF0000) >> 16;
+		lba_io[3] = 0;
+		lba_io[4] = 0;
+		lba_io[5] = 0;
+		head      = (lba & 0xF000000) >> 24;
+	} else {
+		kpanic("CHS not implemented");
+	}
+
+	while (ide_read_reg(dev->channel, ATA_REG_STATUS) & ATA_SR_BSY)
+		;
+
+	ide_write_reg(dev->channel, ATA_REG_HDDEVSEL, 0xE0 | (dev->slave << 4) | head);
+
+	ide_write_reg(dev->channel, ATA_REG_SECCOUNT0, numsects);
+	ide_write_reg(dev->channel, ATA_REG_LBA0, lba_io[0]);
+	ide_write_reg(dev->channel, ATA_REG_LBA1, lba_io[1]);
+	ide_write_reg(dev->channel, ATA_REG_LBA2, lba_io[2]);
+
+	ide_write_reg(dev->channel, ATA_REG_COMMAND,
+	              (direction == IDE_ACCESS_READ) ? ATA_CMD_READ_PIO : ATA_CMD_WRITE_PIO);
+
+	uint8_t err;
+
+	switch (direction) {
+	case IDE_ACCESS_READ: {
+		for (int i = 0; i < numsects; i++) {
+			err = ide_polling(dev->channel, true);
+			if (err)
+				return err;
+			__asm__ volatile("pushw %es");
+			__asm__ volatile("mov %%ax, %%es"
+			                 :
+			                 : "a"(GDT_SELECTOR(GDT_IDX_KERNEL_DATA, KERNEL_RING)));
+			__asm__ volatile("rep insw"
+			                 :
+			                 : "c"(ATA_SECTOR_SIZE / 2), "d"(dev->channel->base_port), "D"(edi));
+			__asm__ volatile("popw %es");
+			edi += ATA_SECTOR_SIZE;
+		}
+		break;
+	}
+	case IDE_ACCESS_WRITE: {
+		for (int i = 0; i < numsects; i++) {
+			ide_polling(dev->channel, false);
+			__asm__ volatile("pushw %ds");
+			__asm__ volatile(
+			    "mov %%ax, %%ds" ::"a"(GDT_SELECTOR(GDT_IDX_KERNEL_DATA, KERNEL_RING)));
+			__asm__ volatile("rep outsw" ::"c"(ATA_SECTOR_SIZE / 2), "d"(dev->channel->base_port),
+			                 "S"(edi));
+			__asm__ volatile("popw %ds");
+			edi += ATA_SECTOR_SIZE;
+		}
+		ide_write_reg(dev->channel, ATA_REG_COMMAND, ATA_CMD_CACHE_FLUSH);
+		ide_polling(dev->channel, false);
+		break;
+	}
+	default:
+		kpanic("lmao you're so funny :)");
+	}
+
+	return 0;
+}
+
 void ide_init(void)
 {
-	log(" -= Starting IDE drives probing =-");
-
 	pci_for_each_device(PCI_DEVICE_IDE_CONTROLLER, ide_probe_controller, NULL);
 	ide_probe_channels();
 
-	struct ide_device *dev;
-	int                n = 0;
-	list_for_each_entry(dev, &ide_devices, node)
-	{
-		log("ATA[%d] base=0x%x slave=%d: model=\"%s\" serial=\"%s\" type=%u cyl=%u head=%u sect=%u "
-		    "lba=%u size=%uMiB",
-		    n++, dev->channel->base_port, dev->slave, dev->model, dev->serial, dev->dev_type,
-		    dev->cylinders, dev->heads, dev->sectors, dev->lba_max_sectors,
-		    dev->lba_max_sectors / 2048 /* assume 512B sectors */);
-	}
-
-	if (n == 0) {
-		log("NO IDE DEVICES FOUND");
-	}
-
-	log(" -= IDE drives probing finished =-");
+	/*
+	 * Usage exemple:
+	 * const struct ide_device *device;
+	 *
+	 * uint8_t   buffer[ATA_SECTOR_SIZE * 1];
+	 * uintptr_t addr          = 0xd0d0;
+	 * uint32_t  lba           = addr / ATA_SECTOR_SIZE;
+	 * size_t    buffer_offset = addr % ATA_SECTOR_SIZE;
+	 *
+	 * device = list_next_entry(list_first_entry(&ide_devices, struct ide_device, node), node);
+	 *
+	 * ata_read_sector(device, lba, sizeof(buffer) / ATA_SECTOR_SIZE, buffer);
+	 *
+	 * ft_memcpy(buffer + buffer_offset, "Hello, World!", 13);
+	 *
+	 * ata_write_sector(device, lba, sizeof(buffer) / ATA_SECTOR_SIZE, buffer);
+	 */
 }
