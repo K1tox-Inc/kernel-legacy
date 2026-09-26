@@ -107,6 +107,4 @@ struct ide_device {
 	uint32_t lba_ext_max_sectors;
 };
 
-extern struct list_head ide_devices;
-
 void ide_init(void);

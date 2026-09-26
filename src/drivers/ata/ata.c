@@ -1,12 +1,12 @@
+#include <arch/io.h>
+#include <list.h>
+#include <memory/kmalloc.h>
+#include <memory/memory.h>
 #include <utils/assert.h>
 #include <utils/compiler.h>
 #include <utils/kmacro.h>
 
-#include "../../include/arch/io.h"
 #include "ata.h"
-#include "list.h"
-#include "memory/kmalloc.h"
-#include "memory/memory.h"
 
 #define ATA_PRIMARY_BASE      0x1F0
 #define ATA_PRIMARY_CONTROL   0x3F6
@@ -56,7 +56,7 @@ static uint8_t ide_read_reg(struct ide_channel *channel, uint8_t reg)
 }
 
 static LIST_HEAD(ide_channels);
-LIST_HEAD(ide_devices);
+static LIST_HEAD(ide_devices);
 
 static void ide_id_extract_string(const uint16_t *buf, size_t byte_off, char *out, size_t max_len)
 {
@@ -99,7 +99,6 @@ static void ide_probe_controller(const ide_controller_t *ctrlr, __always_unused 
 #define bar(x) pci_config_read_dword(ctrlr, PCI_GENERAL_BASE_ADDRESS_##x)
 
 	uint32_t            bar0, bar1, bar2, bar3, bar4, bar5;
-	int                 n_ctrls = 0;
 	struct ide_channel *channels;
 
 	bar0 = bar(0);
@@ -141,7 +140,6 @@ static void ide_probe_controller(const ide_controller_t *ctrlr, __always_unused 
 	list_add_tail(&channels->node, &ide_channels);
 	log("[ide][ctrl]   [0] master: base=0x%04x ctrl=0x%04x bmide=0x%04x", channels->base_port,
 	    channels->control_port, channels->bmide);
-	n_ctrls++;
 
 	channels++;
 
@@ -152,9 +150,6 @@ static void ide_probe_controller(const ide_controller_t *ctrlr, __always_unused 
 	list_add_tail(&channels->node, &ide_channels);
 	log("[ide][ctrl]   [1] slave : base=0x%04x ctrl=0x%04x bmide=0x%04x", channels->base_port,
 	    channels->control_port, channels->bmide);
-	n_ctrls++;
-
-	log("[ide][ctrl]   registered %d channel(s) total", n_ctrls);
 
 #ifndef NDEBUG
 	ide_log_channels();
@@ -253,14 +248,12 @@ static void ide_probe_channels(void)
 {
 	struct ide_channel *channel;
 	struct ide_device  *dev;
-	int                 ch_count = 0, dev_count = 0, present_count = 0;
 
 	list_for_each_entry(channel, &ide_channels, node)
 	{
 		int slave;
 
 		log("[ide][chan] probing channel base=0x%04x", channel->base_port);
-		ch_count++;
 
 		for (slave = 0; slave < 2; slave++) {
 			dev = kmalloc(sizeof(struct ide_device), GFP_KERNEL);
@@ -272,9 +265,7 @@ static void ide_probe_channels(void)
 			dev->channel = channel;
 			dev->slave   = slave;
 			dev->present = (ide_populate_drive(channel, dev) == 0);
-			dev_count++;
 			if (dev->present) {
-				present_count++;
 				list_add_tail(&dev->node, &ide_devices);
 			} else {
 				log("[ide][chan] channel base=0x%x slave=%d: NOT PRESENT", channel->base_port,
@@ -283,9 +274,6 @@ static void ide_probe_channels(void)
 			}
 		}
 	}
-
-	log("[ide][chan] probed %d channels, %d drives attempted, %d found", ch_count, dev_count,
-	    present_count);
 }
 
 void ide_init(void)
