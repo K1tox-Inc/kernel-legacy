@@ -2,6 +2,13 @@
 
 #include "../pci/pci.h"
 
+#define ATA_PRIMARY_BASE      0x1F0
+#define ATA_PRIMARY_CONTROL   0x3F6
+#define ATA_SECONDARY_BASE    0x170
+#define ATA_SECONDARY_CONTROL 0x376
+
+#define ATA_SECTOR_SIZE 512
+
 #define ATA_SR_BSY  0x80
 #define ATA_SR_DRDY 0x40
 #define ATA_SR_DF   0x20
@@ -107,6 +114,21 @@ struct ide_device {
 	uint32_t lba_ext_max_sectors;
 };
 
+enum ide_access_direction { IDE_ACCESS_READ, IDE_ACCESS_WRITE };
+extern void             ide_init(void);
 extern struct list_head ide_devices;
 
-void ide_init(void);
+extern uint8_t ata_access_sector(const struct ide_device *dev, uint32_t lba,
+                                 enum ide_access_direction direction, uint8_t numsects, void *edi);
+
+static __always_inline uint8_t ata_read_sector(const struct ide_device *device, uint32_t lba,
+                                               uint8_t numsects, void *edi)
+{
+	return ata_access_sector(device, lba, IDE_ACCESS_READ, numsects, edi);
+}
+
+static __always_inline uint8_t ata_write_sector(const struct ide_device *device, uint32_t lba,
+                                                uint8_t numsects, const void *edi)
+{
+	return ata_access_sector(device, lba, IDE_ACCESS_WRITE, numsects, (void *)edi);
+}

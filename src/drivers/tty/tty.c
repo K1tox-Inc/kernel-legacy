@@ -1,4 +1,3 @@
-#include "list.h"
 #include <arch/acpi.h>
 #include <drivers/keyboard.h>
 #include <drivers/tty.h>
@@ -6,15 +5,19 @@
 #include <kernel/panic.h>
 #include <libk.h>
 #include <libutils.h>
+#include <list.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <proc/task.h>
 #include <utils/kmacro.h>
 
+#include "../ata/ata.h"
+#include "../pci/pci.h"
+
 struct tty ttys[12], *current_tty = ttys;
 
 extern struct list_head pci_devices;
-#include "../pci/pci.h"
+extern struct list_head ide_devices;
 
 static void print_help(SHELL_ARGS_UNUSED);
 
@@ -94,7 +97,7 @@ void tty_framebuffer_scroll_down(void)
 	if (current_tty->top_line_index == 0)
 		current_tty->history.stop_scroll = false;
 	uint8_t bottom_line = current_tty->top_line_index + (uint8_t)(VGA_HEIGHT - 1);
-	for (size_t x = 0; x < VGA_WIDTH; x++) {
+	for (int x = 0; x < VGA_WIDTH; x++) {
 		int offset = (bottom_line * VGA_WIDTH) + x;
 		current_tty->framebuffer[offset] =
 		    (struct vga_entry){.character = 0x00, .mode = current_tty->mode};
@@ -182,6 +185,40 @@ static void lspci_cmd(SHELL_ARGS_UNUSED)
 	}
 }
 
+static void lside_cmd(SHELL_ARGS_UNUSED)
+{
+	struct ide_device *dev;
+	size_t             i = 0;
+	uint32_t           bytes, sectors;
+	char               name[16];
+
+	list_for_each_entry(dev, &ide_devices, node)
+	{
+		/* Derive /dev/hdX from list position: hda=primary master,
+		 * hdb=primary slave, hdc=secondary master, hdd=secondary slave. */
+		name[0] = 'h';
+		name[1] = 'd';
+		name[2] = '0' + i;
+		name[3] = '\0';
+		sectors = dev->lba_ext_max_sectors ? dev->lba_ext_max_sectors : dev->lba_max_sectors;
+		bytes   = sectors * 512;
+		vga_printf("Disk %s: %u MiB, %u bytes, %u sectors\n"
+		           "Disk model: %s\n"
+		           "Units: sectors of 1 * 512 = 512 bytes\n"
+		           "Sector size (logical/physical): 512 bytes / 512 bytes\n"
+		           "I/O size (minimum/optimal): 512 bytes / 512 bytes\n"
+		           "\n"
+		           "Device   Start     End       Sectors   Size   Type\n"
+		           "(no partition table)\n"
+		           "\n",
+		           name, (unsigned int)(bytes / (1024 * 1024)), (unsigned int)bytes, sectors,
+		           dev->model);
+		i++;
+	}
+	if (i == 0)
+		vga_printf("NO IDE devices registered\n");
+}
+
 struct shell_command shell_commands[] = {
     {"poweroff", "Power off the system.", tty_handle_kprimitive},
     {"reboot", "Reboot the system.", tty_handle_kprimitive},
@@ -196,6 +233,7 @@ struct shell_command shell_commands[] = {
     {"task_info", "Print task data using pid.", task_cmd_print_info},
     {"kill", "Send signal to process.", sys_kill_wrapper},
     {"lspci", "List PCI devices.", lspci_cmd},
+    {"lside", "List IDE/ATA drives.", lside_cmd},
     {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \
@@ -226,7 +264,7 @@ void tty_cli_handle_nl(void)
 						break;
 					}
 				}
-				uint32_t shell_argc = ft_strslen(shell_argv);
+				int shell_argc = (int)ft_strslen(shell_argv);
 				func ? func(shell_argc, shell_argv)
 				     : vga_printf("k1tOS: command not found: %s\n", shell_argv[0]);
 			}

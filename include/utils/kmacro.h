@@ -14,8 +14,7 @@
 
 extern void vga_printf(const char *fmt, ...);
 
-# define log(msg, ...)                                                                             \
-	 vga_printf("[" __FILE__ ":%i]: %s: " msg "\n", __LINE__, __func__, ##__VA_ARGS__)
+# define log(msg, ...) vga_printf("[%s:%i]: " msg "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 # define dbg(variable_name)                                                                        \
 	 ({                                                                                            \
@@ -44,7 +43,7 @@ extern void vga_printf(const char *fmt, ...);
 #ifdef offsetof
 # undef offsetof
 #endif
-#define offsetof(type, member) ((size_t)&((type *)0)->member)
+#define offsetof(type, member) ((size_t) & ((type *)0)->member)
 #ifdef container_of
 # undef container_of
 #endif
