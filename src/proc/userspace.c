@@ -148,10 +148,6 @@ bad:
 	return false;
 }
 
-// ============================================================================
-// DEBUG APIs
-// ============================================================================
-
 static void print_section_info(const char *label, const struct section *sec)
 {
 	if (!sec || (!sec->v_addr && !sec->mapping_size)) {

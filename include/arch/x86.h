@@ -13,9 +13,6 @@ struct idtr {
 	uintptr_t base;
 } __packed;
 
-///////////////////////////////////////////////////
-// Gdt flags
-
 enum Gdt_Access_Byte {
 	ACCESS_BIT      = 0b00000001, // Bit 0: Indique si le segment a été accédé par le CPU
 	RW_BIT          = 0b00000010, // Bit 1: Lecture/écriture pour données, lecture pour code
@@ -46,9 +43,6 @@ enum Gdt_Access_Byte {
 #define USER_CS GDT_SELECTOR(GDT_IDX_USER_CODE, USER_RING) // 0x1B
 #define USER_DS GDT_SELECTOR(GDT_IDX_USER_DATA, USER_RING) // 0x23
 
-///////////////////////////////////////////////////
-// Eflags
-
 // look here https://wiki.osdev.org/CPU_Registers_x86 to get more info
 // Status Flags
 #define EFLAGS_CF    (1 << 0) // Carry Flag
@@ -76,9 +70,6 @@ enum Gdt_Access_Byte {
 
 #define EFLAGS_USER_DEFAULT   (EFLAGS_FIXED | EFLAGS_IF)
 #define EFLAGS_KERNEL_DEFAULT (EFLAGS_FIXED | EFLAGS_IF)
-
-///////////////////////////////////////////////////
-// Others
 
 typedef void (*irqHandler)(struct trap_frame *frame);
 

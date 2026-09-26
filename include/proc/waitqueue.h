@@ -3,10 +3,6 @@
 #include <list.h>
 #include <types.h>
 
-// ============================================================================
-// STRUCTS & MACROS
-// ============================================================================
-
 #define WQ_HEAD_INIT(name)                                                                         \
 	{                                                                                              \
 		.head = LIST_HEAD_INIT((name).head)                                                        \
@@ -31,10 +27,6 @@ struct wq_entry {
 struct wq_head {
 	struct list_head head;
 };
-
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
 
 static __always_inline void wq_init(struct wq_head *wq) { INIT_SENTINEL(&wq->head); }
 static __always_inline void wq_entry_init(struct wq_entry *entry, struct task *task,

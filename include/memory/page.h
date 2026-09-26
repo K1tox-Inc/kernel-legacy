@@ -1,15 +1,7 @@
 #pragma once
 
-// ============================================================================
-// INCLUDES
-// ============================================================================
-
 #include <list.h>
 #include <types.h>
-
-// ============================================================================
-// DEFINE AND MACRO
-// ============================================================================
 
 #define MAX_PAGES  (1UL << 20)
 #define PAGE_MAGIC 0xDEADBEEF
@@ -41,15 +33,7 @@
 #define PAGE_IS_FREE(page)      (PAGE_GET_STATE(page) == PAGE_STATE_FREE)
 #define PAGE_IS_ALLOCATED(page) (PAGE_GET_STATE(page) == PAGE_STATE_ALLOCATED)
 
-// ============================================================================
-// STRUCT
-// ============================================================================
-
-// Enums
-
 enum direction { NEXT = 0, PREV };
-
-// Structures
 
 struct page {
 	struct list_head node;
@@ -57,17 +41,9 @@ struct page {
 	uintptr_t        private_data;
 };
 
-// ============================================================================
-// VARIABLES GLOBALES
-// ============================================================================
-
 extern uint32_t     total_pages;
 extern uint32_t     total_RAM;
 extern struct page *page_descriptors;
-
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
 
 void         page_print_info(struct page *page);
 void         page_descriptor_init(void);

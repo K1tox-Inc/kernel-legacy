@@ -7,17 +7,10 @@
 #include <memory/page.h>
 #include <utils/kmacro.h>
 
-// Defines
 static const char *debug_buddy_zone_to_str(enum zone_type zone);
-
-// Macros
 
 #define PAGE_DATA_IS_MAGIC(page)           ((page)->private_data == PAGE_MAGIC)
 #define WHO_IS_MY_BUDDY(addr, order, base) ((((addr) - (base)) ^ ORDER_TO_BYTES(order)) + (base))
-
-// STRUCT
-
-// VARIABLES GLOBALES
 
 static struct buddy_allocator buddy[MAX_ZONE];
 
@@ -312,8 +305,6 @@ void buddy_init(void)
 	}
 	boot_allocator_freeze();
 }
-
-// DEBUG
 
 static const char *debug_buddy_zone_to_str(enum zone_type zone)
 {

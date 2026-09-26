@@ -14,13 +14,9 @@
 static void     boot_allocator_sort_regions(struct region *reg, uint32_t count);
 static uint32_t boot_allocator_merge_contiguous_regions(struct region *reg, uint32_t count);
 
-// Defines
-
 #define END               0x00000000
 #define REGION_TYPE_COUNT 3
 #define MAX_REGIONS       256
-
-// Macros
 
 #define BOOT_ALLOCATOR_SORT_AND_MERGE(regions, count)                                              \
 	do {                                                                                           \
@@ -45,14 +41,6 @@ static uint32_t boot_allocator_merge_contiguous_regions(struct region *reg, uint
 #define BOOT_ALLOC_RESERVED_REGIONS(alloc) ((alloc)->regions[RESERVED_MEMORY])
 #define BOOT_ALLOC_HOLE_REGIONS(alloc)     ((alloc)->regions[HOLES_MEMORY])
 
-// ============================================================================
-// STRUCT
-// ============================================================================
-
-// Enums
-
-// Structures
-
 typedef struct {
 	uintptr_t p_addr;
 	size_t    size;
@@ -72,13 +60,7 @@ struct region free_zones[MAX_ZONE][MAX_REGIONS];
 uint32_t      res_count[MAX_ZONE];
 struct region res_zones[MAX_ZONE][MAX_REGIONS];
 
-// Typedefs
-
 typedef void (*regions_foreach_fn)(struct region *regions);
-
-// ============================================================================
-// VARIABLES GLOBALES
-// ============================================================================
 
 extern boot_allocator_t bootmem;
 static struct region    all_reg_g[MAX_REGIONS * REGION_TYPE_COUNT];
@@ -325,8 +307,6 @@ static void boot_allocator_init_zones(uint32_t      zcount[MAX_ZONE],
 		}
 	}
 }
-
-// External APis
 
 struct region *boot_allocator_get_regions(enum mem_type type) { return bootmem.regions[type]; }
 

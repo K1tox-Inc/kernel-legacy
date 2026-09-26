@@ -8,28 +8,10 @@
 #include <types.h>
 #include <utils/kmacro.h>
 
-// ============================================================================
-// INCLUDES
-// ============================================================================
-
 #include <list.h>
-
-// ============================================================================
-// DEFINE AND MACRO
-// ============================================================================
-
-// Defines
-
-// Macros
 
 #define SLAB_INTRUSIVE_THRESHOLD 512
 #define SLAB_IS_EXTERNAL(size)   ((size) > SLAB_INTRUSIVE_THRESHOLD)
-
-// ============================================================================
-// STRUCT
-// ============================================================================
-
-// Enums
 
 typedef enum {
 	CACHE_8B = 0,
@@ -45,19 +27,9 @@ typedef enum {
 	NUM_SLAB_CACHES,
 } cache_size;
 
-// Structures
-
-// ============================================================================
-// VARIABLES GLOBALES
-// ============================================================================
-
 static const size_t cache_sizes[] = {8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096};
 
 static struct slab_cache slab_caches[MAX_ZONE][NUM_SLAB_CACHES];
-
-// ============================================================================
-// INTERNAL APIs
-// ============================================================================
 
 static size_t slab_print_zone_summary(enum zone_type zone);
 
@@ -137,10 +109,6 @@ static struct slab *slab_create(struct slab_cache *cache, enum zone_type zone)
 	page->private_data = (uintptr_t)ret;
 	return ret;
 }
-
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
 
 void slab_shrink_caches(enum zone_type zone)
 {
@@ -248,10 +216,6 @@ void slab_init(void)
 		}
 	}
 }
-
-// ============================================================================
-// DEBUG APIs
-// ============================================================================
 
 static size_t list_count_nodes(struct list_head *head)
 {

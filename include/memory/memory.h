@@ -1,19 +1,9 @@
 #pragma once
 
-// ============================================================================
-// INCLUDES
-// ============================================================================
-
 #include <arch/register.h>
 #include <types.h>
 #include <utils/assert.h>
 #include <utils/kmacro.h>
-
-// ============================================================================
-// DEFINE AND MACRO
-// ============================================================================
-
-// Defines
 
 #define PAGE_SIZE 4096
 
@@ -46,7 +36,6 @@
 #define VMALLOC_START 0xF8000000
 #define VMALLOC_END   0xFFFFDFFF
 
-// Macros
 #define PHYS_TO_VIRT_LINEAR(p_addr)                                                                \
 	({                                                                                             \
 		uintptr_t addr = (uintptr_t)(p_addr);                                                      \
@@ -74,12 +63,6 @@
 #define GFP_KERNEL (__GFP_KERNEL)
 #define GFP_ATOMIC (__GFP_ATOMIC)
 
-// ============================================================================
-// STRUCT
-// ============================================================================
-
-// Enums
-
 enum allocator_state { ACTIVE = 0, FROZEN };
 
 enum zone_type { LOWMEM_ZONE = 0, DMA_ZONE, HIGHMEM_ZONE, INVALID_ZONE };
@@ -91,19 +74,7 @@ enum migration_type {
 	MIGRATE_RECLAIMABLE,
 };
 
-// Structures
-
-// Typedefs
-
 typedef unsigned int gfp_t;
-
-// ============================================================================
-// VARIABLES GLOBALES
-// ============================================================================
-
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
 
 void *buddy_alloc_pages(size_t size, enum zone_type zone);
 void  buddy_free_block(void *ptr);

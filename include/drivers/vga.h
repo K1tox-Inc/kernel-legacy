@@ -1,18 +1,9 @@
 #pragma once
 
-// ============================================================================
-// INCLUDES
-// ============================================================================
-
 #include <memory/memory.h>
 #include <stdarg.h>
 #include <types.h>
 
-// ============================================================================
-// DEFINE AND MACRO
-// ============================================================================
-
-// Defines
 #define VGA_WIDTH         80
 #define VGA_HEIGHT        25
 #define VGA_COLOR(bg, fg) ((bg) << 4 | (fg))
@@ -20,13 +11,6 @@
 #define VGA_BUFFER        ((struct vga_entry *)PHYS_TO_VIRT_LINEAR(0xB8000))
 #define VGA_ENTRY(x, y)   (VGA_BUFFER + ((y) * VGA_WIDTH + (x)))
 
-// Macros
-
-// ============================================================================
-// STRUCT
-// ============================================================================
-
-// Enums
 enum vga_color {
 	VGA_COLOR_BLACK         = 0,
 	VGA_COLOR_BLUE          = 1,
@@ -46,7 +30,6 @@ enum vga_color {
 	VGA_COLOR_WHITE         = 15,
 };
 
-// Structures
 struct vga_entry {
 	uint8_t character;
 	uint8_t mode;
@@ -56,16 +39,6 @@ struct s_cursor {
 	uint8_t x;
 	uint8_t y;
 };
-
-// Typedefs
-
-// ============================================================================
-// VARIABLES GLOBALES
-// ============================================================================
-
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
 
 void vga_disable_cursor(void);
 void vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
