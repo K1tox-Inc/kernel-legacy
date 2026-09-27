@@ -1,8 +1,8 @@
-#include <drivers/vga.h>
 #include <libk.h>
 #include <memory/usercopy.h>
 #include <memory/vmm.h>
 #include <proc/task.h>
+#include <vga/vga.h>
 
 static size_t usercopy(void *kernel_buf, void *user_buf, size_t n, bool copy_into_kbuf)
 {

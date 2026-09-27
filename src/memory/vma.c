@@ -1,4 +1,3 @@
-#include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <list.h>
@@ -11,6 +10,7 @@
 #include <utils/assert.h>
 #include <utils/compiler.h>
 #include <utils/kmacro.h>
+#include <vga/vga.h>
 
 static void merge_neighbor(struct vm_area *start_area, struct vm_area *next_area)
 {

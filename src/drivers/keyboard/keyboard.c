@@ -1,12 +1,11 @@
+#include <arch/trap_frame.h>
+#include <tty/tty.h>
+
 #include "keyboard.h"
 #include "layout.h"
-#include <arch/trap_frame.h>
-#include <drivers/tty.h>
 
 enum layout             current_layout_type = QWERTY;
 struct scancode_routine current_layout[256] = {0};
-
-// Printable Group
 
 static char keyboard_get_shifted_value(struct keyboard_key key)
 {
@@ -32,10 +31,6 @@ static void keyboard_printable_handler(struct keyboard_key key)
 
 	vga_printf("%c", ascii);
 }
-
-// Printable Group
-
-// Control Group
 
 static void keyboard_toggle_handler(struct keyboard_key key)
 {
@@ -69,10 +64,6 @@ static key_handler_t keyboard_get_control_handler(uint8_t state)
 	}
 }
 
-// Control Group
-
-// Navigation Group
-
 static void keyboard_navigation_handler(struct keyboard_key key)
 {
 	if (key.value == COLOR_PGUP || (key.value == COLOR_UP && left_ctrl))
@@ -88,15 +79,7 @@ static void keyboard_navigation_handler(struct keyboard_key key)
 		keyboard_printable_handler(key);
 }
 
-// Navigation Group
-
-// Function Group
-
 static void keyboard_function_handler(struct keyboard_key key) { tty_load(ttys + key.value); }
-
-// Function Group
-
-// Special Group
 
 static void keyboard_enter_handler(struct keyboard_key key)
 {
@@ -151,10 +134,6 @@ static key_handler_t keyboard_get_special_handler(uint8_t undergroup)
 	}
 }
 
-// Special Group
-
-// Internal API
-
 static key_handler_t keyboard_get_default_key_handler(struct keyboard_key key)
 {
 	switch (key.category) {
@@ -185,9 +164,6 @@ static void keyboard_init_default_table(void)
 		}
 	}
 }
-
-// External API
-
 void keyboard_switch_layout(enum layout new_layout)
 {
 	if (current_layout_type == new_layout) {

@@ -1,13 +1,13 @@
 #include <arch/acpi.h>
-#include <drivers/tty.h>
-#include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <proc/lock.h>
 #include <stdarg.h>
+#include <tty/tty.h>
 #include <types.h>
 #include <utils/compiler.h>
+#include <vga/vga.h>
 
 static uint8_t stack_snapshot[4096];
 

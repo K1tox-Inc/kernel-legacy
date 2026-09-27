@@ -2,14 +2,14 @@
 #include <arch/io.h>
 #include <arch/trap_frame.h>
 #include <arch/x86.h>
-#include <drivers/keyboard.h>
-#include <drivers/vga.h>
 #include <kernel/panic.h>
+#include <keyboard/keyboard.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <syscalls/syscalls.h>
 #include <types.h>
+#include <vga/vga.h>
 
 struct idt_entry {
 	uint16_t offset_1;

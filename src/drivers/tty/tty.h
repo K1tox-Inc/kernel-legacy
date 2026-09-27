@@ -1,6 +1,6 @@
 #pragma once
 
-#include <drivers/vga.h>
+#include <vga/vga.h>
 
 #define MAX_TTY       12
 #define TTY_HIST_SIZE 256

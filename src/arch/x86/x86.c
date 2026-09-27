@@ -1,19 +1,17 @@
 #include <arch/x86.h>
-#include <drivers/keyboard.h>
-#include <drivers/tty.h>
+#include <ata/ata.h>
 #include <kernel/mb2_info.h>
+#include <keyboard/keyboard.h>
 #include <memory/buddy.h>
 #include <memory/memory.h>
 #include <memory/page.h>
 #include <memory/slab.h>
 #include <memory/vmalloc.h>
 #include <memory/vmm.h>
+#include <pci/pci.h>
 #include <proc/scheduler.h>
 #include <proc/task.h>
-#include <utils/kmacro.h>
-
-#include "../../drivers/ata/ata.h"
-#include "../../drivers/pci/pci.h"
+#include <tty/tty.h>
 
 extern void (*__init_array_start[])(void);
 extern void (*__init_array_end[])(void);
