@@ -1,4 +1,3 @@
-#include <drivers/vga.h>
 #include <kernel/io_stream.h>
 #include <kernel/panic.h>
 #include <libk.h>
@@ -6,6 +5,7 @@
 #include <memory/vmm.h>
 #include <proc/section.h>
 #include <proc/userspace.h>
+#include <vga/vga.h>
 
 static __always_inline void init_heap_section(struct section *prev, struct section *heap)
 {

@@ -1,4 +1,3 @@
-#include <drivers/vga.h>
 #include <libk.h>
 #include <memory/usercopy.h>
 #include <proc/section.h>
@@ -7,6 +6,7 @@
 #include <proc/waitqueue.h>
 #include <syscalls/exit.h>
 #include <utils/error.h>
+#include <vga/vga.h>
 
 #define iter_over_array(p, a)                                                                      \
 	for ((p) = a; (uintptr_t)(p) - (uintptr_t)(a) <= sizeof(a) - sizeof(typeof(*(a))); (p)++)

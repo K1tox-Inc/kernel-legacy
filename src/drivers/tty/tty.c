@@ -1,14 +1,15 @@
 #include <arch/acpi.h>
-#include <drivers/keyboard.h>
-#include <drivers/tty.h>
-#include <drivers/vga.h>
 #include <kernel/panic.h>
+#include <keyboard/keyboard.h>
 #include <libk.h>
 #include <libutils.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <proc/task.h>
 #include <utils/kmacro.h>
+#include <vga/vga.h>
+
+#include "tty.h"
 
 struct tty ttys[12], *current_tty = ttys;
 

@@ -1,11 +1,11 @@
 #include <arch/acpi.h>
-#include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/boot_allocator.h>
 #include <memory/buddy.h>
 #include <memory/page.h>
 #include <utils/kmacro.h>
+#include <vga/vga.h>
 
 static const char *debug_buddy_zone_to_str(enum zone_type zone);
 

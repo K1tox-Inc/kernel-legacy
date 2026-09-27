@@ -1,4 +1,3 @@
-#include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <memory/buddy.h>
 #include <memory/kmalloc.h>
@@ -7,6 +6,7 @@
 #include <memory/slab.h>
 #include <types.h>
 #include <utils/kmacro.h>
+#include <vga/vga.h>
 
 #include <list.h>
 

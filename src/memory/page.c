@@ -1,9 +1,9 @@
 #include <arch/acpi.h>
-#include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <memory/boot_allocator.h>
 #include <memory/memory.h>
 #include <memory/page.h>
+#include <vga/vga.h>
 
 typedef void (*pages_foreach_fn)(struct page *page, void *data);
 

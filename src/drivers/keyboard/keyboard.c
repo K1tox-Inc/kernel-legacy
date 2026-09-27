@@ -1,7 +1,8 @@
+#include <arch/trap_frame.h>
+#include <tty/tty.h>
+
 #include "keyboard.h"
 #include "layout.h"
-#include <arch/trap_frame.h>
-#include <drivers/tty.h>
 
 enum layout             current_layout_type = QWERTY;
 struct scancode_routine current_layout[256] = {0};

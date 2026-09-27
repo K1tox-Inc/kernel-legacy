@@ -1,9 +1,9 @@
 #include <arch/io.h>
-#include <drivers/tty.h>
-#include <drivers/vga.h>
 #include <libk.h>
 #include <stdarg.h>
+#include <tty/tty.h>
 #include <utils/kmacro.h>
+#include <vga/vga.h>
 
 #ifndef NDEBUG
 # include <proc/task.h>

@@ -1,10 +1,10 @@
-#include <drivers/vga.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/usercopy.h>
 #include <proc/task.h>
 #include <syscalls/syscalls.h>
 #include <utils/error.h>
+#include <vga/vga.h>
 
 SYSCALL_DEFINE3(write, int, fd, const char *, str, size_t, size)
 {

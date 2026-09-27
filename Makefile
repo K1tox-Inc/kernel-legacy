@@ -35,7 +35,7 @@ CFLAGS += -Werror -DNDEBUG -O2
 else
 CFLAGS += -g
 endif
-CFLAGS += $(addprefix -I, ./include ./lib/libk ./lib/data_structs ./lib/libutils)
+CFLAGS += $(addprefix -I, ./include ./src/drivers ./lib/libk ./lib/data_structs ./lib/libutils)
 endif
 
 ifeq ($(LDFLAGS),)

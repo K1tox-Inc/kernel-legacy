@@ -1,5 +1,4 @@
 #include <arch/x86.h>
-#include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
@@ -17,6 +16,7 @@
 #include <utils/assert.h>
 #include <utils/error.h>
 #include <utils/id_manager.h>
+#include <vga/vga.h>
 
 static struct task        dummy_task;
 static struct task       *idle_task        = NULL;

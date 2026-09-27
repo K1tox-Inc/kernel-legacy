@@ -1,6 +1,5 @@
 #include <arch/acpi.h>
 #include <arch/x86.h>
-#include <drivers/vga.h>
 #include <kernel/mb2_info.h>
 #include <kernel/panic.h>
 #include <libk.h>
@@ -8,6 +7,7 @@
 #include <memory/memory.h>
 #include <types.h>
 #include <utils/kmacro.h>
+#include <vga/vga.h>
 
 // Header
 

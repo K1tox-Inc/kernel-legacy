@@ -1,5 +1,4 @@
 #include <arch/trap_frame.h>
-#include <drivers/vga.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/boot_allocator.h>
@@ -8,6 +7,7 @@
 #include <memory/vmm.h>
 #include <proc/task.h>
 #include <utils/kmacro.h>
+#include <vga/vga.h>
 
 /*
  * Virtual-to-physical address translation (32-bit paging):
