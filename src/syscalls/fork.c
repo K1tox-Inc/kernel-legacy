@@ -11,6 +11,7 @@
 #include <utils/assert.h>
 #include <utils/error.h>
 #include <utils/kmacro.h>
+#include <vga/vga.h>
 
 extern void interrupt_exit(void);
 

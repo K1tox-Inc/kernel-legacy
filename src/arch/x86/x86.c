@@ -1,7 +1,6 @@
 #include <arch/x86.h>
-#include <drivers/keyboard.h>
-#include <drivers/tty.h>
 #include <kernel/mb2_info.h>
+#include <keyboard/keyboard.h>
 #include <memory/buddy.h>
 #include <memory/memory.h>
 #include <memory/page.h>
@@ -10,6 +9,7 @@
 #include <memory/vmm.h>
 #include <proc/scheduler.h>
 #include <proc/task.h>
+#include <tty/tty.h>
 
 extern void (*__init_array_start[])(void);
 extern void (*__init_array_end[])(void);

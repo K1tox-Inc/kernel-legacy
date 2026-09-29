@@ -2,14 +2,14 @@
 #include <arch/io.h>
 #include <arch/trap_frame.h>
 #include <arch/x86.h>
-#include <drivers/keyboard.h>
-#include <drivers/vga.h>
 #include <kernel/panic.h>
+#include <keyboard/keyboard.h>
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <syscalls/syscalls.h>
 #include <types.h>
+#include <vga/vga.h>
 
 struct idt_entry {
 	uint16_t offset_1;
@@ -189,8 +189,8 @@ static void init_pic(void)
 	outb(PIC2_DATA, 0x00);
 }
 
-static inline void idt_set_entry(struct idt_entry *ptr, uint16_t selector, uint8_t type,
-                                 uint32_t offset)
+static __always_inline void idt_set_entry(struct idt_entry *ptr, uint16_t selector, uint8_t type,
+                                          uint32_t offset)
 {
 	ptr->offset_1        = offset & 0xffff;
 	ptr->offset_2        = (offset & 0xffff0000) >> 16;

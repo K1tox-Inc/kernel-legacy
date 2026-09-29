@@ -1,12 +1,11 @@
+#include <arch/trap_frame.h>
+#include <tty/tty.h>
+
 #include "keyboard.h"
 #include "layout.h"
-#include <arch/trap_frame.h>
-#include <drivers/tty.h>
 
 enum layout             current_layout_type = QWERTY;
 struct scancode_routine current_layout[256] = {0};
-
-// Printable Group
 
 static char keyboard_get_shifted_value(struct keyboard_key key)
 {
@@ -32,10 +31,6 @@ static void keyboard_printable_handler(struct keyboard_key key)
 
 	vga_printf("%c", ascii);
 }
-
-// Printable Group
-
-// Control Group
 
 static void keyboard_toggle_handler(struct keyboard_key key)
 {
@@ -69,10 +64,6 @@ static key_handler_t keyboard_get_control_handler(uint8_t state)
 	}
 }
 
-// Control Group
-
-// Navigation Group
-
 static void keyboard_navigation_handler(struct keyboard_key key)
 {
 	if (key.value == COLOR_PGUP || (key.value == COLOR_UP && left_ctrl))
@@ -88,15 +79,7 @@ static void keyboard_navigation_handler(struct keyboard_key key)
 		keyboard_printable_handler(key);
 }
 
-// Navigation Group
-
-// Function Group
-
 static void keyboard_function_handler(struct keyboard_key key) { tty_load(ttys + key.value); }
-
-// Function Group
-
-// Special Group
 
 static void keyboard_enter_handler(struct keyboard_key key)
 {
@@ -131,7 +114,7 @@ static void keyboard_backspace_handler(struct keyboard_key key)
 		}
 
 		vga_set_cursor_position(current_tty->cursor.x, current_tty->cursor.y);
-		uint8_t real_y = (uint8_t)current_tty->top_line_index + (uint8_t)current_tty->cursor.y;
+		uint8_t real_y = current_tty->top_line_index + current_tty->cursor.y;
 		int     offset = (real_y * VGA_WIDTH) + current_tty->cursor.x;
 		current_tty->framebuffer[offset].character = 0;
 	}
@@ -150,10 +133,6 @@ static key_handler_t keyboard_get_special_handler(uint8_t undergroup)
 		return NULL;
 	}
 }
-
-// Special Group
-
-// Internal API
 
 static key_handler_t keyboard_get_default_key_handler(struct keyboard_key key)
 {
@@ -185,24 +164,18 @@ static void keyboard_init_default_table(void)
 		}
 	}
 }
-
-// External API
-
 void keyboard_switch_layout(enum layout new_layout)
 {
 	if (current_layout_type == new_layout) {
-		log("Layout already set.");
 		return;
 	}
 
 	switch (new_layout) {
 	case QWERTY:
-		log("Switching layout to QWERTY.");
 		keyboard_remap_layout(default_key_table, KEY_MAX);
 		break;
 
 	case AZERTY:
-		log("Switching layout to AZERTY.");
 		keyboard_remap_layout(azerty_layout, STOP_WHEN_UNDEFINED);
 		break;
 	}

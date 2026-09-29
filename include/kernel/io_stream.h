@@ -28,7 +28,7 @@ struct io_stream {
 	size_t         pos;
 };
 
-static inline struct io_stream *io_stream_get_new(void *ctx, size_t size, size_t pos)
+static __always_inline struct io_stream *io_stream_get_new(void *ctx, size_t size, size_t pos)
 {
 	struct io_stream *ret =
 	    kmalloc(sizeof(struct io_stream) + sizeof(struct io_ops), GFP_KERNEL | __GFP_ZERO);
@@ -43,27 +43,27 @@ static inline struct io_stream *io_stream_get_new(void *ctx, size_t size, size_t
 	return ret;
 }
 
-static inline bool io_open(struct io_stream *s)
+static __always_inline bool io_open(struct io_stream *s)
 {
 	return s && s->ops && s->ops->open ? s->ops->open(s) : true;
 }
 
-static inline ssize_t io_read(struct io_stream *s, void *d, size_t n)
+static __always_inline ssize_t io_read(struct io_stream *s, void *d, size_t n)
 {
 	return s && s->ops && s->ops->read ? s->ops->read(s, d, n) : -1;
 }
 
-static inline ssize_t io_write(struct io_stream *s, const void *d, size_t n)
+static __always_inline ssize_t io_write(struct io_stream *s, const void *d, size_t n)
 {
 	return s && s->ops && s->ops->write ? s->ops->write(s, d, n) : -1;
 }
 
-static inline ssize_t io_seek(struct io_stream *s, ssize_t off, int w)
+static __always_inline ssize_t io_seek(struct io_stream *s, ssize_t off, int w)
 {
 	return s && s->ops && s->ops->seek ? s->ops->seek(s, off, w) : -1;
 }
 
-static inline void io_close(struct io_stream *s)
+static __always_inline void io_close(struct io_stream *s)
 {
 	if (!s)
 		return;

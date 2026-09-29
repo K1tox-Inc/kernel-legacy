@@ -7,7 +7,7 @@ struct registers {
 	uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
 } __packed;
 
-static inline void clean_registers(void)
+static __always_inline void clean_registers(void)
 {
 	__asm__ volatile("xor %%eax, %%eax\n\t"
 	                 "xor %%ebx, %%ebx\n\t"

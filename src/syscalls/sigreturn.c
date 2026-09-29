@@ -1,11 +1,11 @@
 #include <arch/x86.h>
-#include <drivers/vga.h>
 #include <memory/usercopy.h>
 #include <proc/signal.h>
 #include <proc/task.h>
 #include <syscalls/exit.h>
 #include <syscalls/syscalls.h>
 #include <utils/error.h>
+#include <vga/vga.h>
 
 SYSCALL_DEFINE0(sigreturn)
 {

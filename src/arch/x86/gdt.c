@@ -33,8 +33,8 @@ struct segment_descriptor {
 struct gdtr               gdtr;
 struct segment_descriptor gdt_entries[GDT_MAX_ENTRIES];
 
-static inline void gdt_set_entry(struct segment_descriptor *gdt_entry, uint32_t base,
-                                 uint32_t limit, uint8_t access, uint8_t flags)
+static __always_inline void gdt_set_entry(struct segment_descriptor *gdt_entry, uint32_t base,
+                                          uint32_t limit, uint8_t access, uint8_t flags)
 {
 	gdt_entry->limit_low   = (limit & 0xFFFF);
 	gdt_entry->base_low    = (base & 0xFFFF);

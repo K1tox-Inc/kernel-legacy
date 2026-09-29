@@ -1,6 +1,3 @@
-// ============================================================================
-// INCLUDES
-// ============================================================================
 
 #include <kernel/panic.h>
 #include <libk.h>
@@ -10,43 +7,14 @@
 #include <memory/page.h>
 #include <memory/slab.h>
 
-// ============================================================================
-// DEFINE AND MACRO
-// ============================================================================
-
-// Defines
-
-// Macros
-
-// ============================================================================
-// STRUCT
-// ============================================================================
-
-// Enums
-
-// Structures
-
-// Typedefs
-
-// ============================================================================
-// VARIABLES GLOBALES
-// ============================================================================
-
-// ============================================================================
-// INTERNAL APIs
-// ============================================================================
-
 void *get_allocation(enum zone_type zone, size_t size)
 {
-	void *ret = NULL;
-
 	if (size > MAX_SLAB_SIZE) {
-		uintptr_t phys_addr = (uintptr_t)buddy_alloc_pages(size, zone);
-		if (phys_addr != 0)
-			ret = PHYS_TO_VIRT_LINEAR(phys_addr);
-	} else
-		ret = slab_alloc(size, zone);
-	return ret;
+		void *const phys_addr = buddy_alloc_pages(size, zone);
+		return likely(phys_addr) ? PHYS_TO_VIRT_LINEAR(phys_addr) : NULL;
+	}
+
+	return slab_alloc(size, zone);
 }
 
 void *try_alloc_with_reclaim(enum zone_type zone, size_t size)
@@ -59,16 +27,12 @@ void *try_alloc_with_reclaim(enum zone_type zone, size_t size)
 	return alloc;
 }
 
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
-
 size_t ksize(void *ptr)
 {
 	if (!ptr)
 		return 0;
 
-	uintptr_t    phys_addr  = VIRT_TO_PHYS_LINEAR(ptr);
+	uintptr_t    phys_addr  = (uintptr_t)VIRT_TO_PHYS_LINEAR(ptr);
 	struct page *page       = page_addr_to_page(phys_addr);
 	size_t       page_state = PAGE_GET_STATE(page);
 
@@ -88,7 +52,7 @@ void kfree(void *ptr)
 {
 	if (!ptr)
 		return;
-	uintptr_t    phys_addr  = VIRT_TO_PHYS_LINEAR(ptr);
+	uintptr_t    phys_addr  = (uintptr_t)VIRT_TO_PHYS_LINEAR(ptr);
 	struct page *page       = page_addr_to_page(phys_addr);
 	size_t       page_state = PAGE_GET_STATE(page);
 	/* TODO: If an use after free of double free is done slab list become corrupt

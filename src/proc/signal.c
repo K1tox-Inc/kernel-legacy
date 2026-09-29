@@ -1,4 +1,3 @@
-#include <drivers/vga.h>
 #include <libk.h>
 #include <memory/usercopy.h>
 #include <proc/section.h>
@@ -7,13 +6,10 @@
 #include <proc/waitqueue.h>
 #include <syscalls/exit.h>
 #include <utils/error.h>
-
-// ============================================================================
-// DEFINE AND MACRO
-// ============================================================================
+#include <vga/vga.h>
 
 #define iter_over_array(p, a)                                                                      \
-	for (p = a; (uintptr_t)p - (uintptr_t)a <= sizeof(a) - sizeof(typeof(*a)); p++)
+	for ((p) = a; (uintptr_t)(p) - (uintptr_t)(a) <= sizeof(a) - sizeof(typeof(*(a))); (p)++)
 
 #define SIG_IGN_MASK                                                                               \
 	((1U << SIGCHLD) | (1U << SIGCONT) | (1U << SIGSTOP) | (1U << SIGTSTP) | (1U << SIGTTIN) |     \
@@ -54,10 +50,6 @@ static const char *default_msg[] = {
     [SIGSYS]    = "Bad system call",
 };
 
-// ============================================================================
-// INTERNAL APIs
-// ============================================================================
-
 static void signal_default_handler(int sig)
 {
 	vga_printf("%s\n", default_msg[sig]);
@@ -65,10 +57,6 @@ static void signal_default_handler(int sig)
 }
 
 static void signal_ignore_handler(int sig) { (void)sig; }
-
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
 
 bool signal_is_valid(enum signals sig) { return (sig > 0 && sig < SIG_Sentinel); }
 
@@ -127,10 +115,6 @@ int signal_dequeue_yield(struct task *task)
 	}
 	return 0;
 }
-
-// ============================================================================
-// Handlers
-// ============================================================================
 
 void signal_init_default_handlers(struct task *task)
 {

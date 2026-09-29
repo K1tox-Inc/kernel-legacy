@@ -3,13 +3,9 @@
 #include <list.h>
 #include <types.h>
 
-// ============================================================================
-// STRUCTS & MACROS
-// ============================================================================
-
 #define WQ_HEAD_INIT(name)                                                                         \
 	{                                                                                              \
-		.head = LIST_HEAD_INIT(name.head)                                                          \
+		.head = LIST_HEAD_INIT((name).head)                                                        \
 	}
 #define DECLARE_WQ_HEAD(name) struct wq_head name = WQ_HEAD_INIT(name)
 
@@ -32,12 +28,9 @@ struct wq_head {
 	struct list_head head;
 };
 
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
-
-static inline void wq_init(struct wq_head *wq) { INIT_SENTINEL(&wq->head); }
-static inline void wq_entry_init(struct wq_entry *entry, struct task *task, enum wq_state state)
+static __always_inline void wq_init(struct wq_head *wq) { INIT_SENTINEL(&wq->head); }
+static __always_inline void wq_entry_init(struct wq_entry *entry, struct task *task,
+                                          enum wq_state state)
 {
 	entry->task    = task;
 	entry->head    = NULL;

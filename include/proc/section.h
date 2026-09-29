@@ -4,16 +4,12 @@
 #include <types.h>
 #include <utils/kmacro.h>
 
-// ============================================================================
-// MEMORY LAYOUT DEFINITIONS
-// ============================================================================
-
 #define KERNEL_END   0xFFFFFFFF
 #define KERNEL_START (KERNEL_VADDR_BASE)
 
 #define USER_TRAMPOLINE_VADDR (KERNEL_START - PAGE_SIZE)
 
-#define DEFAULT_STACK_SIZE 8192
+#define DEFAULT_STACK_SIZE (PAGE_SIZE * 2)
 #define USER_STACK_START   (USER_TRAMPOLINE_VADDR - PAGE_SIZE)
 #define USER_STACK_END     (USER_STACK_START - DEFAULT_STACK_SIZE - PAGE_SIZE)
 
@@ -30,10 +26,6 @@
 #define USER_SECTION_RO (PTE_PRESENT_BIT | PTE_US_BIT)
 #define USER_SECTION_RW (PTE_PRESENT_BIT | PTE_US_BIT | PTE_RW_BIT)
 
-// ============================================================================
-// STRUCTS & MACROS
-// ============================================================================
-
 struct section {
 	uintptr_t v_addr;
 	uintptr_t p_addr;
@@ -42,10 +34,6 @@ struct section {
 	uint32_t  mapping_size;
 	uint32_t  flags;
 };
-
-// ============================================================================
-// EXTERNAL APIs
-// ============================================================================
 
 struct io_stream;
 
