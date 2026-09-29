@@ -36,7 +36,6 @@ docker-compose.override.yml
 .git/
 
 # Ignore core dumps and debugging artifacts
-core.*
 *.core
 
 # Ignore custom scripts or generated files (adjust as needed)
@@ -50,3 +49,9 @@ generated
 include/uapi/syscalls.h
 
 config.mk
+
+# Hermes Agent workspace directory
+.hermes/
+
+# Task tracking file
+todos.md
