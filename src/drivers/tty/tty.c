@@ -1,4 +1,6 @@
 #include <arch/acpi.h>
+#include <ata/ata.h>
+#include <fs/ext2.h>
 #include <kernel/block.h>
 #include <kernel/panic.h>
 #include <keyboard/keyboard.h>
@@ -7,14 +9,12 @@
 #include <list.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
+#include <pci/pci.h>
 #include <proc/task.h>
 #include <utils/kmacro.h>
 #include <vga/vga.h>
 
 #include "tty.h"
-
-#include "../ata/ata.h"
-#include "../pci/pci.h"
 
 struct tty ttys[12], *current_tty = ttys;
 
@@ -235,6 +235,34 @@ static void lsblk_cmd(SHELL_ARGS_UNUSED)
 	}
 }
 
+static void ext2parse_cmd(SHELL_ARGS)
+{
+	if (argc < 2) {
+		vga_printf("Usage: ext2parse <device>\n");
+		return;
+	}
+
+	struct block_device *dev = NULL;
+	list_for_each_entry(dev, &block_devices, node)
+	{
+		if (ft_strequ(dev->name, argv[1]))
+			break;
+	}
+
+	if (dev == NULL || list_entry_is_head(dev, &block_devices, node)) {
+		vga_printf("ext2parse: device '%s' not found\n", argv[1]);
+		return;
+	}
+
+	int ret = ext2_parse_superblock(dev);
+	if (ret < 0) {
+		vga_printf("ext2parse: failed to parse superblock (%d)\n", ret);
+		return;
+	}
+
+	vga_printf("Done.\n");
+}
+
 struct shell_command shell_commands[] = {
     {"poweroff", "Power off the system.", tty_handle_kprimitive},
     {"reboot", "Reboot the system.", tty_handle_kprimitive},
@@ -246,6 +274,7 @@ struct shell_command shell_commands[] = {
     {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
     {"hello", "Run the mok process: hello.", exec_mok_hello},
     {"pid", "Run the mok process: pid.", exec_mok_pid},
+    {"ext2parse", "Parse block device using ext2.", ext2parse_cmd},
     {"task_info", "Print task data using pid.", task_cmd_print_info},
     {"kill", "Send signal to process.", sys_kill_wrapper},
     {"lspci", "List PCI devices.", lspci_cmd},

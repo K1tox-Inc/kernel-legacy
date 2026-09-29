@@ -5,6 +5,7 @@ FormatStyle: none
 ExtraArgs:
   - --target=i386
   - -Iinclude
+  - -Isrc/drivers
   - -Ilib/libk
   - -Ilib/data_structs
   - -Ilib/libutils
