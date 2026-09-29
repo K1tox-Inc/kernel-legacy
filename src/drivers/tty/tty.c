@@ -128,8 +128,6 @@ struct shell_command {
 	void (*func)(int, char **);
 };
 
-static void exec_mok_cafe(SHELL_ARGS_UNUSED) { sloppy_exec("cafe"); }
-static void exec_mok_dead(SHELL_ARGS_UNUSED) { sloppy_exec("dead"); }
 static void exec_mok_fibo(SHELL_ARGS_UNUSED) { sloppy_exec("fibo"); }
 static void exec_mok_hello(SHELL_ARGS_UNUSED) { sloppy_exec("hello"); }
 static void exec_mok_pid(SHELL_ARGS_UNUSED) { sloppy_exec("pid"); }
@@ -269,8 +267,6 @@ struct shell_command shell_commands[] = {
     {"halt", "Halt the system.", tty_handle_kprimitive},
     {"ps", "Display existing process.", tty_handle_kprimitive},
     {"clear", "Clear the current tty.", tty_current_tty_clear},
-    {"cafe", "Run the mok process: cafe.", exec_mok_cafe},
-    {"dead", "Run the mok process: dead.", exec_mok_dead},
     {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
     {"hello", "Run the mok process: hello.", exec_mok_hello},
     {"pid", "Run the mok process: pid.", exec_mok_pid},

@@ -10,13 +10,8 @@
 #include <syscalls/syscalls.h>
 #include <utils/error.h>
 
-enum mok_idx { IDX_CAFEBABE, IDX_DEADBEEF, MOK_SENTINEL };
-
 #define iter_over_array(p, a)                                                                      \
 	for ((p) = a; (uintptr_t)(p) - (uintptr_t)(a) <= sizeof(a) - sizeof(typeof(*(a))); (p)++)
-
-extern char user_cafe_start[], user_cafe_end[];
-extern char user_dead_start[], user_dead_end[];
 
 struct exec_fn_mok {
 	const char *name;
@@ -25,10 +20,8 @@ struct exec_fn_mok {
 	bool        is_user;
 };
 
-const struct exec_fn_mok mok_registry[] = {
-    {"cafe", user_cafe_start, user_cafe_end, true},
-    {"dead", user_dead_start, user_dead_end, true},
-};
+#define DISABLE_EXECVE true
+const struct exec_fn_mok mok_registry[] = {};
 
 /*
  * Temporary execve — MOK-based (no ELF loader).
@@ -38,16 +31,23 @@ const struct exec_fn_mok mok_registry[] = {
  * 2. Loads new text and creates a fresh userspace/context.
  * 3. Switches stack and jumps to entry point via ASM.
  */
-SYSCALL_DEFINE1(execve, int, index)
+SYSCALL_DEFINE1(execve, size_t, index)
 {
-	if (index < 0 || index >= MOK_SENTINEL)
+#ifdef DISABLE_EXECVE
+
+	(void)index;
+	return -EINVAL;
+
+#else
+
+	if (index >= ARRAY_SIZE(mok_registry))
 		return -EINVAL;
 
-	struct exec_fn_mok fn_info = mok_registry[index];
-	size_t             fn_size = (uintptr_t)fn_info.end - (uintptr_t)fn_info.start;
+	const struct exec_fn_mok *fn_info = mok_registry + index;
+	size_t                    fn_size = (uintptr_t)fn_info->end - (uintptr_t)fn_info->start;
 
 	struct section text;
-	if (!section_init_from_buffer(&text, 0, fn_info.start, fn_size, 0))
+	if (!section_init_from_buffer(&text, 0, fn_info->start, fn_size, 0))
 		return -EFAULT;
 
 	struct task *cur = task_get_current_task();
@@ -55,7 +55,7 @@ SYSCALL_DEFINE1(execve, int, index)
 
 	ft_memcpy(cur->text_sec, &text, sizeof(struct section));
 
-	if (fn_info.is_user) {
+	if (fn_info->is_user) {
 		if (!userspace_create_new(cur))
 			kpanic("Failed to create new clean userspace");
 	} else {
@@ -63,15 +63,15 @@ SYSCALL_DEFINE1(execve, int, index)
 	}
 
 	INIT_SENTINEL(&cur->vma_areas);
-	if (fn_info.is_user)
+	if (fn_info->is_user)
 		vma_init_area(&cur->vma_areas, cur->heap_sec->v_addr, cur->stack_sec->v_addr - PAGE_SIZE);
 
-	size_t name_len = ft_strlen(fn_info.name);
+	size_t name_len = ft_strlen(fn_info->name);
 	name_len        = name_len > 15 ? 15 : name_len;
-	ft_memcpy(cur->name, fn_info.name, name_len);
+	ft_memcpy(cur->name, fn_info->name, name_len);
 	cur->name[name_len] = 0;
 
-	task_craft_context(cur, fn_info.is_user, cur->text_sec->v_addr);
+	task_craft_context(cur, fn_info->is_user, cur->text_sec->v_addr);
 	paging_reload_cr3(cur->cr3);
 
 	__asm__ volatile("mov %0, %%esp\n\t"
@@ -82,4 +82,6 @@ SYSCALL_DEFINE1(execve, int, index)
 	                 "ret" ::"r"(cur->esp));
 
 	unreachable();
+
+#endif
 }

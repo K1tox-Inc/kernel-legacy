@@ -596,11 +596,4 @@ void sloppy_exec(char *sloppy_name)
 		exec_fn((unsigned int *)0xBAAAAAAD, (unsigned int *)sloppy_pid, 0);
 	else if (ft_strequ("hello", sloppy_name))
 		exec_fn((unsigned int *)0xBAADF00D, (unsigned int *)sloppy_hello, 0);
-	else if (ft_strequ("cafe", sloppy_name)) {
-		size_t sz = (uintptr_t)user_cafe_end - (uintptr_t)user_cafe_start;
-		exec_fn((unsigned int *)0xBAFEBABE, (unsigned int *)user_cafe_start, sz);
-	} else if (ft_strequ("dead", sloppy_name)) {
-		size_t sz = (uintptr_t)user_dead_end - (uintptr_t)user_dead_start;
-		exec_fn((unsigned int *)0xBEEF0000, (unsigned int *)user_dead_start, sz);
-	}
 }
