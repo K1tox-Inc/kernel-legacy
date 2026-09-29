@@ -347,7 +347,7 @@ void ide_init(void)
 		ft_memcpy(disk->name, "hd0", 4);
 		disk->name[2] += i++;
 
-		if (add_disk(disk) < 0)
+		if (blkdev_register_disk(disk) < 0)
 			kfree(disk);
 	}
 
