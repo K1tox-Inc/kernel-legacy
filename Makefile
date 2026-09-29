@@ -135,7 +135,7 @@ doxy:
 
 .PHONY: run
 run: all
-	$(QEMU) $(QEMUFLAGS) -cdrom $(BUILDDIR)/boot.iso
+	$(QEMU) $(QEMUFLAGS) -boot order=d -cdrom $(BUILDDIR)/boot.iso
 
 .PHONY: re
 re: clean all

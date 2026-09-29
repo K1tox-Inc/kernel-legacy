@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../pci/pci.h"
+#include <pci/pci.h>
 
 #define ATA_PRIMARY_BASE      0x1F0
 #define ATA_PRIMARY_CONTROL   0x3F6

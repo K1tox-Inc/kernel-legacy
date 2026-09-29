@@ -13,17 +13,22 @@ struct disk_ops {
 };
 
 struct generic_disk {
-	char                   name[DISK_NAME_LEN]; // "hda"
+	char                   name[DISK_NAME_LEN];
 	size_t                 nr_sectors;
 	const struct disk_ops *ops;
-	void                  *priv; // ata_device *
+	void                  *priv;
 };
 
-struct block_device {                         // a partition, or the whole disk
-	char                 name[DISK_NAME_LEN]; // "hda1"
+struct disk_partition {
+	size_t lba_start;
+	size_t nr_sectors;
+};
+
+struct block_device {
+	char                 name[DISK_NAME_LEN];
 	struct generic_disk *disk;
 	struct block_device *parent; // non-null only for partitions
-	size_t               start_lba, nr_sectors;
+	size_t               lba_start, nr_sectors;
 	struct list_head     node;
 };
 

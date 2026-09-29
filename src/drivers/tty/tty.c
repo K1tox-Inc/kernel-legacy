@@ -137,7 +137,7 @@ static void exec_mok_pid(SHELL_ARGS_UNUSED) { sloppy_exec("pid"); }
 static void sys_kill_wrapper(SHELL_ARGS)
 {
 	if (argc != 3) {
-		vga_printf("kill: not enough arguments\n");
+		vga_printf("Usage: kill <signal> <pid>\n");
 		return;
 	}
 
@@ -226,11 +226,12 @@ static void lsblk_cmd(SHELL_ARGS_UNUSED)
 {
 	struct block_device *dev;
 
-	vga_printf("NAME       TYPE\n");
+	vga_printf("NAME       TYPE     SIZE\n");
 
 	list_for_each_entry(dev, &block_devices, node)
 	{
-		vga_printf("%s      %s\n", dev->name, dev->parent ? "part" : "  disk");
+		vga_printf("%s      %s     %dMiB\n", dev->name, dev->parent ? "part" : "  disk",
+		           dev->nr_sectors * 512 / 1024 / 1024);
 	}
 }
 

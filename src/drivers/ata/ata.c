@@ -1,17 +1,18 @@
 #include <arch/io.h>
 #include <arch/x86.h>
 #include <kernel/block.h>
+#include <kernel/panic.h>
 #include <libk.h>
 #include <list.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
+#include <pci/pci.h>
+#include <types.h>
 #include <utils/assert.h>
 #include <utils/compiler.h>
 #include <utils/kmacro.h>
 
 #include "ata.h"
-#include "kernel/panic.h"
-#include "types.h"
 
 static LIST_HEAD(ide_channels);
 LIST_HEAD(ide_devices);
@@ -85,14 +86,15 @@ uint8_t ide_polling(const struct ide_channel *channel, bool advanced_check)
 	return 0;
 }
 
-static void ide_id_extract_string(const uint16_t *buf, size_t byte_off, char *out, size_t max_len)
+static void ide_id_extract_string(const void *buf, size_t byte_off, char *out, size_t max_len)
 {
+	const uint16_t *string = buf + byte_off;
+
 	size_t words = max_len / 2;
-	size_t word  = byte_off / 2;
 	size_t pos   = 0;
 
 	for (size_t i = 0; i < words && pos + 1 < max_len; ++i) {
-		uint16_t value = buf[word + i];
+		uint16_t value = string[i];
 
 		out[pos++] = (char)(value >> 8);
 		if (pos < max_len - 1)
@@ -142,8 +144,7 @@ static void ide_probe_controller(const ide_controller_t *ctrlr, __always_unused 
 	list_add_tail(&channels->node, &ide_channels);
 }
 
-static int ide_identify(const struct ide_channel *channel, const struct ide_device *dev,
-                        uint16_t *buf)
+static int ide_identify(const struct ide_channel *channel, const struct ide_device *dev, void *buf)
 {
 	int     i;
 	uint8_t st;
@@ -185,22 +186,20 @@ static int ide_identify(const struct ide_channel *channel, const struct ide_devi
 
 static int ide_populate_drive(const struct ide_channel *channel, struct ide_device *dev)
 {
-	uint16_t id_buf[256];
+	uint8_t id_buf[512];
 
 	if (ide_identify(channel, dev, id_buf) != 0) {
 		return -1;
 	}
 
-	dev->dev_type  = id_buf[ATA_IDENT_DEVICETYPE / 2];
-	dev->cylinders = id_buf[ATA_IDENT_CYLINDERS / 2];
-	dev->heads     = id_buf[ATA_IDENT_HEADS / 2];
-	dev->sectors   = id_buf[ATA_IDENT_SECTORS / 2];
-	dev->lba_max_sectors =
-	    id_buf[ATA_IDENT_MAX_LBA / 2] | (id_buf[ATA_IDENT_MAX_LBA / 2 + 1] << 16);
-	dev->capabilities = id_buf[ATA_IDENT_CAPABILITIES / 2];
-	dev->field_valid  = id_buf[ATA_IDENT_FIELDVALID / 2];
-	dev->lba_ext_max_sectors =
-	    id_buf[ATA_IDENT_MAX_LBA_EXT / 2] | (id_buf[ATA_IDENT_MAX_LBA_EXT / 2 + 1] << 16);
+	dev->dev_type            = id_buf[ATA_IDENT_DEVICETYPE];
+	dev->cylinders           = ((uint16_t *)id_buf)[ATA_IDENT_CYLINDERS / 2];
+	dev->heads               = id_buf[ATA_IDENT_HEADS];
+	dev->sectors             = id_buf[ATA_IDENT_SECTORS];
+	dev->lba_max_sectors     = ((uint32_t *)id_buf)[ATA_IDENT_MAX_LBA / 4];
+	dev->capabilities        = ((uint16_t *)id_buf)[ATA_IDENT_CAPABILITIES / 2];
+	dev->field_valid         = id_buf[ATA_IDENT_FIELDVALID];
+	dev->lba_ext_max_sectors = ((uint32_t *)id_buf)[ATA_IDENT_MAX_LBA_EXT / 4];
 
 	ide_id_extract_string(id_buf, ATA_IDENT_MODEL, dev->model, sizeof(dev->model));
 	ide_id_extract_string(id_buf, ATA_IDENT_SERIAL, dev->serial, sizeof(dev->serial));
@@ -237,7 +236,7 @@ static void ide_probe_channels(void)
 }
 
 static uint8_t ata_access_sector(const struct ide_device *dev, uint32_t lba,
-                                 enum ide_access_direction direction, uint8_t numsects, void *edi)
+                                 enum ide_access_direction direction, uint8_t count, void *edi)
 {
 	uint8_t lba_io[6], head;
 
@@ -262,7 +261,7 @@ static uint8_t ata_access_sector(const struct ide_device *dev, uint32_t lba,
 
 	ide_write_reg(dev->channel, ATA_REG_HDDEVSEL, 0xE0 | (dev->slave << 4) | head);
 
-	ide_write_reg(dev->channel, ATA_REG_SECCOUNT0, numsects);
+	ide_write_reg(dev->channel, ATA_REG_SECCOUNT0, count);
 	ide_write_reg(dev->channel, ATA_REG_LBA0, lba_io[0]);
 	ide_write_reg(dev->channel, ATA_REG_LBA1, lba_io[1]);
 	ide_write_reg(dev->channel, ATA_REG_LBA2, lba_io[2]);
@@ -274,7 +273,7 @@ static uint8_t ata_access_sector(const struct ide_device *dev, uint32_t lba,
 
 	switch (direction) {
 	case IDE_ACCESS_READ: {
-		for (int i = 0; i < numsects; i++) {
+		for (int i = 0; i < count; i++) {
 			err = ide_polling(dev->channel, true);
 			if (err)
 				return err;
@@ -291,7 +290,7 @@ static uint8_t ata_access_sector(const struct ide_device *dev, uint32_t lba,
 		break;
 	}
 	case IDE_ACCESS_WRITE: {
-		for (int i = 0; i < numsects; i++) {
+		for (int i = 0; i < count; i++) {
 			ide_polling(dev->channel, false);
 			__asm__ volatile("pushw %ds");
 			__asm__ volatile(
@@ -312,14 +311,14 @@ static uint8_t ata_access_sector(const struct ide_device *dev, uint32_t lba,
 	return 0;
 }
 
-static int ata_read_sector(struct generic_disk *disk, size_t lba, size_t numsects, void *edi)
+static int ata_read_sector(struct generic_disk *disk, size_t lba, size_t count, void *edi)
 {
-	return ata_access_sector((struct ide_device *)disk->priv, lba, IDE_ACCESS_READ, numsects, edi);
+	return ata_access_sector((struct ide_device *)disk->priv, lba, IDE_ACCESS_READ, count, edi);
 }
 
-static int ata_write_sector(struct generic_disk *disk, size_t lba, size_t numsects, const void *edi)
+static int ata_write_sector(struct generic_disk *disk, size_t lba, size_t count, const void *edi)
 {
-	return ata_access_sector((struct ide_device *)disk->priv, lba, IDE_ACCESS_WRITE, numsects,
+	return ata_access_sector((struct ide_device *)disk->priv, lba, IDE_ACCESS_WRITE, count,
 	                         (void *)edi);
 }
 
