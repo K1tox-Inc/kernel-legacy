@@ -1,4 +1,5 @@
 #include <arch/x86.h>
+#include <ata/ata.h>
 #include <kernel/mb2_info.h>
 #include <keyboard/keyboard.h>
 #include <memory/buddy.h>
@@ -7,6 +8,7 @@
 #include <memory/slab.h>
 #include <memory/vmalloc.h>
 #include <memory/vmm.h>
+#include <pci/pci.h>
 #include <proc/scheduler.h>
 #include <proc/task.h>
 #include <tty/tty.h>
@@ -38,5 +40,7 @@ void init(void)
 	task_init_process();
 	keyboard_init();
 	ttys_init();
+	pci_init();
+	ide_init();
 	schedule();
 }
