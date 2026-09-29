@@ -52,7 +52,7 @@ QEMUFLAGS := -m 4096 -cpu host -enable-kvm -s -serial file:serial.log
 DOCKERIMAGENAME := noalexan/cross-compiler
 DOCKERIMAGETAG  := 685b705
 
-OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\(\.c\|\.cpp\|\.s\)' -not -path "src/generated/*" | sed 's/\(\.c\|\.cpp\|\.s\)/.o/g'))
+OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\.\(c\|cpp\|s\)' -not -path "src/generated/*" | sed 's/\.\(c\|cpp\|s\)/.o/g'))
 OBJ+=$(BINDIR)/generated/syscall_table.o
 
 DEPS=$(OBJ:.o=.d)
@@ -135,7 +135,7 @@ doxy:
 
 .PHONY: run
 run: all
-	$(QEMU) $(QEMUFLAGS) -cdrom $(BUILDDIR)/boot.iso
+	$(QEMU) $(QEMUFLAGS) -boot order=d -cdrom $(BUILDDIR)/boot.iso
 
 .PHONY: re
 re: clean all
