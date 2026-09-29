@@ -35,9 +35,9 @@ int add_disk(struct generic_disk *disk)
 	for (uint32_t i = 0; i < (sizeof(partition_parsers) / sizeof(*partition_parsers)); i++) {
 		nr_parts = partition_parsers[i](dev, parts, 16);
 
-		if (nr_parts < 0)
+		if (nr_parts < 0) {
 			log("Error");
-		if (nr_parts)
+		} else if (nr_parts)
 			break;
 	}
 
