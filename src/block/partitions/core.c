@@ -66,7 +66,7 @@ int blkdev_register_disk(struct generic_disk *disk)
 
 	int                   nr_parts = 0;
 	struct disk_partition parts[16];
-	for (uint32_t i = 0; i < (sizeof(partition_parsers) / sizeof(*partition_parsers)); i++) {
+	for (uint32_t i = 0; i < ARRAY_SIZE(partition_parsers); i++) {
 		nr_parts = partition_parsers[i](dev, parts, 16);
 
 		if (nr_parts < 0) {
