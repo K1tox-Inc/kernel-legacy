@@ -36,15 +36,7 @@
 #define EXT2_FEATURE_RO_COMPAT_LARGE_FILE   0x0002
 #define EXT2_FEATURE_RO_COMPAT_BTREE_DIR    0x0004
 
-#define EXT2_FT_UNKNOWN  0
-#define EXT2_FT_REG_FILE 1
-#define EXT2_FT_DIR      2
-#define EXT2_FT_CHRDEV   3
-#define EXT2_FT_BLKDEV   4
-#define EXT2_FT_FIFO     5
-#define EXT2_FT_SOCK     6
-#define EXT2_FT_SYMLINK  7
-#define EXT2_FT_WHITEOUT 8
+#define EXT2_InodeTypeCheck(inode, type) (((inode).i_mode >> 12) == (type))
 
 struct ext2_super_block {
 	uint32_t s_inodes_count;
@@ -89,9 +81,7 @@ struct ext2_super_block {
 	uint32_t s_journal_ino;
 	uint32_t s_journal_dev;
 	uint32_t s_orph_ino_list_head;
-} __packed;
-
-static_assert(sizeof(struct ext2_super_block) == 236, "Misformatted `ext2_super_block' structure.");
+} __attribute__((packed, aligned(1024)));
 
 struct ext2_group_desc {
 	uint32_t bg_block_bitmap;
@@ -100,9 +90,17 @@ struct ext2_group_desc {
 	uint16_t bg_free_blocks_count;
 	uint16_t bg_free_inodes_count;
 	uint16_t bg_used_dirs_count;
-	uint16_t bg_pad;
-	uint32_t bg_reserved[3];
-} __packed;
+} __attribute__((packed, aligned(32)));
+
+enum Ext2_Inode_Type {
+	Ext2_Inode_FIFO       = 0x1,
+	Ext2_Inode_CharDev    = 0x2,
+	Ext2_Inode_Dir        = 0x4,
+	Ext2_Inode_BlkDev     = 0x6,
+	Ext2_Inode_RegFile    = 0x8,
+	Ext2_Inode_SymLink    = 0xA,
+	Ext2_Inode_UnixSocket = 0xC
+};
 
 struct ext2_inode {
 	uint16_t i_mode;
@@ -114,7 +112,7 @@ struct ext2_inode {
 	uint32_t i_dtime;
 	uint16_t i_gid;
 	uint16_t i_links_count;
-	uint32_t i_blocks;
+	uint32_t i_nr_sectors;
 	uint32_t i_flags;
 	uint32_t i_osd1;
 	uint32_t i_block[15];
@@ -123,7 +121,7 @@ struct ext2_inode {
 	uint32_t i_dir_acl;
 	uint32_t i_faddr;
 	uint32_t i_osd2[3];
-} __packed;
+} __attribute__((packed, aligned(256)));
 
 struct ext2_dir_entry {
 	uint32_t inode;
@@ -133,23 +131,10 @@ struct ext2_dir_entry {
 	char     name[];
 } __packed;
 
-struct ext2_fs_info {
-	struct block_device *dev;
-	size_t               block_size;
-	size_t               sector_size;
-	size_t               frag_size;
-	uint32_t             inodes_count;
-	uint32_t             blocks_count;
-	uint32_t             r_blocks_count;
-	uint32_t             free_blocks_count;
-	uint32_t             free_inodes_count;
-	uint32_t             blocks_per_group;
-	uint32_t             frags_per_group;
-	uint32_t             inodes_per_group;
-	uint32_t             first_data_block;
-	uint16_t             inode_size;
-	uint16_t             magic;
-	bool                 valid;
-};
-
-extern int ext2_parse_superblock(struct block_device *);
+extern int  ext2_parse_superblock(struct block_device *);
+extern int  ext2_list_dentries(const struct ext2_inode *ino);
+extern int  ext2_get_dentries(const struct ext2_inode *ino, struct ext2_dir_entry *dir);
+extern int  ext2_lookup(const char *path, struct ext2_inode *);
+extern void ext2_print_inode(const struct ext2_inode *ino);
+extern void ext2_print_group_descriptor(const struct ext2_group_desc *gd);
+extern int  ext2_cat(const struct ext2_inode *ino);

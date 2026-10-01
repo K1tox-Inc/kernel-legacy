@@ -47,7 +47,7 @@ LDLIBS := -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
 GRUB_MKRESCUE := grub-mkrescue
 
 QEMU      := qemu-system-i386
-QEMUFLAGS := -m 4096 -cpu host -enable-kvm -s -serial file:serial.log
+QEMUFLAGS := -m 4096 -cpu host -enable-kvm -s -serial file:serial.log -display sdl,gl=off
 
 DOCKERIMAGENAME := noalexan/cross-compiler
 DOCKERIMAGETAG  := 685b705

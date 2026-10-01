@@ -11,6 +11,7 @@
 #include <memory/memory.h>
 #include <pci/pci.h>
 #include <proc/task.h>
+#include <utils/error.h>
 #include <utils/kmacro.h>
 #include <vga/vga.h>
 
@@ -195,11 +196,9 @@ static void lside_cmd(SHELL_ARGS_UNUSED)
 
 	list_for_each_entry(dev, &ide_devices, node)
 	{
-		/* Derive /dev/hdX from list position: hda=primary master,
-		 * hdb=primary slave, hdc=secondary master, hdd=secondary slave. */
 		name[0] = 'h';
 		name[1] = 'd';
-		name[2] = '0' + i;
+		name[2] = (char)('0' + i);
 		name[3] = '\0';
 		sectors = dev->lba_ext_max_sectors ? dev->lba_ext_max_sectors : dev->lba_max_sectors;
 		bytes   = sectors * 512;
@@ -257,8 +256,56 @@ static void ext2parse_cmd(SHELL_ARGS)
 		vga_printf("ext2parse: failed to parse superblock (%d)\n", ret);
 		return;
 	}
+}
 
-	vga_printf("Done.\n");
+static void ls_cmd(SHELL_ARGS)
+{
+	if (argc < 2) {
+		vga_printf("Usage: ls <path>\n");
+		return;
+	}
+
+	struct ext2_inode ino;
+	int               ret = ext2_lookup(argv[1], &ino);
+	if (ret < 0) {
+		vga_printf("ls: ext2_lookup: %s\n", ft_strerror(ret));
+		return;
+	}
+
+	if (EXT2_InodeTypeCheck(ino, Ext2_Inode_Dir)) {
+		ret = ext2_list_dentries(&ino);
+		if (ret < 0) {
+			vga_printf("ls: ext2_list_dentries: %s\n", ft_strerror(ret));
+			return;
+		}
+	}
+
+	else {
+		ext2_print_inode(&ino);
+	}
+}
+
+static void cat_cmd(SHELL_ARGS)
+{
+	if (argc < 2) {
+		vga_printf("Usage: cat <path>\n");
+		return;
+	}
+
+	struct ext2_inode ino;
+	int               ret = ext2_lookup(argv[1], &ino);
+	if (ret < 0) {
+		vga_printf("ls: ext2_lookup: %s\n", ft_strerror(ret));
+		return;
+	}
+
+	if (EXT2_InodeTypeCheck(ino, Ext2_Inode_Dir))
+		vga_printf("cat: %s\n", ft_strerror(-EISDIR));
+
+	else if (!EXT2_InodeTypeCheck(ino, Ext2_Inode_RegFile))
+		vga_printf("cat: Not handled inode type (%u)\n", ino.i_mode >> 12);
+
+	ext2_cat(&ino);
 }
 
 struct shell_command shell_commands[] = {
@@ -271,6 +318,8 @@ struct shell_command shell_commands[] = {
     {"hello", "Run the mok process: hello.", exec_mok_hello},
     {"pid", "Run the mok process: pid.", exec_mok_pid},
     {"ext2parse", "Parse block device using ext2.", ext2parse_cmd},
+    {"ls", "List dentries of a directory.", ls_cmd},
+    {"cat", "Output a regular file.", cat_cmd},
     {"task_info", "Print task data using pid.", task_cmd_print_info},
     {"kill", "Send signal to process.", sys_kill_wrapper},
     {"lspci", "List PCI devices.", lspci_cmd},
