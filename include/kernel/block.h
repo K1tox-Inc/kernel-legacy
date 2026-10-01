@@ -30,7 +30,7 @@ struct block_device {
 	struct generic_disk *disk;
 	struct block_device *parent; // non-null only for partitions
 	size_t               lba_start, nr_sectors;
-	size_t               sector_size, block_size;
+	const size_t         sector_size, block_size;
 	struct list_head     node;
 };
 

@@ -31,8 +31,8 @@ static struct block_device *blkdev_create(struct generic_disk *disk, const char 
 	dev->nr_sectors = nr_sectors;
 	dev->lba_start  = lba_start;
 
-	dev->sector_size = 512; // hardcoded default
-	dev->block_size  = dev->sector_size;
+	*((size_t *)&dev->sector_size) = 512; // hardcoded default
+	*((size_t *)&dev->block_size)  = dev->sector_size;
 
 	return dev;
 }
@@ -45,7 +45,7 @@ int blkdev_set_block_size(struct block_device *dev, size_t bsize)
 	if (!bsize || bsize % dev->sector_size)
 		return -EINVAL;
 
-	dev->block_size = bsize;
+	*((size_t *)&dev->block_size) = bsize;
 
 	return 0;
 }
