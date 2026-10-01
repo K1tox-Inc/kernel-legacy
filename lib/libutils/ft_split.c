@@ -71,9 +71,10 @@ char **ft_split(char const *str, char set)
 	i     = -1;
 	if (!str)
 		return (NULL);
-	tab = ft_calloc(sizeof(tab), (ft_countwords((char *)str, set) + 1));
+	tab = (char **)kmalloc(sizeof(tab) * ft_countwords((char *)str, set) + 1, GFP_KERNEL);
 	if (!tab)
 		return (NULL);
+
 	while (str[++i]) {
 		len_word = 0;
 		if (str[i] != set) {
@@ -83,6 +84,8 @@ char **ft_split(char const *str, char set)
 			i            = i + len_word - 1;
 		}
 	}
-	tab[m_tab] = 0;
+
+	tab[m_tab] = NULL;
+
 	return (tab);
 }

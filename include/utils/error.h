@@ -1,4 +1,5 @@
 #pragma once
+
 /* Success code */
 #define SUCCESS 0
 
