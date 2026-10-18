@@ -14,8 +14,7 @@
 
 extern void vga_printf(const char *fmt, ...);
 
-# define log(msg, ...)                                                                             \
-	 vga_printf("[" __FILE__ ":%i]: %s: " msg "\n", __LINE__, __func__, ##__VA_ARGS__)
+# define log(msg, ...) vga_printf("[%s:%i]: " msg "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 
 # define dbg(variable_name)                                                                        \
 	 ({                                                                                            \

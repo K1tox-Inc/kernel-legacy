@@ -21,11 +21,11 @@ void save_stack(void)
 		stack_snapshot[i] = *(uint8_t *)(esp++);
 }
 
-void memory_dump(uint32_t addr_start, uint32_t addr_end)
+void memory_dump(const uint8_t *addr_start, const uint8_t *addr_end)
 {
-	uint32_t addr = addr_end;
-	while (addr >= addr_start) {
-		if (addr % 8 == 0 || addr == addr_start)
+	uintptr_t addr = (uintptr_t)addr_end;
+	while (addr >= (uintptr_t)addr_start) {
+		if (addr % 8 == 0 || addr == (uintptr_t)addr_start)
 			vga_printf("%p:\t", addr);
 		if (*(uint8_t *)addr < 0x10)
 			vga_printf("0");
@@ -39,16 +39,16 @@ void memory_dump(uint32_t addr_start, uint32_t addr_end)
 
 void print_stack_frame(void)
 {
-	uint32_t *ebp, *esp;
+	uint8_t *ebp, *esp;
 
 	__asm__ volatile("mov %%ebp, %0" : "=r"(ebp));
 	__asm__ volatile("mov %%esp, %0" : "=r"(esp));
 
 	vga_printf("Stack trace:\n");
-	memory_dump((uint32_t)esp, (uint32_t)ebp);
+	memory_dump(esp, ebp);
 
 	vga_printf("ESP = %p | EBP = %p\n", esp, ebp);
-	uint32_t eip = *(ebp + 1);
+	uintptr_t eip = *(ebp + 1);
 	vga_printf("Return address: 0x%x\n", eip);
 }
 
