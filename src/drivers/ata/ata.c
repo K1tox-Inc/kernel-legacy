@@ -1,5 +1,6 @@
 #include <arch/io.h>
 #include <arch/x86.h>
+#include <kernel/block.h>
 #include <libk.h>
 #include <list.h>
 #include <memory/kmalloc.h>
@@ -235,8 +236,8 @@ static void ide_probe_channels(void)
 	}
 }
 
-uint8_t ata_access_sector(const struct ide_device *dev, uint32_t lba,
-                          enum ide_access_direction direction, uint8_t numsects, void *edi)
+static uint8_t ata_access_sector(const struct ide_device *dev, uint32_t lba,
+                                 enum ide_access_direction direction, uint8_t numsects, void *edi)
 {
 	uint8_t lba_io[6], head;
 
@@ -311,10 +312,45 @@ uint8_t ata_access_sector(const struct ide_device *dev, uint32_t lba,
 	return 0;
 }
 
+static int ata_read_sector(struct generic_disk *disk, size_t lba, size_t numsects, void *edi)
+{
+	return ata_access_sector((struct ide_device *)disk->priv, lba, IDE_ACCESS_READ, numsects, edi);
+}
+
+static int ata_write_sector(struct generic_disk *disk, size_t lba, size_t numsects, const void *edi)
+{
+	return ata_access_sector((struct ide_device *)disk->priv, lba, IDE_ACCESS_WRITE, numsects,
+	                         (void *)edi);
+}
+
+static const struct disk_ops ide_ops = (struct disk_ops){
+    .read_sectors = &ata_read_sector, .write_sectors = &ata_write_sector, .flush = NULL};
+
 void ide_init(void)
 {
 	pci_for_each_device(PCI_DEVICE_IDE_CONTROLLER, ide_probe_controller, NULL);
 	ide_probe_channels();
+
+	struct ide_device *dev;
+	char               i = 0;
+	list_for_each_entry(dev, &ide_devices, node)
+	{
+		struct generic_disk *disk = kmalloc(sizeof(struct generic_disk), GFP_KERNEL);
+		if (disk == NULL) {
+			log("Failed to allocate `struct generic_disk', skipping...");
+			continue;
+		}
+
+		disk->priv       = dev;
+		disk->ops        = &ide_ops;
+		disk->nr_sectors = dev->sectors;
+
+		ft_memcpy(disk->name, "hd0", 4);
+		disk->name[2] += i++;
+
+		if (add_disk(disk) < 0)
+			kfree(disk);
+	}
 
 	/*
 	 * Usage exemple:

@@ -1,4 +1,5 @@
 #include <arch/acpi.h>
+#include <kernel/block.h>
 #include <kernel/panic.h>
 #include <keyboard/keyboard.h>
 #include <libk.h>
@@ -19,6 +20,7 @@ struct tty ttys[12], *current_tty = ttys;
 
 extern struct list_head pci_devices;
 extern struct list_head ide_devices;
+extern struct list_head block_devices;
 
 static void print_help(SHELL_ARGS_UNUSED);
 
@@ -220,6 +222,18 @@ static void lside_cmd(SHELL_ARGS_UNUSED)
 		vga_printf("NO IDE devices registered\n");
 }
 
+static void lsblk_cmd(SHELL_ARGS_UNUSED)
+{
+	struct block_device *dev;
+
+	vga_printf("NAME       TYPE\n");
+
+	list_for_each_entry(dev, &block_devices, node)
+	{
+		vga_printf("%s      %s\n", dev->name, dev->parent ? "part" : "  disk");
+	}
+}
+
 struct shell_command shell_commands[] = {
     {"poweroff", "Power off the system.", tty_handle_kprimitive},
     {"reboot", "Reboot the system.", tty_handle_kprimitive},
@@ -235,6 +249,7 @@ struct shell_command shell_commands[] = {
     {"kill", "Send signal to process.", sys_kill_wrapper},
     {"lspci", "List PCI devices.", lspci_cmd},
     {"lside", "List IDE/ATA drives.", lside_cmd},
+    {"lsblk", "List block devices.", lsblk_cmd},
     {"help", "Print this help message.", print_help}};
 
 #define iter_over_array(p, a)                                                                      \
