@@ -38,6 +38,9 @@ void vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
 
 static int ft_putchar(char c)
 {
+	if (c == 0x02)
+		return 1;
+
 #ifndef NDEBUG
 	outb(0x3f8, c);
 #endif
@@ -159,6 +162,13 @@ void vga_refresh_screen(void)
 	}
 
 	vga_set_cursor_position(current_tty->cursor.x, current_tty->cursor.y);
+}
+
+size_t vga_write(const char *buffer, size_t len)
+{
+	for (size_t i = 0; i < len; i++)
+		ft_putchar(buffer[i]);
+	return len;
 }
 
 void vga_printf(const char *restrict fmt, ...)

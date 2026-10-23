@@ -67,85 +67,14 @@
 
 .section .text
 
-.global user_cafe_start
-.global user_cafe_end
-.global user_dead_start
-.global user_dead_end
 .global kitoxD_start
 .global kitoxD_end
 
 .align 4
 kitoxD_start:
-    xor esi, esi
 
-.kitox_spawn_loop:
-
-    cmp esi, 2
-    jge .kitox_hang
-
-    SYSCALL_FORK
-    test eax, eax
-    jz .kitox_child
-
-    mov ecx, 0xbeef
-
-    inc esi
-    jmp .kitox_spawn_loop
-
-.kitox_child:
-
-    mov ecx, 0xdead
-
-    SYSCALL_EXEC_FN esi
-    SYSCALL_EXIT 1
-
-.kitox_hang:
-
-    SYSCALL_WAITPID -1, 0, 0
-    jmp .kitox_hang
+    .kitox_hang:
+        SYSCALL_WAITPID -1, 0, 0
+        jmp .kitox_hang
 
 kitoxD_end:
-
-.align 4
-user_cafe_start:
-
-    call .write
-
-.exit:
-    SYSCALL_EXIT eax
-
-.msg:
-.ascii "Hello from forked!\n"
-
-.write:
-    mov ecx, [esp]
-    add ecx, (.msg - .exit)
-    SYSCALL_WRITE 1, ecx, (.write - .msg)
-    ret
-
-user_cafe_end:
-
-.align 4
-user_dead_start:
-    jmp .dead_after_msg
-.dead_msg:
-    .ascii "Hello from dead!\n"
-.dead_after_msg:
-    call .dead_getpc
-.dead_getpc:
-    pop ecx
-    sub ecx, (.dead_getpc - .dead_msg)
-    SYSCALL_WRITE 1, ecx, 17
-
-    SYSCALL_MMAP 0, 4096, 3, 0x20
-    mov esi, eax
-
-    mov dword ptr [esi], 0x44414544
-    mov byte ptr [esi + 4], 0x0A
-
-    SYSCALL_WRITE 1, esi, 5
-
-    mov eax, 0xDEADBEEF
-    SYSCALL_EXIT 1
-
-user_dead_end:

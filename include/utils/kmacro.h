@@ -38,6 +38,7 @@ extern void vga_printf(const char *fmt, ...);
 #define FLAG_IS_SET(flags, flag) (((flags) & (flag)) != 0)
 #define FLAG_SET(flags, flag)    ((flags) |= (flag))
 #define FLAG_UNSET(flags, flag)  ((flags) &= ~(flag))
+#define ARRAY_SIZE(a)            (sizeof(a) / sizeof(*(a)))
 #define MIN(a, b)                ((a) < (b) ? (a) : (b))
 #define MAX(a, b)                ((a) > (b) ? (a) : (b))
 #ifdef offsetof

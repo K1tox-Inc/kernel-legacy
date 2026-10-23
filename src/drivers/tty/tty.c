@@ -1,4 +1,7 @@
 #include <arch/acpi.h>
+#include <ata/ata.h>
+#include <fs/ext2.h>
+#include <fs/vfs.h>
 #include <kernel/block.h>
 #include <kernel/panic.h>
 #include <keyboard/keyboard.h>
@@ -7,14 +10,14 @@
 #include <list.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
+#include <pci/pci.h>
 #include <proc/task.h>
+#include <uapi/errno.h>
+#include <uapi/fcntl.h>
 #include <utils/kmacro.h>
 #include <vga/vga.h>
 
 #include "tty.h"
-
-#include "../ata/ata.h"
-#include "../pci/pci.h"
 
 struct tty ttys[12], *current_tty = ttys;
 
@@ -128,8 +131,6 @@ struct shell_command {
 	void (*func)(int, char **);
 };
 
-static void exec_mok_cafe(SHELL_ARGS_UNUSED) { sloppy_exec("cafe"); }
-static void exec_mok_dead(SHELL_ARGS_UNUSED) { sloppy_exec("dead"); }
 static void exec_mok_fibo(SHELL_ARGS_UNUSED) { sloppy_exec("fibo"); }
 static void exec_mok_hello(SHELL_ARGS_UNUSED) { sloppy_exec("hello"); }
 static void exec_mok_pid(SHELL_ARGS_UNUSED) { sloppy_exec("pid"); }
@@ -197,11 +198,9 @@ static void lside_cmd(SHELL_ARGS_UNUSED)
 
 	list_for_each_entry(dev, &ide_devices, node)
 	{
-		/* Derive /dev/hdX from list position: hda=primary master,
-		 * hdb=primary slave, hdc=secondary master, hdd=secondary slave. */
 		name[0] = 'h';
 		name[1] = 'd';
-		name[2] = '0' + i;
+		name[2] = (char)('0' + i);
 		name[3] = '\0';
 		sectors = dev->lba_ext_max_sectors ? dev->lba_ext_max_sectors : dev->lba_max_sectors;
 		bytes   = sectors * 512;
@@ -235,17 +234,108 @@ static void lsblk_cmd(SHELL_ARGS_UNUSED)
 	}
 }
 
-struct shell_command shell_commands[] = {
+static void ext2load_cmd(SHELL_ARGS)
+{
+	if (argc < 2) {
+		vga_printf("Usage: ext2load <device>\n");
+		return;
+	}
+
+	struct block_device *dev = NULL;
+	list_for_each_entry(dev, &block_devices, node) if (ft_strequ(dev->name, argv[1])) break;
+
+	if (dev == NULL || list_entry_is_head(dev, &block_devices, node)) {
+		vga_printf("%s: %s: %s\n", argv[0], argv[1], ft_strerror(-ENOENT));
+		return;
+	}
+
+	int ret = ext2_parse_superblock(dev);
+	if (ret < 0) {
+		vga_printf("%s: failed to parse superblock: %s\n", argv[0], ft_strerror(ret));
+		return;
+	}
+}
+
+static int ls_emit(const char *name, size_t name_len, uint32_t ino, int type)
+{
+	char buf[256];
+
+	(void)ino;
+
+	ft_memcpy(buf, name, name_len);
+	buf[name_len] = '\0';
+
+	vga_printf("%s%s\n", buf, type == DT_DIR ? "/" : "");
+
+	return 0;
+}
+
+static void ls_cmd(SHELL_ARGS)
+{
+	char  root[] = "/";
+	char *path   = argc < 2 ? root : argv[1];
+
+	struct file *f;
+	int          ret = vfs_open(path, O_RDONLY | O_DIRECTORY, &f);
+
+	if (ret < 0) {
+		vga_printf("ls: %s: %s\n", path, ft_strerror(ret));
+		return;
+	}
+
+	struct dirctx ctx = {.emit = ls_emit, .pos = 0};
+
+	ret = vfs_iterate(f, &ctx);
+	if (ret < 0)
+		vga_printf("ls: %s: %s\n", path, ft_strerror(ret));
+
+	vfs_close(f);
+}
+
+static void cat_cmd(SHELL_ARGS)
+{
+	if (argc < 2) {
+		vga_printf("Usage: cat <path>\n");
+		return;
+	}
+
+	struct file *f;
+	int          ret = vfs_open(argv[1], O_RDONLY, &f);
+
+	if (ret < 0) {
+		vga_printf("cat: %s\n", ft_strerror(ret));
+		return;
+	}
+
+	log("file openned");
+
+	char    buf[2048];
+	ssize_t n;
+
+	while ((n = vfs_read(f, buf, sizeof(buf))) > 0) {
+		if (n != 2048)
+			buf[n] = 0;
+		vga_write(buf, n);
+	}
+
+	if (n < 0)
+		vga_printf("cat: %s\n", ft_strerror((int)n));
+
+	vfs_close(f);
+}
+
+static const struct shell_command shell_commands[] = {
     {"poweroff", "Power off the system.", tty_handle_kprimitive},
     {"reboot", "Reboot the system.", tty_handle_kprimitive},
     {"halt", "Halt the system.", tty_handle_kprimitive},
     {"ps", "Display existing process.", tty_handle_kprimitive},
     {"clear", "Clear the current tty.", tty_current_tty_clear},
-    {"cafe", "Run the mok process: cafe.", exec_mok_cafe},
-    {"dead", "Run the mok process: dead.", exec_mok_dead},
     {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
     {"hello", "Run the mok process: hello.", exec_mok_hello},
     {"pid", "Run the mok process: pid.", exec_mok_pid},
+    {"ext2load", "Parse block device using ext2.", ext2load_cmd},
+    {"ls", "List dentries of a directory.", ls_cmd},
+    {"cat", "Output a regular file.", cat_cmd},
     {"task_info", "Print task data using pid.", task_cmd_print_info},
     {"kill", "Send signal to process.", sys_kill_wrapper},
     {"lspci", "List PCI devices.", lspci_cmd},
@@ -258,7 +348,7 @@ struct shell_command shell_commands[] = {
 
 static void print_help(SHELL_ARGS_UNUSED)
 {
-	struct shell_command *cmd;
+	const struct shell_command *cmd;
 	vga_printf("Usage: [command] [options]\n\nAvailable commands:\n");
 	iter_over_array(cmd, shell_commands) { vga_printf("\t%s\t\t%s\n", cmd->cmd, cmd->descr); }
 }
@@ -273,7 +363,7 @@ void tty_cli_handle_nl(void)
 		char **shell_argv = ft_split(current_tty->cli, ' ');
 		if (shell_argv) {
 			if (shell_argv[0]) {
-				struct shell_command *cmd;
+				const struct shell_command *cmd;
 				iter_over_array(cmd, shell_commands)
 				{
 					if (ft_strequ(cmd->cmd, shell_argv[0])) {
