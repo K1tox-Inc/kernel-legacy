@@ -7,7 +7,9 @@
 
 #define EXT2_INITIAL_BLOCK_SIZE 1024
 #define EXT2_MAGIC              0xEF53
-#define EXT2_MAX_BLOCK_SIZE     (EXT2_INITIAL_BLOCK_SIZE << 4)
+#define EXT2_MAX_LOG_BLOCK_SIZE 4
+#define EXT2_MAX_BLOCK_SIZE     (EXT2_INITIAL_BLOCK_SIZE << EXT2_MAX_LOG_BLOCK_SIZE)
+#define EXT2_NAME_LEN           255
 #define EXT2_SUPERBLOCK_SIZE    1024
 #define EXT2_ROOT_INODE         2
 #define EXT2_VALID_FS           0x0001
@@ -22,16 +24,18 @@
 #define EXT2_OS_FREEBSD  3
 #define EXT2_OS_LITES    4
 
-#define EXT2_FEATURE_COMPAT_DIR_PREALLOC    0x0001
-#define EXT2_FEATURE_COMPAT_IMAGIC_INODES   0x0002
-#define EXT2_FEATURE_COMPAT_HAS_JOURNAL     0x0004
-#define EXT2_FEATURE_COMPAT_EXT_ATTR        0x0008
-#define EXT2_FEATURE_COMPAT_RESIZE_INODE    0x0010
-#define EXT2_FEATURE_COMPAT_DIR_INDEX       0x0020
-#define EXT2_FEATURE_INCOMPAT_COMPRESSION   0x0001
-#define EXT2_FEATURE_INCOMPAT_FILETYPE      0x0002
-#define EXT2_FEATURE_INCOMPAT_RECOVER       0x0004
-#define EXT2_FEATURE_INCOMPAT_JOURNAL_DEV   0x0008
+#define EXT2_FEATURE_COMPAT_DIR_PREALLOC  0x0001
+#define EXT2_FEATURE_COMPAT_IMAGIC_INODES 0x0002
+#define EXT2_FEATURE_COMPAT_HAS_JOURNAL   0x0004
+#define EXT2_FEATURE_COMPAT_EXT_ATTR      0x0008
+#define EXT2_FEATURE_COMPAT_RESIZE_INODE  0x0010
+#define EXT2_FEATURE_COMPAT_DIR_INDEX     0x0020
+#define EXT2_FEATURE_INCOMPAT_COMPRESSION 0x0001
+#define EXT2_FEATURE_INCOMPAT_FILETYPE    0x0002
+#define EXT2_FEATURE_INCOMPAT_RECOVER     0x0004
+#define EXT2_FEATURE_INCOMPAT_JOURNAL_DEV 0x0008
+/* Anything outside of this mask can change how the disk is read, so refuse to mount it */
+#define EXT2_FEATURE_INCOMPAT_SUPPORTED     EXT2_FEATURE_INCOMPAT_FILETYPE
 #define EXT2_FEATURE_RO_COMPAT_SPARSE_SUPER 0x0001
 #define EXT2_FEATURE_RO_COMPAT_LARGE_FILE   0x0002
 #define EXT2_FEATURE_RO_COMPAT_BTREE_DIR    0x0004
@@ -123,18 +127,12 @@ struct ext2_inode {
 	uint32_t i_osd2[3];
 } __attribute__((packed, aligned(256)));
 
-struct ext2_dir_entry {
+struct ext2_dentry {
 	uint32_t inode;
 	uint16_t rec_len;
-	uint16_t name_len;
+	uint8_t  name_len;
 	uint8_t  file_type;
 	char     name[];
 } __packed;
 
-extern int  ext2_parse_superblock(struct block_device *);
-extern int  ext2_list_dentries(const struct ext2_inode *ino);
-extern int  ext2_get_dentries(const struct ext2_inode *ino, struct ext2_dir_entry *dir);
-extern int  ext2_lookup(const char *path, struct ext2_inode *);
-extern void ext2_print_inode(const struct ext2_inode *ino);
-extern void ext2_print_group_descriptor(const struct ext2_group_desc *gd);
-extern int  ext2_cat(const struct ext2_inode *ino);
+extern int ext2_parse_superblock(struct block_device *);

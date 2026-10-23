@@ -1,6 +1,7 @@
 #include <arch/acpi.h>
 #include <ata/ata.h>
 #include <fs/ext2.h>
+#include <fs/vfs.h>
 #include <kernel/block.h>
 #include <kernel/panic.h>
 #include <keyboard/keyboard.h>
@@ -12,6 +13,7 @@
 #include <pci/pci.h>
 #include <proc/task.h>
 #include <uapi/errno.h>
+#include <uapi/fcntl.h>
 #include <utils/kmacro.h>
 #include <vga/vga.h>
 
@@ -232,57 +234,62 @@ static void lsblk_cmd(SHELL_ARGS_UNUSED)
 	}
 }
 
-static void ext2parse_cmd(SHELL_ARGS)
+static void ext2load_cmd(SHELL_ARGS)
 {
 	if (argc < 2) {
-		vga_printf("Usage: ext2parse <device>\n");
+		vga_printf("Usage: ext2load <device>\n");
 		return;
 	}
 
 	struct block_device *dev = NULL;
-	list_for_each_entry(dev, &block_devices, node)
-	{
-		if (ft_strequ(dev->name, argv[1]))
-			break;
-	}
+	list_for_each_entry(dev, &block_devices, node) if (ft_strequ(dev->name, argv[1])) break;
 
 	if (dev == NULL || list_entry_is_head(dev, &block_devices, node)) {
-		vga_printf("ext2parse: device '%s' not found\n", argv[1]);
+		vga_printf("%s: %s: %s\n", argv[0], argv[1], ft_strerror(-ENOENT));
 		return;
 	}
 
 	int ret = ext2_parse_superblock(dev);
 	if (ret < 0) {
-		vga_printf("ext2parse: failed to parse superblock (%d)\n", ret);
+		vga_printf("%s: failed to parse superblock: %s\n", argv[0], ft_strerror(ret));
 		return;
 	}
 }
 
+static int ls_emit(const char *name, size_t name_len, uint32_t ino, int type)
+{
+	char buf[256];
+
+	(void)ino;
+
+	ft_memcpy(buf, name, name_len);
+	buf[name_len] = '\0';
+
+	vga_printf("%s%s\n", buf, type == DT_DIR ? "/" : "");
+
+	return 0;
+}
+
 static void ls_cmd(SHELL_ARGS)
 {
-	if (argc < 2) {
-		vga_printf("Usage: ls <path>\n");
-		return;
-	}
+	char  root[] = "/";
+	char *path   = argc < 2 ? root : argv[1];
 
-	struct ext2_inode ino;
-	int               ret = ext2_lookup(argv[1], &ino);
+	struct file *f;
+	int          ret = vfs_open(path, O_RDONLY | O_DIRECTORY, &f);
+
 	if (ret < 0) {
-		vga_printf("ls: ext2_lookup: %s\n", ft_strerror(ret));
+		vga_printf("ls: %s: %s\n", path, ft_strerror(ret));
 		return;
 	}
 
-	if (EXT2_InodeTypeCheck(ino, Ext2_Inode_Dir)) {
-		ret = ext2_list_dentries(&ino);
-		if (ret < 0) {
-			vga_printf("ls: ext2_list_dentries: %s\n", ft_strerror(ret));
-			return;
-		}
-	}
+	struct dirctx ctx = {.emit = ls_emit, .pos = 0};
 
-	else {
-		ext2_print_inode(&ino);
-	}
+	ret = vfs_iterate(f, &ctx);
+	if (ret < 0)
+		vga_printf("ls: %s: %s\n", path, ft_strerror(ret));
+
+	vfs_close(f);
 }
 
 static void cat_cmd(SHELL_ARGS)
@@ -292,23 +299,32 @@ static void cat_cmd(SHELL_ARGS)
 		return;
 	}
 
-	struct ext2_inode ino;
-	int               ret = ext2_lookup(argv[1], &ino);
+	struct file *f;
+	int          ret = vfs_open(argv[1], O_RDONLY, &f);
+
 	if (ret < 0) {
-		vga_printf("ls: ext2_lookup: %s\n", ft_strerror(ret));
+		vga_printf("cat: %s\n", ft_strerror(ret));
 		return;
 	}
 
-	if (EXT2_InodeTypeCheck(ino, Ext2_Inode_Dir))
-		vga_printf("cat: %s\n", ft_strerror(-EISDIR));
+	log("file openned");
 
-	else if (!EXT2_InodeTypeCheck(ino, Ext2_Inode_RegFile))
-		vga_printf("cat: Not handled inode type (%u)\n", ino.i_mode >> 12);
+	char    buf[2048];
+	ssize_t n;
 
-	ext2_cat(&ino);
+	while ((n = vfs_read(f, buf, sizeof(buf))) > 0) {
+		if (n != 2048)
+			buf[n] = 0;
+		vga_write(buf, n);
+	}
+
+	if (n < 0)
+		vga_printf("cat: %s\n", ft_strerror((int)n));
+
+	vfs_close(f);
 }
 
-struct shell_command shell_commands[] = {
+static const struct shell_command shell_commands[] = {
     {"poweroff", "Power off the system.", tty_handle_kprimitive},
     {"reboot", "Reboot the system.", tty_handle_kprimitive},
     {"halt", "Halt the system.", tty_handle_kprimitive},
@@ -317,7 +333,7 @@ struct shell_command shell_commands[] = {
     {"fibo", "Run the mok process: fibo.", exec_mok_fibo},
     {"hello", "Run the mok process: hello.", exec_mok_hello},
     {"pid", "Run the mok process: pid.", exec_mok_pid},
-    {"ext2parse", "Parse block device using ext2.", ext2parse_cmd},
+    {"ext2load", "Parse block device using ext2.", ext2load_cmd},
     {"ls", "List dentries of a directory.", ls_cmd},
     {"cat", "Output a regular file.", cat_cmd},
     {"task_info", "Print task data using pid.", task_cmd_print_info},
@@ -332,7 +348,7 @@ struct shell_command shell_commands[] = {
 
 static void print_help(SHELL_ARGS_UNUSED)
 {
-	struct shell_command *cmd;
+	const struct shell_command *cmd;
 	vga_printf("Usage: [command] [options]\n\nAvailable commands:\n");
 	iter_over_array(cmd, shell_commands) { vga_printf("\t%s\t\t%s\n", cmd->cmd, cmd->descr); }
 }
@@ -347,7 +363,7 @@ void tty_cli_handle_nl(void)
 		char **shell_argv = ft_split(current_tty->cli, ' ');
 		if (shell_argv) {
 			if (shell_argv[0]) {
-				struct shell_command *cmd;
+				const struct shell_command *cmd;
 				iter_over_array(cmd, shell_commands)
 				{
 					if (ft_strequ(cmd->cmd, shell_argv[0])) {
