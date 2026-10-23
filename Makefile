@@ -19,9 +19,7 @@ TOOLSDIR=tools
 
 CLANG_FORMAT := clang-format
 
-# `i686-linux-gnu` assumes a hosted environment (Linux + glibc), which
-# doesn't apply to freestanding kernel code. TODO: switch to `i686-elf`.
-TARGET := i686-linux-gnu
+TARGET := i686-elf
 
 AS := $(TARGET)-as
 CC := $(TARGET)-gcc
@@ -42,8 +40,7 @@ ifeq ($(LDFLAGS),)
 LDFLAGS  = -z noexecstack -nostdlib -static
 endif
 
-# `-T linker.ld` drops ld's default search dirs, so `-lgcc` can't be found, link the archive by path
-LDLIBS = $(shell $(CC) -print-libgcc-file-name) -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
+LDLIBS := -lgcc -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
 
 GRUB_MKRESCUE := grub-mkrescue
 
@@ -51,7 +48,7 @@ QEMU      := qemu-system-i386
 QEMUFLAGS := -m 4096 -cpu host -enable-kvm -s -serial file:serial.log -display sdl,gl=off
 
 DOCKERIMAGENAME := noalexan/cross-compiler
-DOCKERIMAGETAG  := 685b705
+DOCKERIMAGETAG  := 6071631
 
 OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\.\(c\|cpp\|s\)' -not -path "src/generated/*" | sed 's/\.\(c\|cpp\|s\)/.o/g'))
 OBJ+=$(BINDIR)/generated/syscall_table.o
