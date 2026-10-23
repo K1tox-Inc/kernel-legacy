@@ -42,7 +42,8 @@ ifeq ($(LDFLAGS),)
 LDFLAGS  = -z noexecstack -nostdlib -static
 endif
 
-LDLIBS := -lgcc -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
+# `-T linker.ld` drops ld's default search dirs, so `-lgcc` can't be found, link the archive by path
+LDLIBS = $(shell $(CC) -print-libgcc-file-name) -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
 
 GRUB_MKRESCUE := grub-mkrescue
 
