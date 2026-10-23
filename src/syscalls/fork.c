@@ -8,8 +8,8 @@
 #include <proc/scheduler.h>
 #include <proc/task.h>
 #include <syscalls/syscalls.h>
+#include <uapi/errno.h>
 #include <utils/assert.h>
-#include <utils/error.h>
 #include <utils/kmacro.h>
 #include <vga/vga.h>
 

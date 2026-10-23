@@ -4,7 +4,7 @@
 #include <libk.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
-#include <utils/error.h>
+#include <uapi/errno.h>
 #include <utils/kmacro.h>
 #include <vga/vga.h>
 

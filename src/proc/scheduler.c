@@ -4,7 +4,7 @@
 #include <proc/signal.h>
 #include <proc/task.h>
 #include <proc/timer.h>
-#include <utils/error.h>
+#include <uapi/errno.h>
 #include <utils/kmacro.h>
 
 extern asmlinkage void switch_to(struct task *current, struct task *next);

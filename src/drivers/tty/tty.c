@@ -11,7 +11,7 @@
 #include <memory/memory.h>
 #include <pci/pci.h>
 #include <proc/task.h>
-#include <utils/error.h>
+#include <uapi/errno.h>
 #include <utils/kmacro.h>
 #include <vga/vga.h>
 

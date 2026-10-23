@@ -4,7 +4,7 @@
 #include <proc/task.h>
 #include <syscalls/exit.h>
 #include <syscalls/syscalls.h>
-#include <utils/error.h>
+#include <uapi/errno.h>
 #include <vga/vga.h>
 
 SYSCALL_DEFINE0(sigreturn)

@@ -13,8 +13,8 @@
 #include <proc/waitqueue.h>
 #include <syscalls/exit.h>
 #include <types.h>
+#include <uapi/errno.h>
 #include <utils/assert.h>
-#include <utils/error.h>
 #include <utils/id_manager.h>
 #include <vga/vga.h>
 

@@ -55,3 +55,10 @@
 
 /*Custom errors*/
 #define EUNREACH 600 /* Code is unreachable */
+#define ENOTSUP  601 /* Not supported */
+
+#define MAX_ERRNO 4095UL
+
+#define ERR_PTR(err) ((void *)(err))
+#define IS_ERR(err)  ((unsigned long)(err) >= -MAX_ERRNO)
+#define PTR_ERR(ptr) ((long)(ptr))

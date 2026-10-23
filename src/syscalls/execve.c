@@ -8,7 +8,7 @@
 #include <proc/task.h>
 #include <proc/userspace.h>
 #include <syscalls/syscalls.h>
-#include <utils/error.h>
+#include <uapi/errno.h>
 
 #define iter_over_array(p, a)                                                                      \
 	for ((p) = a; (uintptr_t)(p) - (uintptr_t)(a) <= sizeof(a) - sizeof(typeof(*(a))); (p)++)

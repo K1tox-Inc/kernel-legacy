@@ -1,4 +1,4 @@
-#include <utils/error.h>
+#include <uapi/errno.h>
 
 const char *ft_strerror(int errcode)
 {
