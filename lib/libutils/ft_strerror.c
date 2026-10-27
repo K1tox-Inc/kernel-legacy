@@ -91,6 +91,8 @@ const char *ft_strerror(int errcode)
 		return "Out of streams resources";
 	case EUNREACH:
 		return "Code is unreachable";
+	case ENOTSUP:
+		return "Not supported";
 	default:
 		return "Unknown error";
 	}
