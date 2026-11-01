@@ -4,18 +4,19 @@
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
 #include <types.h>
+#include <utils/compiler.h>
 
 #define BCACHE_HMAP_BITS HMAP_1024
 static DEFINE_HASHTABLE(bcache, BCACHE_HMAP_BITS);
 
-static inline uint32_t bcache_hash(struct block_device *bdev, uint32_t blkno)
+static __always_inline uint32_t bcache_hash(struct block_device *bdev, uint32_t blkno)
 {
-	return hash_32(blkno ^ ((uintptr_t)bdev >> 4), BCACHE_HMAP_BITS);
+	return blkno ^ ((uintptr_t)bdev >> 4);
 }
 
 static struct bcache *cache_lookup(struct block_device *bdev, uint32_t blkno)
 {
-	uint32_t       key = blkno ^ ((uintptr_t)bdev >> 4);
+	uint32_t       key = bcache_hash(bdev, blkno);
 	struct bcache *b;
 
 	hash_for_each_possible(bcache, b, hnode, key)
