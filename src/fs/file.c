@@ -71,6 +71,9 @@ ssize_t vfs_read(struct file *f, void *buf, size_t n)
 {
 	assert(f);
 
+	if (IS_DIR(f->f_inode))
+		return -EISDIR;
+
 	if (unlikely(!f->f_op || !f->f_op->read))
 		return -EINVAL;
 
