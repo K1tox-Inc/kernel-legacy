@@ -68,8 +68,8 @@ static int ext2_inode_bmap(struct block_device *dev, const struct ext2_inode *in
 
 	for (; blk && stride; stride /= ptrs_per_blk) {
 		struct bcache *b = bread(dev, blk);
-		if (!b)
-			return -EIO;
+		if (IS_ERR(b))
+			return PTR_ERR(b);
 
 		blk = ((uint32_t *)b->data)[(blk_idx / stride) % ptrs_per_blk];
 		brelse(b);
@@ -347,8 +347,8 @@ static int ext2_iterate(struct file *f, struct dirctx *ctx)
 			return -EIO; /* directories must not have holes */
 
 		struct bcache *b = bread(dev, blk);
-		if (!b)
-			return -EIO;
+		if (IS_ERR(b))
+			return PTR_ERR(b);
 
 		while (off < bs) {
 			const struct ext2_dentry *de = (void *)(b->data + off);

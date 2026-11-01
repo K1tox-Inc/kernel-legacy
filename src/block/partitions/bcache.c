@@ -35,7 +35,7 @@ struct bcache *bread(struct block_device *bdev, uint32_t blkno)
 		// TODO: Change to `cache_alloc(bdev, blkno)` and evict an LRU buf with refcnt 0
 		b = kmalloc(sizeof(struct bcache) + bdev->block_size, GFP_KERNEL);
 		if (!b)
-			return NULL;
+			return ERR_PTR(-ENOMEM);
 		b->bdev   = bdev;
 		b->blkno  = blkno;
 		b->data   = (void *)(b + 1);
@@ -43,11 +43,12 @@ struct bcache *bread(struct block_device *bdev, uint32_t blkno)
 		b->valid  = false;
 		hash_add(bcache, &b->hnode, bcache_hash(bdev, blkno));
 	}
+
 	b->refcnt++;
 	if (!b->valid) {
 		if (blkdev_read(bdev, blkno, 1, b->data) < 0) {
 			brelse(b);
-			return NULL;
+			return ERR_PTR(-EIO);
 		}
 		b->valid = true;
 	}
