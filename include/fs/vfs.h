@@ -4,6 +4,7 @@
 #include <kernel/hashtable.h>
 #include <list.h>
 #include <types.h>
+#include <utils/compiler.h>
 
 enum VFS_Inode_Type {
 	VFS_Inode_FIFO       = 0x1,
@@ -19,8 +20,6 @@ enum VFS_Inode_Type {
 #define IS_DIR(i)                VFS_InodeTypeCheck(i, VFS_Inode_Dir)
 
 #define NAME_MAX 255
-
-typedef uint16_t umode_t;
 
 enum vfs_types_e {
 	FS_EXT2,
@@ -40,22 +39,22 @@ struct superblock {
 };
 
 struct inode_operations {
-	struct dentry *(*lookup)(struct inode *parent, struct dentry *child);
-	int (*read_page)(struct inode *ino, off_t off, void *page);
-	int (*write_page)(struct inode *ino, off_t off, const void *page);
-	int (*permission)(struct inode *ino, int mask);
-	void (*destroy)(struct inode *ino);
+	struct dentry *(*__nullable lookup)(struct inode *parent, struct dentry *child);
+	int (*__nullable read_page)(struct inode *ino, off_t off, void *page);
+	int (*__nullable write_page)(struct inode *ino, off_t off, const void *page);
+	int (*__nullable permission)(struct inode *ino, int mask);
+	void (*__nullable destroy)(struct inode *ino);
 };
 
 struct dirctx;
 
 struct file_operations {
-	int (*open)(struct file *f);
-	int (*release)(struct file *f);
-	ssize_t (*read)(struct file *f, void *buf, size_t n);
-	ssize_t (*write)(struct file *f, const void *buf, size_t n);
-	off_t (*lseek)(struct file *f, off_t off, int whence);
-	int (*iterate)(struct file *f, struct dirctx *ctx);
+	int (*__nullable open)(struct file *f);
+	int (*__nullable release)(struct file *f);
+	ssize_t (*__nullable read)(struct file *f, void *buf, size_t n);
+	ssize_t (*__nullable write)(struct file *f, const void *buf, size_t n);
+	off_t (*__nullable lseek)(struct file *f, off_t off, int whence);
+	int (*__nullable iterate)(struct file *f, struct dirctx *ctx);
 };
 
 struct inode {

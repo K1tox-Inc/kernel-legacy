@@ -301,12 +301,6 @@ static const struct file_operations ext2_fops = {
     .lseek = ext2_f_lseek,
 };
 
-static int ext2_dir_open(struct file *) { return 0; }
-
-static int ext2_dir_read(struct file *, void *, size_t) { return -ENOTSUP; }
-
-static off_t ext2_dir_lseek(struct file *, off_t, int) { return -ENOTSUP; }
-
 static int ext2_dtype(uint8_t file_type)
 {
 	switch (file_type) {
@@ -381,9 +375,6 @@ static int ext2_iterate(struct file *f, struct dirctx *ctx)
 }
 
 static const struct file_operations ext2_dir_ops = {
-    .open    = ext2_dir_open,
-    .read    = ext2_dir_read,
-    .lseek   = ext2_dir_lseek,
     .iterate = ext2_iterate,
 };
 
