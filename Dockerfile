@@ -1,7 +1,9 @@
+ARG GCC_VERSION=16.2.0
+
 FROM ubuntu:latest AS toolchain
 
 ARG BINUTILS_VERSION=2.47
-ARG GCC_VERSION=16.2.0
+ARG GCC_VERSION
 
 ENV TARGET=i686-elf
 ENV PREFIX=/opt/cross
@@ -37,11 +39,13 @@ RUN rm -rf ${PREFIX}/share/man ${PREFIX}/share/info ${PREFIX}/share/locale \
 
 FROM ubuntu:latest
 
+ARG GCC_VERSION
+
 ENV IN_DOCKER=1
 ENV PATH=/opt/cross/bin:$PATH
 
 # `-T linker.ld` drops ld's default search dirs, so `libgcc.a` has to be given with `-L`
-ENV LDFLAGS="-z noexecstack -nostdlib -static -L/opt/cross/lib/gcc/i686-elf/16.2.0"
+ENV LDFLAGS="-z noexecstack -nostdlib -static -L/opt/cross/lib/gcc/i686-elf/${GCC_VERSION}"
 
 RUN apt update && apt install -y --no-install-recommends make grub2 xorriso mtools clang-format python3 libgmp10 libmpfr6 libmpc3 \
     && rm -rf /var/lib/apt/lists/*
