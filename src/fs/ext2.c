@@ -1,4 +1,5 @@
 #include <bitmap/bitmap.h>
+#include <fs/dcache.h>
 #include <fs/ext2.h>
 #include <fs/vfs.h>
 #include <kernel/bcache.h>
@@ -423,6 +424,14 @@ int ext2_parse_superblock(struct block_device *dev)
 {
 	assert(dev);
 
+	// TODO: Change it when implementing mounts, nothing is refcounted yet so the old superblock
+	// is assumed to be unreferenced once its dentries are evicted
+	if (root_sb) {
+		int ret = d_prune(root_sb->s_root);
+		if (ret < 0)
+			return ret;
+	}
+
 	const size_t old_block_size = dev->block_size;
 
 	struct ext2_super_block *_sb =
@@ -521,14 +530,11 @@ int ext2_parse_superblock(struct block_device *dev)
 	INIT_SENTINEL(&sb->s_root->d_sibling);
 	INIT_SENTINEL(&sb->s_root->d_inode->i_dentry);
 
-	// TODO: Change it when implementing mounts, nothing is refcounted yet so the
-	// old superblock is assumed to be unreferenced once replaced
 	struct superblock *old_sb = root_sb;
 	root_sb                   = sb;
 
-	if (old_sb) {
+	if (old_sb)
 		kfree(old_sb->s_fs_info);
-	}
 
 	return 0;
 

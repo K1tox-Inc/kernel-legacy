@@ -97,3 +97,57 @@ struct dentry *d_lookup(const struct dentry *parent, const char *name)
 
 	return NULL;
 }
+
+/* A child holds a reference on its parent, so an unused dentry has one count per child */
+static bool d_subtree_busy(struct dentry *d)
+{
+	struct dentry *child;
+	int            nr_children = 0;
+
+	list_for_each_entry(child, &d->d_child, d_sibling)
+	{
+		if (d_subtree_busy(child))
+			return true;
+		nr_children++;
+	}
+
+	return d->d_count != nr_children;
+}
+
+static void d_prune_children(struct dentry *d)
+{
+	struct list_head *pos, *tmp;
+
+	list_for_each_safe(pos, tmp, &d->d_child)
+	{
+		struct dentry *child = list_entry(pos, struct dentry, d_sibling);
+
+		d_prune_children(child);
+
+		pop_node(&child->d_sibling);
+		hash_del(&child->d_hnode);
+
+		if (child->d_inode)
+			iput(child->d_inode);
+
+		d->d_count--;
+		kfree(child);
+	}
+}
+
+int d_prune(struct dentry *d)
+{
+	assert(d);
+
+	struct dentry *child;
+
+	list_for_each_entry(child, &d->d_child, d_sibling)
+	{
+		if (d_subtree_busy(child))
+			return -EBUSY;
+	}
+
+	d_prune_children(d);
+
+	return 0;
+}
