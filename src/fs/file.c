@@ -1,8 +1,8 @@
 #include <fs/dcache.h>
 #include <fs/vfs.h>
-#include <memory/kmalloc.h>
 #include <uapi/errno.h>
 #include <uapi/fcntl.h>
+#include <utils/assert.h>
 #include <utils/compiler.h>
 
 int vfs_open(const char *path, int flags, struct file *out)
@@ -12,7 +12,7 @@ int vfs_open(const char *path, int flags, struct file *out)
 
 	assert(path && out);
 
-	if (flags & (O_RDWR | O_CREAT | O_TRUNC))
+	if ((flags & O_ACCMODE) != O_RDONLY || (flags & (O_CREAT | O_TRUNC)))
 		return -EROFS;
 
 	struct dentry *d = vfs_lookup(path, root_sb->s_root);
