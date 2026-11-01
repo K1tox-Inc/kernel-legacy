@@ -6,11 +6,15 @@
 
 #define GOLDEN_RATIO_32 0x61C88647u
 
-#define hash_32(val, bits) ((val) * GOLDEN_RATIO_32) >> (32 - (bits))
+#define hash_32(val, bits) (((val) * GOLDEN_RATIO_32) >> (32 - (bits)))
 
 #define DEFINE_HASHTABLE(name, bits) struct hlist_head name[1 << (bits)] = {0}
 
-#define ilog2(x) (31 - __builtin_clz(x))
+#define ilog2(n)                                                                                   \
+	({                                                                                             \
+		__typeof__(n) __n = (n);                                                                   \
+		__n < 2 ? 0 : (sizeof(__n) <= 4) ? 31 - __builtin_clz(__n) : 63 - __builtin_clzll(__n);    \
+	})
 
 #define HASH_SIZE(name) (sizeof(name) / sizeof((name)[0]))
 #define HASH_BITS(name) ilog2(HASH_SIZE(name))
