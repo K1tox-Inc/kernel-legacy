@@ -3,7 +3,6 @@
 #include <kernel/block.h>
 #include <list.h>
 #include <types.h>
-#include <utils/assert.h>
 
 #define EXT2_INITIAL_BLOCK_SIZE 1024
 #define EXT2_MAGIC              0xEF53
@@ -40,7 +39,7 @@
 #define EXT2_FEATURE_RO_COMPAT_LARGE_FILE   0x0002
 #define EXT2_FEATURE_RO_COMPAT_BTREE_DIR    0x0004
 
-#define EXT2_InodeTypeCheck(inode, type) (((inode).i_mode >> 12) == (type))
+#define EXT2_InodeTypeCheck(inode, type) ((((struct ext2_inode *)(inode))->i_mode >> 12) == (type))
 
 struct ext2_super_block {
 	uint32_t s_inodes_count;

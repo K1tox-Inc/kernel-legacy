@@ -92,7 +92,7 @@ int ext2_get_dentries(struct block_device *dev, const struct ext2_inode *ino, st
 {
 	assert(dev && ino && m);
 
-	if (!(EXT2_InodeTypeCheck(*ino, Ext2_Inode_Dir)))
+	if (!(EXT2_InodeTypeCheck(ino, Ext2_Inode_Dir)))
 		return -ENOTDIR;
 
 	size_t nr_blocks = DIV_ROUND_UP(ino->i_size, dev->block_size);
@@ -211,7 +211,7 @@ static int ext2_find_inode(const struct superblock *sb, const struct ext2_inode 
 {
 	assert(sb && dir && name && out);
 
-	if (!EXT2_InodeTypeCheck(*dir, Ext2_Inode_Dir))
+	if (!EXT2_InodeTypeCheck(dir, Ext2_Inode_Dir))
 		return -ENOTDIR;
 
 	if (name_len > EXT2_NAME_LEN)
@@ -250,10 +250,10 @@ static int ext2_f_open(struct file *f)
 {
 	const struct ext2_inode *const ino = f->f_inode->i_prv;
 
-	if (EXT2_InodeTypeCheck(*ino, Ext2_Inode_Dir))
+	if (EXT2_InodeTypeCheck(ino, Ext2_Inode_Dir))
 		return -EISDIR;
 
-	if (!EXT2_InodeTypeCheck(*ino, Ext2_Inode_RegFile))
+	if (!EXT2_InodeTypeCheck(ino, Ext2_Inode_RegFile))
 		return -ENOTSUP;
 
 	// TODO: Check `O_LARGEFILE`
@@ -335,7 +335,7 @@ static int ext2_iterate(struct file *f, struct dirctx *ctx)
 
 	const struct ext2_inode *const ino = f->f_inode->i_prv;
 
-	if (!EXT2_InodeTypeCheck(*ino, Ext2_Inode_Dir))
+	if (!EXT2_InodeTypeCheck(ino, Ext2_Inode_Dir))
 		return -ENOTDIR;
 
 	struct block_device *const dev = f->f_inode->i_sb->s_bdev;
@@ -411,7 +411,7 @@ static struct dentry *ext2_i_lookup(struct inode *parent, struct dentry *child)
 	ino->i_sb    = parent->i_sb;
 	ino->i_count = 1;
 	ino->i_op    = ino->i_sb->s_i_op;
-	ino->i_f_op  = (EXT2_InodeTypeCheck(*resolved, Ext2_Inode_Dir)) ? &ext2_dir_ops : &ext2_fops;
+	ino->i_f_op  = (EXT2_InodeTypeCheck(resolved, Ext2_Inode_Dir)) ? &ext2_dir_ops : &ext2_fops;
 	ino->i_prv   = resolved;
 	INIT_SENTINEL(&ino->i_dentry);
 
@@ -495,7 +495,7 @@ int ext2_parse_superblock(struct block_device *dev)
 	if (ret < 0)
 		goto err;
 
-	if (!EXT2_InodeTypeCheck(*_ino, Ext2_Inode_Dir)) {
+	if (!EXT2_InodeTypeCheck(_ino, Ext2_Inode_Dir)) {
 		vga_printf("ext2load: Root inode is not a directory, aborting...\n");
 		ret = -EINVAL;
 		goto err;
