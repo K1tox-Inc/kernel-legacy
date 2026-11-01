@@ -40,7 +40,7 @@ ifeq ($(LDFLAGS),)
 LDFLAGS  = -z noexecstack -nostdlib -static
 endif
 
-LDLIBS := -lgcc -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
+LDLIBS := -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils -lgcc
 
 GRUB_MKRESCUE := grub-mkrescue
 
