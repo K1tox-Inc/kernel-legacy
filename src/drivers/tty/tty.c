@@ -310,11 +310,8 @@ static void cat_cmd(SHELL_ARGS)
 	char    buf[512];
 	ssize_t n;
 
-	while ((n = vfs_read(&f, buf, sizeof(buf))) > 0) {
-		if (n != sizeof(buf))
-			buf[n] = 0;
+	while ((n = vfs_read(&f, buf, sizeof(buf))) > 0)
 		vga_write(buf, n);
-	}
 
 	if (n < 0)
 		vga_printf("cat: %s\n", ft_strerror((int)n));
