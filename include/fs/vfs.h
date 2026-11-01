@@ -123,6 +123,10 @@ extern void          iput(struct inode *ino);
 /* Returns a counted reference on the dentry, release it with `dput` */
 extern struct dentry *vfs_lookup(const char *path, struct dentry *start);
 
+/*
+ * Fills the caller-provided `out`, which is enough for the shell.
+ * TODO: Per-process fd tables (`dup`, `fork`) will need heap-allocated, refcounted files again
+ */
 extern int     vfs_open(const char *path, int flags, struct file *out);
 extern int     vfs_close(struct file *f);
 extern ssize_t vfs_read(struct file *f, void *buf, size_t n);
