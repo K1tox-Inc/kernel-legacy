@@ -123,7 +123,7 @@ extern void          iput(struct inode *ino);
 /* Returns a counted reference on the dentry, release it with `dput` */
 extern struct dentry *vfs_lookup(const char *path, struct dentry *start);
 
-extern int     vfs_open(const char *path, int flags, struct file **out);
+extern int     vfs_open(const char *path, int flags, struct file *out);
 extern int     vfs_close(struct file *f);
 extern ssize_t vfs_read(struct file *f, void *buf, size_t n);
 extern ssize_t vfs_write(struct file *f, const void *buf, size_t n);

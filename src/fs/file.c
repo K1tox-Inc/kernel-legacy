@@ -5,7 +5,7 @@
 #include <uapi/fcntl.h>
 #include <utils/compiler.h>
 
-int vfs_open(const char *path, int flags, struct file **out)
+int vfs_open(const char *path, int flags, struct file *out)
 {
 	if (!root_sb)
 		return -ENODEV;
@@ -32,30 +32,18 @@ int vfs_open(const char *path, int flags, struct file **out)
 		goto err_put;
 	}
 
-	struct file *f = kmalloc(sizeof(struct file), GFP_KERNEL);
+	out->f_pos    = 0;
+	out->f_flags  = flags;
+	out->f_dentry = d;
+	out->f_inode  = d->d_inode;
+	out->f_op     = out->f_inode->i_f_op;
 
-	if (unlikely(!f)) {
-		ret = -ENOMEM;
-		goto err_put;
-	}
+	if (out->f_op && out->f_op->open) {
+		ret = out->f_op->open(out);
 
-	/* The reference taken by `vfs_lookup` now belongs to the file */
-	f->f_pos    = 0;
-	f->f_flags  = flags;
-	f->f_dentry = d;
-	f->f_inode  = d->d_inode;
-	f->f_op     = f->f_inode->i_f_op;
-
-	if (f->f_op && f->f_op->open) {
-		ret = f->f_op->open(f);
-
-		if (ret < 0) {
-			kfree(f);
+		if (ret < 0)
 			goto err_put;
-		}
 	}
-
-	*out = f;
 
 	return 0;
 
@@ -75,7 +63,6 @@ int vfs_close(struct file *f)
 		ret = f->f_op->release(f);
 
 	dput(f->f_dentry);
-	kfree(f);
 
 	return ret;
 }
@@ -117,8 +104,7 @@ off_t vfs_lseek(struct file *f, off_t off, int whence)
 
 int vfs_iterate(struct file *f, struct dirctx *ctx)
 {
-	if (unlikely(!f || !ctx))
-		return -EINVAL;
+	assert(f && ctx);
 
 	if (unlikely(!f->f_op || !f->f_op->iterate))
 		return -ENOTDIR;

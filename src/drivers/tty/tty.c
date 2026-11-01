@@ -275,8 +275,8 @@ static void ls_cmd(SHELL_ARGS)
 	char  root[] = "/";
 	char *path   = argc < 2 ? root : argv[1];
 
-	struct file *f;
-	int          ret = vfs_open(path, O_RDONLY | O_DIRECTORY, &f);
+	struct file f;
+	int         ret = vfs_open(path, O_RDONLY | O_DIRECTORY, &f);
 
 	if (ret < 0) {
 		vga_printf("ls: %s: %s\n", path, ft_strerror(ret));
@@ -285,11 +285,11 @@ static void ls_cmd(SHELL_ARGS)
 
 	struct dirctx ctx = {.emit = ls_emit, .pos = 0};
 
-	ret = vfs_iterate(f, &ctx);
+	ret = vfs_iterate(&f, &ctx);
 	if (ret < 0)
 		vga_printf("ls: %s: %s\n", path, ft_strerror(ret));
 
-	vfs_close(f);
+	vfs_close(&f);
 }
 
 static void cat_cmd(SHELL_ARGS)
@@ -299,21 +299,19 @@ static void cat_cmd(SHELL_ARGS)
 		return;
 	}
 
-	struct file *f;
-	int          ret = vfs_open(argv[1], O_RDONLY, &f);
+	struct file f;
+	int         ret = vfs_open(argv[1], O_RDONLY, &f);
 
 	if (ret < 0) {
 		vga_printf("cat: %s\n", ft_strerror(ret));
 		return;
 	}
 
-	log("file openned");
-
-	char    buf[2048];
+	char    buf[512];
 	ssize_t n;
 
-	while ((n = vfs_read(f, buf, sizeof(buf))) > 0) {
-		if (n != 2048)
+	while ((n = vfs_read(&f, buf, sizeof(buf))) > 0) {
+		if (n != sizeof(buf))
 			buf[n] = 0;
 		vga_write(buf, n);
 	}
@@ -321,7 +319,7 @@ static void cat_cmd(SHELL_ARGS)
 	if (n < 0)
 		vga_printf("cat: %s\n", ft_strerror((int)n));
 
-	vfs_close(f);
+	vfs_close(&f);
 }
 
 static const struct shell_command shell_commands[] = {
