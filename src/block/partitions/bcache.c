@@ -55,6 +55,8 @@ struct bcache *bread(struct block_device *bdev, uint32_t blkno)
 	return b;
 }
 
+// TODO: Keep the buffer cached at `refcnt == 0` once `bread` can evict, every `bread` hits the
+// disk until then
 void brelse(struct bcache *b)
 {
 	if (--b->refcnt == 0) {
