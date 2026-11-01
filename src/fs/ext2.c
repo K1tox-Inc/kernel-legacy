@@ -375,7 +375,21 @@ static int ext2_iterate(struct file *f, struct dirctx *ctx)
 	return 0;
 }
 
+/* `f_pos` must stay on a record boundary, so only rewinding and querying the position are allowed
+ */
+static off_t ext2_dir_lseek(struct file *f, off_t off, int whence)
+{
+	if (off != 0 || (whence != SEEK_SET && whence != SEEK_CUR))
+		return -EINVAL;
+
+	if (whence == SEEK_SET)
+		f->f_pos = 0;
+
+	return f->f_pos;
+}
+
 static const struct file_operations ext2_dir_ops = {
+    .lseek   = ext2_dir_lseek,
     .iterate = ext2_iterate,
 };
 
