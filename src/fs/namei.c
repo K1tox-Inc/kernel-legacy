@@ -22,7 +22,9 @@ static struct dentry *walk_component(struct dentry *dir, const char *name)
 		return next;
 	}
 
-	if (unlikely(!IS_DIR(dir->d_inode))) {
+	const struct inode_operations *i_op = dir->d_inode->i_op;
+
+	if (unlikely(!IS_DIR(dir->d_inode) || !i_op || !i_op->lookup)) {
 		dput(dir);
 		return ERR_PTR(-ENOTDIR);
 	}
@@ -33,7 +35,7 @@ static struct dentry *walk_component(struct dentry *dir, const char *name)
 		next = d_alloc(dir, name);
 
 		if (!IS_ERR(next)) {
-			struct dentry *res = dir->d_inode->i_op->lookup(dir->d_inode, next);
+			struct dentry *res = i_op->lookup(dir->d_inode, next);
 
 			if (IS_ERR(res)) {
 				d_free(next);
