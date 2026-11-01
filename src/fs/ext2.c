@@ -527,7 +527,7 @@ int ext2_parse_superblock(struct block_device *dev)
 	root_sb                   = sb;
 
 	if (old_sb) {
-		kfree(old_sb);
+		kfree(old_sb->s_fs_info);
 	}
 
 	return 0;
