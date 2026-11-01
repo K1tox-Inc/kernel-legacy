@@ -30,8 +30,8 @@ def main():
                         raise ValueError(f"ID must be an integer: {syscall_id}")
 
                     id_int = int(syscall_id)
-                    if id_int > 200:
-                        raise ValueError(f"ID must be < 200: {id_int}")
+                    if id_int > 256:
+                        raise ValueError(f"ID must be < 256: {id_int}")
 
                     if not name.isidentifier() or not sys_entry.isidentifier():
                         raise ValueError(f"Invalid C identifier: {name} or {sys_entry}")

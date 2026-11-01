@@ -2,7 +2,7 @@
 #include <memory/vmm.h>
 #include <proc/task.h>
 #include <syscalls/syscalls.h>
-#include <utils/error.h>
+#include <uapi/errno.h>
 
 enum mmap_prot {
 	PROT_NONE  = 0x0, // Pages may not be accessed.

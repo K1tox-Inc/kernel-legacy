@@ -40,11 +40,12 @@ struct s_cursor {
 	uint8_t y;
 };
 
-void vga_disable_cursor(void);
-void vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
-void vga_set_cursor_position(uint8_t x, uint8_t y);
-void vga_set_mode(enum vga_color mode);
-void vga_setup_default_screen(void);
-void vga_refresh_screen(void);
-void vga_printf(const char *restrict fmt, ...);
-void vga_vprintf(const char *restrict fmt, va_list ap);
+extern void   vga_disable_cursor(void);
+extern void   vga_enable_cursor(uint8_t cursor_start, uint8_t cursor_end);
+extern void   vga_set_cursor_position(uint8_t x, uint8_t y);
+extern void   vga_set_mode(enum vga_color mode);
+extern void   vga_setup_default_screen(void);
+extern void   vga_refresh_screen(void);
+extern size_t vga_write(const char *, size_t);
+extern void   vga_printf(const char *restrict fmt, ...);
+extern void   vga_vprintf(const char *restrict fmt, va_list ap);

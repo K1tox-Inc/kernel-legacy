@@ -322,8 +322,8 @@ static int ata_write_sector(struct generic_disk *disk, size_t lba, size_t count,
 	                         (void *)edi);
 }
 
-static const struct disk_ops ide_ops = (struct disk_ops){
-    .read_sectors = &ata_read_sector, .write_sectors = &ata_write_sector, .flush = NULL};
+static const struct disk_ops ide_ops =
+    (struct disk_ops){.read = &ata_read_sector, .write = &ata_write_sector, .flush = NULL};
 
 void ide_init(void)
 {
@@ -347,25 +347,7 @@ void ide_init(void)
 		ft_memcpy(disk->name, "hd0", 4);
 		disk->name[2] += i++;
 
-		if (add_disk(disk) < 0)
+		if (blkdev_register_disk(disk) < 0)
 			kfree(disk);
 	}
-
-	/*
-	 * Usage exemple:
-	 * const struct ide_device *device;
-	 *
-	 * uint8_t   buffer[ATA_SECTOR_SIZE * 1];
-	 * uintptr_t addr          = 0xd0d0;
-	 * uint32_t  lba           = addr / ATA_SECTOR_SIZE;
-	 * size_t    buffer_offset = addr % ATA_SECTOR_SIZE;
-	 *
-	 * device = list_next_entry(list_first_entry(&ide_devices, struct ide_device, node), node);
-	 *
-	 * ata_read_sector(device, lba, sizeof(buffer) / ATA_SECTOR_SIZE, buffer);
-	 *
-	 * ft_memcpy(buffer + buffer_offset, "Hello, World!", 13);
-	 *
-	 * ata_write_sector(device, lba, sizeof(buffer) / ATA_SECTOR_SIZE, buffer);
-	 */
 }

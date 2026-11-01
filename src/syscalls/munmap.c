@@ -1,7 +1,7 @@
 #include <memory/vma.h>
 #include <proc/task.h>
 #include <syscalls/syscalls.h>
-#include <utils/error.h>
+#include <uapi/errno.h>
 
 SYSCALL_DEFINE2(munmap, void *, addr, size_t, length)
 {

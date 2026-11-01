@@ -69,15 +69,12 @@ void kfree(void *ptr)
 // TODO: implement ATOMIC gfp flags handling when SMP or multi process is ok
 void *kmalloc(size_t size, gfp_t flags)
 {
-
 	void          *ret  = NULL;
 	enum zone_type zone = LOWMEM_ZONE;
 	if (FLAG_IS_SET(flags, __GFP_DMA))
 		zone = DMA_ZONE;
 
-	if (size == 0)
-		return NULL;
-	else if (size > MAX_KMALLOC_SIZE)
+	if (size == 0 || size > MAX_KMALLOC_SIZE)
 		return NULL;
 
 	ret = try_alloc_with_reclaim(zone, size);

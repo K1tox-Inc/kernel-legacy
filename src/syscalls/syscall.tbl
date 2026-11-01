@@ -11,3 +11,4 @@
 91      munmap      sys_munmap
 119     sigreturn   sys_sigreturn
 162     sleep       sys_sleep
+220     getdents64  sys_getdents64
