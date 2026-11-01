@@ -507,7 +507,7 @@ int ext2_parse_superblock(struct block_device *dev)
 	sb->s_root->d_parent = sb->s_root;
 	sb->s_root->d_sb     = sb;
 	sb->s_root->d_count  = 1; /* pinned by the superblock */
-	sb->s_root->d_hash   = (struct hlist_node){0};
+	sb->s_root->d_hnode  = (struct hlist_node){0};
 
 	sb->s_root->d_inode->i_prv   = _ino;
 	sb->s_root->d_inode->i_count = 1; /* pinned by the root dentry */

@@ -81,7 +81,7 @@ struct dentry {
 	struct superblock *d_sb;
 	struct list_head   d_child;
 	struct list_head   d_sibling;
-	struct hlist_node  d_hash;
+	struct hlist_node  d_hnode;
 	int                d_count;
 };
 

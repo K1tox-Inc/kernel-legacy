@@ -9,7 +9,7 @@ struct bcache {
 	char                *data;
 	int                  refcnt;
 	bool                 valid;
-	struct hlist_node    hash;
+	struct hlist_node    hnode;
 	struct list_head     lru;
 };
 

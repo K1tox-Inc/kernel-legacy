@@ -18,7 +18,7 @@ static struct bcache *cache_lookup(struct block_device *bdev, uint32_t blkno)
 	uint32_t       key = blkno ^ ((uintptr_t)bdev >> 4);
 	struct bcache *b;
 
-	hash_for_each_possible(bcache, b, hash, key)
+	hash_for_each_possible(bcache, b, hnode, key)
 	{
 		if (b->bdev == bdev && b->blkno == blkno)
 			return b;
@@ -40,7 +40,7 @@ struct bcache *bread(struct block_device *bdev, uint32_t blkno)
 		b->data   = (void *)(b + 1);
 		b->refcnt = 0;
 		b->valid  = false;
-		hash_add(bcache, &b->hash, bcache_hash(bdev, blkno));
+		hash_add(bcache, &b->hnode, bcache_hash(bdev, blkno));
 	}
 	b->refcnt++;
 	if (!b->valid) {
@@ -56,7 +56,7 @@ struct bcache *bread(struct block_device *bdev, uint32_t blkno)
 void brelse(struct bcache *b)
 {
 	if (--b->refcnt == 0) {
-		hash_del(&b->hash);
+		hash_del(&b->hnode);
 		kfree(b);
 	}
 }

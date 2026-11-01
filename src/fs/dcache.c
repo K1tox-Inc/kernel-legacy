@@ -11,7 +11,7 @@
 #define DCACHE_HMAP_BITS HMAP_1024
 static DEFINE_HASHTABLE(dcache, DCACHE_HMAP_BITS);
 
-static inline uint32_t d_hash_key(const struct dentry *parent, const char *name)
+static __always_inline uint32_t dcache_hash(const struct dentry *parent, const char *name)
 {
 	uint32_t h = 5381;
 
@@ -56,7 +56,7 @@ struct dentry *d_alloc(struct dentry *parent, const char *name)
 	d->d_sb     = parent->d_sb;
 	d->d_inode  = NULL;
 	d->d_count  = 1;
-	d->d_hash   = (struct hlist_node){0};
+	d->d_hnode  = (struct hlist_node){0};
 
 	INIT_SENTINEL(&d->d_child);
 	INIT_SENTINEL(&d->d_sibling);
@@ -66,15 +66,15 @@ struct dentry *d_alloc(struct dentry *parent, const char *name)
 
 void d_add(struct dentry *d)
 {
-	assert(d && d->d_inode && hlist_unhashed(&d->d_hash));
+	assert(d && d->d_inode && hlist_unhashed(&d->d_hnode));
 
 	list_add_tail(&d->d_sibling, &d->d_parent->d_child);
-	hash_add(dcache, &d->d_hash, d_hash_key(d->d_parent, d->d_name));
+	hash_add(dcache, &d->d_hnode, dcache_hash(d->d_parent, d->d_name));
 }
 
 void d_free(struct dentry *d)
 {
-	assert(d && d->d_count == 1 && hlist_unhashed(&d->d_hash));
+	assert(d && d->d_count == 1 && hlist_unhashed(&d->d_hnode));
 
 	if (d->d_inode)
 		iput(d->d_inode);
@@ -89,7 +89,7 @@ struct dentry *d_lookup(const struct dentry *parent, const char *name)
 
 	struct dentry *d;
 
-	hash_for_each_possible(dcache, d, d_hash, d_hash_key(parent, name))
+	hash_for_each_possible(dcache, d, d_hnode, dcache_hash(parent, name))
 	{
 		if (d->d_parent == parent && ft_strequ(d->d_name, name))
 			return dget(d);
