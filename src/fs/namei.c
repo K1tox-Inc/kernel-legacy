@@ -15,8 +15,9 @@ static struct dentry *walk_component(struct dentry *dir, const char *name)
 		return dir;
 
 	if (!ft_strncmp(name, "..", 3)) {
-		/* `..` of the filesystem root is the root itself */
-		next = dget(dir == dir->d_sb->s_root ? dir : dir->d_parent);
+		if (dir == dir->d_sb->s_root)
+			return dir;
+		next = dget(dir->d_parent);
 		dput(dir);
 		return next;
 	}
