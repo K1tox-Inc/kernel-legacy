@@ -3,10 +3,7 @@
 #include <list.h>
 #include <types.h>
 
-#define WQ_HEAD_INIT(name)                                                                         \
-	{                                                                                              \
-		.head = LIST_HEAD_INIT((name).head)                                                        \
-	}
+#define WQ_HEAD_INIT(name)    {.head = LIST_HEAD_INIT((name).head)}
 #define DECLARE_WQ_HEAD(name) struct wq_head name = WQ_HEAD_INIT(name)
 
 struct task;
