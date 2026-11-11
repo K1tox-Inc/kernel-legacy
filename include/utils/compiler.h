@@ -16,6 +16,39 @@
 # define __has_feature(x) 0
 #endif
 
+#ifndef BTF_TYPE_TAG
+# if defined(CONFIG_DEBUG_INFO_BTF) && __has_attribute(btf_type_tag)
+#  define BTF_TYPE_TAG(value) __attribute__((btf_type_tag(#value)))
+# else
+#  define BTF_TYPE_TAG(value)
+# endif
+#endif
+
+#ifdef __CHECKER__
+# define __kernel                  __attribute__((address_space(0)))
+# define __user                    __attribute__((noderef, address_space(__user)))
+# define __iomem                   __attribute__((noderef, address_space(__iomem)))
+# define __force                   __attribute__((force))
+# define __nocast                  __attribute__((nocast))
+# define __safe                    __attribute__((safe))
+# define __private                 __attribute__((noderef))
+# define ACCESS_PRIVATE(p, member) (*((typeof((p)->member) __force *)&(p)->member))
+#else
+# define __kernel
+# ifdef STRUCTLEAK_PLUGIN
+#  define __user __attribute__((user))
+# else
+#  define __user BTF_TYPE_TAG(user)
+# endif
+# define __iomem
+# define __force
+# define __nocast
+# define __safe
+# define __private
+# define ACCESS_PRIVATE(p, member)  ((p)->member)
+# define __builtin_warning(x, y...) (1)
+#endif
+
 #ifndef __nullable
 # if defined(__clang__) && __has_feature(nullability)
 #  define __nullable _Nullable
