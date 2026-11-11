@@ -39,7 +39,7 @@ int vfs_open(const char *path, int flags, struct file *out)
 	out->f_op     = out->f_inode->i_f_op;
 
 	if (out->f_op && out->f_op->open) {
-		ret = out->f_op->open(out);
+		ret = out->f_op->open(out->f_inode, out);
 
 		if (ret < 0)
 			goto err_put;
@@ -60,7 +60,7 @@ int vfs_close(struct file *f)
 	int ret = 0;
 
 	if (f->f_op && f->f_op->release)
-		ret = f->f_op->release(f);
+		ret = f->f_op->release(f->f_inode, f);
 
 	dput(f->f_dentry);
 
@@ -77,12 +77,7 @@ ssize_t vfs_read(struct file *f, void *buf, size_t n)
 	if (unlikely(!f->f_op || !f->f_op->read))
 		return -EINVAL;
 
-	ssize_t ret = f->f_op->read(f, buf, n);
-
-	if (ret > 0)
-		f->f_pos += ret;
-
-	return ret;
+	return f->f_op->read(f, buf, n, &f->f_pos);
 }
 
 ssize_t vfs_write(struct file *f, __always_unused const void *buf, __always_unused size_t n)
@@ -99,10 +94,10 @@ off_t vfs_lseek(struct file *f, off_t off, int whence)
 {
 	assert(f);
 
-	if (unlikely(!f->f_op || !f->f_op->lseek))
+	if (unlikely(!f->f_op || !f->f_op->llseek))
 		return -EINVAL;
 
-	return f->f_op->lseek(f, off, whence);
+	return f->f_op->llseek(f, off, whence);
 }
 
 int vfs_iterate(struct file *f, struct dirctx *ctx)

@@ -247,9 +247,9 @@ end:
 	return ret;
 }
 
-static int ext2_f_open(struct file *f)
+static int ext2_f_open(struct inode *inode, __always_unused struct file *f)
 {
-	const struct ext2_inode *const ino = f->f_inode->i_prv;
+	const struct ext2_inode *const ino = inode->i_prv;
 
 	if (EXT2_InodeTypeCheck(ino, Ext2_Inode_Dir))
 		return -EISDIR;
@@ -262,11 +262,16 @@ static int ext2_f_open(struct file *f)
 	return 0;
 }
 
-static ssize_t ext2_f_read(struct file *f, void *buf, size_t n)
+static ssize_t ext2_f_read(struct file *f, void *buf, size_t n, off_t *pos)
 {
 	const struct ext2_inode *const ino = f->f_inode->i_prv;
 
-	return ext2_inode_read(f->f_inode->i_sb->s_bdev, ino, (size_t)f->f_pos, buf, n);
+	const ssize_t ret = ext2_inode_read(f->f_inode->i_sb->s_bdev, ino, (size_t)*pos, buf, n);
+
+	if (ret > 0)
+		*pos += ret;
+
+	return ret;
 }
 
 static off_t ext2_f_lseek(struct file *f, off_t off, int whence)
@@ -297,9 +302,9 @@ static off_t ext2_f_lseek(struct file *f, off_t off, int whence)
 }
 
 static const struct file_operations ext2_fops = {
-    .open  = ext2_f_open,
-    .read  = ext2_f_read,
-    .lseek = ext2_f_lseek,
+    .open   = ext2_f_open,
+    .read   = ext2_f_read,
+    .llseek = ext2_f_lseek,
 };
 
 static int ext2_dtype(uint8_t file_type)
@@ -389,7 +394,7 @@ static off_t ext2_dir_lseek(struct file *f, off_t off, int whence)
 }
 
 static const struct file_operations ext2_dir_ops = {
-    .lseek   = ext2_dir_lseek,
+    .llseek  = ext2_dir_lseek,
     .iterate = ext2_iterate,
 };
 
@@ -429,9 +434,12 @@ static struct dentry *ext2_i_lookup(struct inode *parent, struct dentry *child)
 /* `i_prv` is the start of the allocation made by `ext2_i_lookup`, the inode lives inside it */
 static void ext2_i_destroy(struct inode *ino) { kfree(ino->i_prv); }
 
-static const struct inode_operations ext2_iops = {
-    .lookup  = ext2_i_lookup,
+static const struct super_operations ext2_sops = {
     .destroy = ext2_i_destroy,
+};
+
+static const struct inode_operations ext2_iops = {
+    .lookup = ext2_i_lookup,
 };
 
 int ext2_parse_superblock(struct block_device *dev)
@@ -523,6 +531,7 @@ int ext2_parse_superblock(struct block_device *dev)
 	sb->s_bdev    = dev;
 	sb->s_type    = vfs_types[FS_EXT2];
 
+	sb->s_op   = &ext2_sops;
 	sb->s_i_op = &ext2_iops;
 
 	ft_memcpy((char *)sb->s_root->d_name, "/", 2);

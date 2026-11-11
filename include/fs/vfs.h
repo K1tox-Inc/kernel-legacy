@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fs/vfs_ops.h>
 #include <kernel/block.h>
 #include <kernel/hashtable.h>
 #include <list.h>
@@ -33,29 +34,13 @@ struct file;
 struct superblock {
 	const char                    *s_type;
 	struct block_device           *s_bdev;
+	const struct super_operations *s_op;
 	const struct inode_operations *s_i_op;
 	void                          *s_fs_info;
 	struct dentry                 *s_root;
 };
 
-struct inode_operations {
-	struct dentry *(*__nullable lookup)(struct inode *parent, struct dentry *child);
-	int (*__nullable read_page)(struct inode *ino, off_t off, void *page);
-	int (*__nullable write_page)(struct inode *ino, off_t off, const void *page);
-	int (*__nullable permission)(struct inode *ino, int mask);
-	void (*__nullable destroy)(struct inode *ino);
-};
-
 struct dirctx;
-
-struct file_operations {
-	int (*__nullable open)(struct file *f);
-	int (*__nullable release)(struct file *f);
-	ssize_t (*__nullable read)(struct file *f, void *buf, size_t n);
-	ssize_t (*__nullable write)(struct file *f, const void *buf, size_t n);
-	off_t (*__nullable lseek)(struct file *f, off_t off, int whence);
-	int (*__nullable iterate)(struct file *f, struct dirctx *ctx);
-};
 
 struct inode {
 	/*
