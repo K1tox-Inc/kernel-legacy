@@ -20,5 +20,5 @@ void ft_free_strs(char **tab)
 	while (tab[++i])
 		kfree(tab[i]);
 	kfree(tab);
-	tab = 0;
+	tab = NULL;
 }

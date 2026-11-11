@@ -23,7 +23,7 @@ void ft_lstclear(t_list **alst, void (*del)(void *))
 				li = li->next;
 				(*del)((*alst)->content);
 				kfree((void *)*alst);
-				*alst = 0;
+				*alst = NULL;
 				*alst = li;
 			}
 		}

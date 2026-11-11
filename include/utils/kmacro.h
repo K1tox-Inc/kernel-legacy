@@ -44,7 +44,7 @@ extern void vga_printf(const char *fmt, ...);
 #ifdef offsetof
 # undef offsetof
 #endif
-#define offsetof(type, member) ((size_t)&((type *)0)->member)
+#define offsetof(type, member) __builtin_offsetof(type, member)
 #ifdef container_of
 # undef container_of
 #endif

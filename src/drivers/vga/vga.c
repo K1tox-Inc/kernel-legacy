@@ -89,7 +89,7 @@ static int ft_putstr(char *str)
 
 static int ft_putnbr(int nb)
 {
-	if (nb == -2147483648)
+	if (nb == -2147483647 - 1)
 		return (ft_putnbr(-21474) + ft_putnbr(83648));
 	if (nb < 0)
 		return (ft_putchar('-') + ft_putnbr(nb * -1));
