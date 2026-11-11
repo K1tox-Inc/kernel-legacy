@@ -1,5 +1,6 @@
 #include <arch/acpi.h>
 #include <ata/ata.h>
+#include <fs/dcache.h>
 #include <fs/ext2.h>
 #include <fs/vfs.h>
 #include <kernel/block.h>
@@ -256,6 +257,32 @@ static void ext2load_cmd(SHELL_ARGS)
 	}
 }
 
+static struct dentry *ls_dir;
+
+static void ls_print_link(const char *name)
+{
+	char target[256];
+
+	struct dentry *d = vfs_lookup(name, ls_dir, 0);
+
+	if (IS_ERR(d)) {
+		vga_printf(" -> ?");
+		return;
+	}
+
+	const ssize_t n = vfs_readlink(d->d_inode, target, sizeof(target) - 1);
+
+	dput(d);
+
+	if (n < 0) {
+		vga_printf(" -> ?");
+		return;
+	}
+
+	target[n] = '\0';
+	vga_printf(" -> %s", target);
+}
+
 static int ls_emit(const char *name, size_t name_len, uint32_t ino, int type)
 {
 	char buf[256];
@@ -265,7 +292,12 @@ static int ls_emit(const char *name, size_t name_len, uint32_t ino, int type)
 	ft_memcpy(buf, name, name_len);
 	buf[name_len] = '\0';
 
-	vga_printf("%s%s\n", buf, type == DT_DIR ? "/" : "");
+	vga_printf("%s%s", buf, type == DT_DIR ? "/" : "");
+
+	if (type == DT_LNK)
+		ls_print_link(buf);
+
+	vga_printf("\n");
 
 	return 0;
 }
@@ -285,7 +317,9 @@ static void ls_cmd(SHELL_ARGS)
 
 	struct dirctx ctx = {.emit = ls_emit, .pos = 0};
 
-	ret = vfs_iterate(&f, &ctx);
+	ls_dir = f.f_dentry;
+	ret    = vfs_iterate(&f, &ctx);
+	ls_dir = NULL;
 	if (ret < 0)
 		vga_printf("ls: %s: %s\n", path, ft_strerror(ret));
 
