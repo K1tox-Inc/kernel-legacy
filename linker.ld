@@ -19,11 +19,11 @@ SECTIONS {
         *(.rodata*)
     }
 
-    .init_array ALIGN(4K) : AT(ADDR(.init_array) - 0xC0000000) {
-        PROVIDE(__init_array_start = .);
-        KEEP(*(SORT_BY_NAME(.init_array.*)))
-        KEEP(*(.init_array))
-        PROVIDE(__init_array_end = .);
+    .ctors ALIGN(4K) : AT(ADDR(.ctors) - 0xC0000000) {
+        PROVIDE(__ctors_start = .);
+        KEEP(*(.ctors))
+        KEEP(*(SORT_BY_NAME(.ctors.*)))
+        PROVIDE(__ctors_end = .);
     }
     
     .data ALIGN(4K) : AT(ADDR(.data) - 0xC0000000) {

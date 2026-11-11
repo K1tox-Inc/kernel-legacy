@@ -13,16 +13,14 @@
 #include <proc/task.h>
 #include <tty/tty.h>
 
-extern void (*__init_array_start[])(void);
-extern void (*__init_array_end[])(void);
+extern void (*__ctors_start[])(void);
+extern void (*__ctors_end[])(void);
 __attribute__((section(".stack"))) uint8_t kernel_stack[16 * 1024] __attribute__((aligned(16)));
 
 void call_constructors(void)
 {
-	size_t count = (size_t)(__init_array_end - __init_array_start);
-	for (size_t i = 0; i < count; i++) {
-		__init_array_start[i]();
-	}
+	for (void (**ctor)(void) = __ctors_end; ctor != __ctors_start;)
+		(*--ctor)();
 }
 
 void init(void)
