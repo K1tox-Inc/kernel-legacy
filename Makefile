@@ -27,7 +27,7 @@ AR := $(TARGET)-ar
 LD := $(TARGET)-ld
 
 ifeq ($(CFLAGS),)
-CFLAGS  = -ffreestanding -fno-builtin -fno-exceptions -fno-stack-protector -nostdinc -MD -MP -Wall -Wextra
+CFLAGS  = -ffreestanding -fno-pie -fno-stack-protector -nostdlib -fno-builtin -fno-exceptions -nostdinc -MD -MP -Wall -Wextra
 ifeq ($(MAKEBUILDTYPE),Release)
 CFLAGS += -Werror -DNDEBUG -O2
 else
