@@ -19,6 +19,9 @@ TOOLSDIR=tools
 
 CLANG_FORMAT := clang-format
 
+SPARSE      := sparse
+SPARSEFLAGS := -m32 -Wsparse-error
+
 TARGET := i686-elf
 
 AS := $(TARGET)-as
@@ -85,6 +88,16 @@ src/generated/syscall_table.c include/uapi/syscalls.h: src/syscalls/syscall.tbl
 format:
 	@$(CLANG_FORMAT) --verbose --Werror -i $(shell find src include -regex '.*\.\(c\|h\|cpp\|hpp\)' -not \( -path 'src/generated/*' -o -path 'include/generated/*' \))
 
+SPARSE_SRC := $(shell find src lib -name '*.c' -not -path 'src/generated/*') src/generated/syscall_table.c
+SPARSE_TARGETS := $(addprefix sparse/,$(SPARSE_SRC))
+SPARSE_CFLAGS = $(patsubst -I./%,-I%,$(CFLAGS)) -isystem $(shell $(CC) -print-file-name=include)
+
+.PHONY: sparse $(SPARSE_TARGETS)
+sparse: $(SPARSE_TARGETS)
+
+$(SPARSE_TARGETS): sparse/%: % src/generated/syscall_table.c include/uapi/syscalls.h
+	$(SPARSE) $(SPARSEFLAGS) $(SPARSE_CFLAGS) $<
+
 .PHONY: clean
 clean:
 	$(RM) -r $(BUILDDIR)
@@ -120,6 +133,10 @@ all:
 .PHONY: format
 format:
 	$(call docker_run,format)
+
+.PHONY: sparse
+sparse:
+	$(call docker_run,-k sparse)
 
 .PHONY: clean
 clean:
