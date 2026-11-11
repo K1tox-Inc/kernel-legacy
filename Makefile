@@ -48,7 +48,7 @@ QEMU      := qemu-system-i386
 QEMUFLAGS := -m 4096 -cpu host -enable-kvm -s -serial file:serial.log -display sdl,gl=off
 
 DOCKERIMAGENAME := noalexan/cross-compiler
-DOCKERIMAGETAG  := 6071631
+DOCKERIMAGETAG  := 8a002d8
 
 OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\.\(c\|cpp\|s\)' -not -path "src/generated/*" | sed 's/\.\(c\|cpp\|s\)/.o/g'))
 OBJ+=$(BINDIR)/generated/syscall_table.o
