@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../arch/trap_frame.h"
-#include "../utils/compiler.h"
+#include <arch/trap_frame.h>
+#include <utils/compiler.h>
 
 //  Page Table Entry (PTE)
 enum Page_Table_Entry {
