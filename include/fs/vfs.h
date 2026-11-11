@@ -19,8 +19,13 @@ enum VFS_Inode_Type {
 
 #define VFS_InodeTypeCheck(i, t) ((((struct inode *)(i))->i_mode >> 12) == (t))
 #define IS_DIR(i)                VFS_InodeTypeCheck(i, VFS_Inode_Dir)
+#define IS_LNK(i)                VFS_InodeTypeCheck(i, VFS_Inode_SymLink)
 
-#define NAME_MAX 255
+#define NAME_MAX    255
+#define PATH_MAX    4096
+#define MAXSYMLINKS 40
+
+#define LOOKUP_FOLLOW 0x0001
 
 enum vfs_types_e {
 	FS_EXT2,
@@ -106,7 +111,7 @@ extern struct inode *iget(struct inode *ino);
 extern void          iput(struct inode *ino);
 
 /* Returns a counted reference on the dentry, release it with `dput` */
-extern struct dentry *vfs_lookup(const char *path, struct dentry *start);
+extern struct dentry *vfs_lookup(const char *path, struct dentry *start, unsigned int flags);
 
 /*
  * Fills the caller-provided `out`, which is enough for the shell.
@@ -126,4 +131,4 @@ extern int     vfs_iterate(struct file *f, struct dirctx *ctx);
 // extern int     vfs_rename(struct dentry *old_dir, struct dentry *old, struct dentry *new_dir,
 //                           struct dentry *new_dentry);
 // extern int     vfs_truncate(struct inode *ino, size_t size);
-// extern ssize_t vfs_readlink(struct inode *ino, char *buf, size_t len);
+extern ssize_t vfs_readlink(struct inode *ino, char *buf, size_t len);

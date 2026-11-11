@@ -422,8 +422,13 @@ static struct dentry *ext2_i_lookup(struct inode *parent, struct dentry *child)
 	ino->i_sb    = parent->i_sb;
 	ino->i_count = 1;
 	ino->i_op    = ino->i_sb->s_i_op;
-	ino->i_f_op  = (EXT2_InodeTypeCheck(resolved, Ext2_Inode_Dir)) ? &ext2_dir_ops : &ext2_fops;
-	ino->i_prv   = resolved;
+	if (EXT2_InodeTypeCheck(resolved, Ext2_Inode_Dir))
+		ino->i_f_op = &ext2_dir_ops;
+	else if (EXT2_InodeTypeCheck(resolved, Ext2_Inode_SymLink))
+		ino->i_f_op = NULL;
+	else
+		ino->i_f_op = &ext2_fops;
+	ino->i_prv = resolved;
 	INIT_SENTINEL(&ino->i_dentry);
 
 	child->d_inode = ino;
@@ -438,8 +443,24 @@ static const struct super_operations ext2_sops = {
     .destroy = ext2_i_destroy,
 };
 
+static ssize_t ext2_i_readlink(struct inode *ino, char *buf, size_t len)
+{
+	assert(ino && buf);
+
+	const struct ext2_inode *const e_ino = ino->i_prv;
+
+	if (e_ino->i_size < EXT2_FAST_SYMLINK_SIZE && e_ino->i_nr_sectors == 0) {
+		len = MIN(len, e_ino->i_size);
+		ft_memcpy(buf, e_ino->i_block, len);
+		return (ssize_t)len;
+	}
+
+	return ext2_inode_read(ino->i_sb->s_bdev, e_ino, 0, buf, len);
+}
+
 static const struct inode_operations ext2_iops = {
-    .lookup = ext2_i_lookup,
+    .lookup   = ext2_i_lookup,
+    .readlink = ext2_i_readlink,
 };
 
 int ext2_parse_superblock(struct block_device *dev)

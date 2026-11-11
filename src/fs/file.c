@@ -15,12 +15,18 @@ int vfs_open(const char *path, int flags, struct file *out)
 	if ((flags & O_ACCMODE) != O_RDONLY || (flags & (O_CREAT | O_TRUNC)))
 		return -EROFS;
 
-	struct dentry *d = vfs_lookup(path, root_sb->s_root);
+	const unsigned int lflags = (flags & O_NOFOLLOW) ? 0 : LOOKUP_FOLLOW;
+	struct dentry     *d      = vfs_lookup(path, root_sb->s_root, lflags);
 
 	if (IS_ERR(d))
 		return PTR_ERR(d);
 
 	int ret;
+
+	if (IS_LNK(d->d_inode)) {
+		ret = -ELOOP;
+		goto err_put;
+	}
 
 	if (IS_DIR(d->d_inode) && !(flags & O_DIRECTORY)) {
 		ret = -EISDIR;

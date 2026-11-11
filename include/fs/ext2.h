@@ -11,6 +11,8 @@
 #define EXT2_NAME_LEN           255
 #define EXT2_SUPERBLOCK_SIZE    1024
 #define EXT2_ROOT_INODE         2
+#define EXT2_N_BLOCKS           15
+#define EXT2_FAST_SYMLINK_SIZE  (EXT2_N_BLOCKS * sizeof(uint32_t))
 #define EXT2_VALID_FS           0x0001
 #define EXT2_ERROR_FS           0x0002
 #define EXT2_ERRORS_CONTINUE    0x0001
@@ -119,7 +121,7 @@ struct ext2_inode {
 	uint32_t i_nr_sectors;
 	uint32_t i_flags;
 	uint32_t i_osd1;
-	uint32_t i_block[15];
+	uint32_t i_block[EXT2_N_BLOCKS];
 	uint32_t i_generation;
 	uint32_t i_file_acl;
 	uint32_t i_dir_acl;
