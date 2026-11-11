@@ -342,7 +342,7 @@ void ide_init(void)
 
 		disk->priv       = dev;
 		disk->ops        = &ide_ops;
-		disk->nr_sectors = dev->sectors;
+		disk->nr_sectors = dev->lba_max_sectors;
 
 		ft_memcpy(disk->name, "hd0", 4);
 		disk->name[2] += i++;
