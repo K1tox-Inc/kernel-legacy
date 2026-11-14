@@ -3,6 +3,9 @@
 #include <list.h>
 #include <memory/kmalloc.h>
 #include <memory/memory.h>
+#include <types.h>
+#include <uapi/errno.h>
+#include <utils/assert.h>
 
 #include "msdos.h"
 
@@ -11,56 +14,90 @@ LIST_HEAD(block_devices);
 static int (*const partition_parsers[])(const struct block_device *, struct disk_partition *,
                                         size_t max) = {mbr_parse};
 
-int add_disk(struct generic_disk *disk)
+static struct block_device *blkdev_create(struct generic_disk *disk, const char *name,
+                                          size_t lba_start, size_t nr_sectors,
+                                          struct block_device *__nullable parent)
 {
+	assert(disk && name);
+
 	struct block_device *dev = kmalloc(sizeof(struct block_device), __GFP_KERNEL | __GFP_ZERO);
 
-	if (dev == NULL) {
-		log("Failed to allocate `struct block_device', skipping...");
-		return -1;
-	}
+	if (dev == NULL)
+		return NULL;
 
-	dev->disk = disk;
+	dev->disk   = disk;
+	dev->parent = parent;
 
-	ft_memcpy(dev->name, disk->name, DISK_NAME_LEN);
-	size_t name_len = ft_strlen(dev->name); // bug-prone: name is non-null terminated
+	ft_memcpy(dev->name, name, DISK_NAME_LEN);
 
-	dev->nr_sectors = disk->nr_sectors;
-	dev->lba_start  = 0;
+	dev->nr_sectors = nr_sectors;
+	dev->lba_start  = lba_start;
 
-	list_add_tail(&dev->node, &block_devices);
+	*((size_t *)&dev->sector_size) = 512; // hardcoded default
+	*((size_t *)&dev->block_size)  = dev->sector_size;
+
+	return dev;
+}
+
+int blkdev_set_block_size(struct block_device *dev, size_t bsize)
+{
+	assert(dev);
+
+	if (bsize == dev->block_size)
+		return 0;
+
+	if (!bsize || bsize % dev->sector_size)
+		return -EINVAL;
+
+	*((size_t *)&dev->block_size) = bsize;
+
+	return 0;
+}
+
+int blkdev_register_disk(struct generic_disk *disk)
+{
+	assert(disk);
+
+	struct block_device *dev = blkdev_create(disk, disk->name, 0, disk->nr_sectors, NULL);
+
+	if (dev == NULL)
+		return -ENOMEM;
 
 	int                   nr_parts = 0;
 	struct disk_partition parts[16];
-	for (uint32_t i = 0; i < (sizeof(partition_parsers) / sizeof(*partition_parsers)); i++) {
-		nr_parts = partition_parsers[i](dev, parts, 16);
+	for (uint32_t i = 0; i < ARRAY_SIZE(partition_parsers); i++) {
+		nr_parts = partition_parsers[i](dev, parts, ARRAY_SIZE(parts));
 
-		if (nr_parts < 0) {
-			log("Error");
-		} else if (nr_parts)
+		if (nr_parts != 0)
 			break;
 	}
 
+	if (nr_parts < 0) {
+		kfree(dev);
+		return nr_parts;
+	}
+
+	list_add_tail(&dev->node, &block_devices);
+
+	size_t name_len = 0;
+	while (name_len < DISK_NAME_LEN && disk->name[name_len])
+		name_len++;
+
+	if (name_len + 3 > DISK_NAME_LEN)
+		return 0;
+
+	char name[DISK_NAME_LEN] = {0};
+	ft_memcpy(name, disk->name, name_len);
+	name[name_len] = 'p';
+
 	for (int i = 0; i < nr_parts; i++) {
-		struct block_device *part = kmalloc(sizeof(struct block_device), GFP_KERNEL);
+		name[name_len + 1] = "0123456789abcdef"[i];
 
-		if (dev == NULL) {
-			log("Failed to allocate `struct block_device', skipping...");
+		struct block_device *part =
+		    blkdev_create(disk, name, parts[i].lba_start, parts[i].nr_sectors, dev);
+
+		if (part == NULL)
 			continue;
-		}
-
-		part->disk = disk;
-
-		ft_memcpy(part->name, disk->name, DISK_NAME_LEN);
-		part->name[name_len]     = 'p';
-		part->name[name_len + 1] = ((char[]){'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a',
-		                                     'b', 'c', 'd', 'e', 'f'})[i];
-		part->name[name_len + 2] = 0;
-
-		part->nr_sectors = parts[i].nr_sectors;
-		part->lba_start  = parts[i].lba_start;
-
-		part->parent = dev;
 
 		list_add_tail(&part->node, &block_devices);
 	}

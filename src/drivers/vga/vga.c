@@ -161,6 +161,13 @@ void vga_refresh_screen(void)
 	vga_set_cursor_position(current_tty->cursor.x, current_tty->cursor.y);
 }
 
+size_t vga_write(const char *buffer, size_t len)
+{
+	for (size_t i = 0; i < len; i++)
+		ft_putchar(buffer[i]);
+	return len;
+}
+
 void vga_printf(const char *restrict fmt, ...)
 {
 	va_list ap;

@@ -3,7 +3,7 @@
 #include <proc/task.h>
 #include <proc/waitqueue.h>
 #include <syscalls/syscalls.h>
-#include <utils/error.h>
+#include <uapi/errno.h>
 
 static struct task *find_zombie_child(struct task *parent, pid_t pid)
 {
