@@ -5,7 +5,7 @@
 #include <proc/task.h>
 #include <proc/waitqueue.h>
 #include <syscalls/exit.h>
-#include <utils/error.h>
+#include <uapi/errno.h>
 #include <vga/vga.h>
 
 #define iter_over_array(p, a)                                                                      \

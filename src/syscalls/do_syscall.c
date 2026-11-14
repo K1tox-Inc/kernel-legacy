@@ -1,5 +1,5 @@
 #include <syscalls/syscalls.h>
-#include <utils/error.h>
+#include <uapi/errno.h>
 
 void do_syscall(struct trap_frame *tf)
 {

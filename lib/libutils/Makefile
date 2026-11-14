@@ -18,7 +18,8 @@ OBJ=\
 	ft_strmapi.o		\
 	ft_itoa.o			\
 	ft_strdup.o  		\
-	ft_strtrim.o		
+	ft_strtrim.o		\
+	ft_strerror.o
 
 .PHONY: all
 all: $(NAME)

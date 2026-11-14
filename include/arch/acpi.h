@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../arch/register.h"
-#include "../utils/compiler.h"
-#include "io.h"
+#include <arch/io.h>
+#include <arch/register.h>
+#include <utils/compiler.h>
 
 static __always_inline __noreturn void halt(void)
 {

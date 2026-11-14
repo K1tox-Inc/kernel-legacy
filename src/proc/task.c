@@ -13,8 +13,8 @@
 #include <proc/waitqueue.h>
 #include <syscalls/exit.h>
 #include <types.h>
+#include <uapi/errno.h>
 #include <utils/assert.h>
-#include <utils/error.h>
 #include <utils/id_manager.h>
 #include <vga/vga.h>
 
@@ -136,9 +136,9 @@ void task_append_child(struct task *parent, struct task *child)
 
 struct task *task_clone(const struct task *task)
 {
-	const size_t name_len   = ft_strlen(task->name);
-	const size_t alloc_size = sizeof(struct task) + sizeof(struct section) * 5 + name_len + 1;
-	struct task *const new  = kmalloc(alloc_size, __GFP_KERNEL | __GFP_ZERO);
+	const size_t       name_len   = ft_strlen(task->name);
+	const size_t       alloc_size = sizeof(struct task) + sizeof(struct section) * 5 + name_len + 1;
+	struct task *const new        = kmalloc(alloc_size, __GFP_KERNEL | __GFP_ZERO);
 
 	if (new == NULL) {
 		return NULL;
@@ -207,8 +207,8 @@ struct task *task_get_new(const char *name, size_t ring, struct section *text, s
 		return NULL;
 
 	// `kmalloc` use slabs caches here
-	const size_t alloc_size = sizeof(struct task) + sizeof(struct section) * 5 + name_len + 1;
-	struct task *const new  = kmalloc(alloc_size, GFP_KERNEL | __GFP_ZERO);
+	const size_t       alloc_size = sizeof(struct task) + sizeof(struct section) * 5 + name_len + 1;
+	struct task *const new        = kmalloc(alloc_size, GFP_KERNEL | __GFP_ZERO);
 	if (!new)
 		return NULL;
 
@@ -596,11 +596,4 @@ void sloppy_exec(char *sloppy_name)
 		exec_fn((unsigned int *)0xBAAAAAAD, (unsigned int *)sloppy_pid, 0);
 	else if (ft_strequ("hello", sloppy_name))
 		exec_fn((unsigned int *)0xBAADF00D, (unsigned int *)sloppy_hello, 0);
-	else if (ft_strequ("cafe", sloppy_name)) {
-		size_t sz = (uintptr_t)user_cafe_end - (uintptr_t)user_cafe_start;
-		exec_fn((unsigned int *)0xBAFEBABE, (unsigned int *)user_cafe_start, sz);
-	} else if (ft_strequ("dead", sloppy_name)) {
-		size_t sz = (uintptr_t)user_dead_end - (uintptr_t)user_dead_start;
-		exec_fn((unsigned int *)0xBEEF0000, (unsigned int *)user_dead_start, sz);
-	}
 }

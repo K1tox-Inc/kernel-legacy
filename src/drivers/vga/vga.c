@@ -89,7 +89,7 @@ static int ft_putstr(char *str)
 
 static int ft_putnbr(int nb)
 {
-	if (nb == -2147483648)
+	if (nb == -2147483647 - 1)
 		return (ft_putnbr(-21474) + ft_putnbr(83648));
 	if (nb < 0)
 		return (ft_putchar('-') + ft_putnbr(nb * -1));
@@ -159,6 +159,13 @@ void vga_refresh_screen(void)
 	}
 
 	vga_set_cursor_position(current_tty->cursor.x, current_tty->cursor.y);
+}
+
+size_t vga_write(const char *buffer, size_t len)
+{
+	for (size_t i = 0; i < len; i++)
+		ft_putchar(buffer[i]);
+	return len;
 }
 
 void vga_printf(const char *restrict fmt, ...)

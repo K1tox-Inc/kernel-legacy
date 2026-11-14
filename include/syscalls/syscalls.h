@@ -3,7 +3,7 @@
 #include <arch/trap_frame.h>
 #include <types.h>
 
-#define MAX_SYSCALL 200
+#define MAX_SYSCALL 256
 #define SYS_INT     0x80
 
 typedef asmlinkage long (*syscallHandler)(long, long, long, long, long, long);

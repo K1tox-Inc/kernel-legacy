@@ -19,9 +19,10 @@ TOOLSDIR=tools
 
 CLANG_FORMAT := clang-format
 
-# `i686-linux-gnu` assumes a hosted environment (Linux + glibc), which
-# doesn't apply to freestanding kernel code. TODO: switch to `i686-elf`.
-TARGET := i686-linux-gnu
+SPARSE      := sparse
+SPARSEFLAGS := -m32 -Wsparse-error
+
+TARGET := i686-elf
 
 AS := $(TARGET)-as
 CC := $(TARGET)-gcc
@@ -29,7 +30,7 @@ AR := $(TARGET)-ar
 LD := $(TARGET)-ld
 
 ifeq ($(CFLAGS),)
-CFLAGS  = -ffreestanding -fno-builtin -fno-exceptions -fno-stack-protector -nostdinc -MD -MP -Wall -Wextra
+CFLAGS  = -ffreestanding -fno-pie -fno-stack-protector -nostdlib -fno-builtin -fno-exceptions -nostdinc -MD -MP -Wall -Wextra
 ifeq ($(MAKEBUILDTYPE),Release)
 CFLAGS += -Werror -DNDEBUG -O2
 else
@@ -42,15 +43,15 @@ ifeq ($(LDFLAGS),)
 LDFLAGS  = -z noexecstack -nostdlib -static
 endif
 
-LDLIBS := -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils
+LDLIBS := -L./lib/libk -lk -L./lib/data_structs -lds -L./lib/libutils -lutils -lgcc
 
 GRUB_MKRESCUE := grub-mkrescue
 
 QEMU      := qemu-system-i386
-QEMUFLAGS := -m 4096 -cpu host -enable-kvm -s -serial file:serial.log
+QEMUFLAGS := -m 4096 -cpu host -enable-kvm -s -serial file:serial.log -display sdl,gl=off
 
 DOCKERIMAGENAME := noalexan/cross-compiler
-DOCKERIMAGETAG  := 685b705
+DOCKERIMAGETAG  := 8a002d8
 
 OBJ=$(patsubst src/%,$(BINDIR)/%,$(shell find src -regex '.*\.\(c\|cpp\|s\)' -not -path "src/generated/*" | sed 's/\.\(c\|cpp\|s\)/.o/g'))
 OBJ+=$(BINDIR)/generated/syscall_table.o
@@ -87,6 +88,16 @@ src/generated/syscall_table.c include/uapi/syscalls.h: src/syscalls/syscall.tbl
 format:
 	@$(CLANG_FORMAT) --verbose --Werror -i $(shell find src include -regex '.*\.\(c\|h\|cpp\|hpp\)' -not \( -path 'src/generated/*' -o -path 'include/generated/*' \))
 
+SPARSE_SRC := $(shell find src lib -name '*.c' -not -path 'src/generated/*') src/generated/syscall_table.c
+SPARSE_TARGETS := $(addprefix sparse/,$(SPARSE_SRC))
+SPARSE_CFLAGS = $(patsubst -I./%,-I%,$(CFLAGS)) -isystem $(shell $(CC) -print-file-name=include)
+
+.PHONY: sparse $(SPARSE_TARGETS)
+sparse: $(SPARSE_TARGETS)
+
+$(SPARSE_TARGETS): sparse/%: % src/generated/syscall_table.c include/uapi/syscalls.h
+	$(SPARSE) $(SPARSEFLAGS) $(SPARSE_CFLAGS) $<
+
 .PHONY: clean
 clean:
 	$(RM) -r $(BUILDDIR)
@@ -122,6 +133,10 @@ all:
 .PHONY: format
 format:
 	$(call docker_run,format)
+
+.PHONY: sparse
+sparse:
+	$(call docker_run,-k sparse)
 
 .PHONY: clean
 clean:
