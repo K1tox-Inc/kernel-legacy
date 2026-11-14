@@ -23,7 +23,7 @@ struct multiboot2_header_tag_information_request {
 	uint16_t type;
 	uint16_t flags;
 	uint32_t size;
-	uint32_t requests[1];
+	uint32_t requests[2];
 } __attribute__((packed, aligned(8)));
 
 extern const struct multiboot_header                          mb2_header;

@@ -319,6 +319,9 @@ static void cat_cmd(SHELL_ARGS)
 	vfs_close(&f);
 }
 
+extern const char *get_cmdline();
+static void        cmdline_cmd(SHELL_ARGS_UNUSED) { vga_printf("cmdline: `%s`\n", get_cmdline()); }
+
 static const struct shell_command shell_commands[] = {
     {"poweroff", "Power off the system.", tty_handle_kprimitive},
     {"reboot", "Reboot the system.", tty_handle_kprimitive},
@@ -331,6 +334,7 @@ static const struct shell_command shell_commands[] = {
     {"ext2load", "Parse block device using ext2.", ext2load_cmd},
     {"ls", "List dentries of a directory.", ls_cmd},
     {"cat", "Output a regular file.", cat_cmd},
+    {"cmdline", "Print the command line used to boot.", cmdline_cmd},
     {"task_info", "Print task data using pid.", task_cmd_print_info},
     {"kill", "Send signal to process.", sys_kill_wrapper},
     {"lspci", "List PCI devices.", lspci_cmd},

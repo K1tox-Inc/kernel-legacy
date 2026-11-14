@@ -1,8 +1,10 @@
 #include <kernel/mb2_info.h>
 #include <kernel/panic.h>
+#include <libk.h>
 #include <memory/boot_allocator.h>
+#include <multiboot2.h>
 
-// Globals
+static char boot_cmdline[512];
 
 struct multiboot_info *mb2info = NULL;
 
@@ -12,12 +14,12 @@ const struct multiboot_header mb2_header
         .magic         = MULTIBOOT2_HEADER_MAGIC,
         .architecture  = 0,
         .header_length = sizeof(struct multiboot_header) +
-                         sizeof(struct multiboot2_header_tag_information_request) +
-                         sizeof(struct multiboot2_header_tag_end),
-        .checksum = 0x100000000 - (MULTIBOOT2_HEADER_MAGIC + 0 +
-                                   (sizeof(struct multiboot_header) +
-                                    sizeof(struct multiboot2_header_tag_information_request) +
-                                    sizeof(struct multiboot2_header_tag_end)))};
+		                 sizeof(struct multiboot2_header_tag_information_request) +
+		                 sizeof(struct multiboot2_header_tag_end),
+        .checksum      = 0x100000000 - (MULTIBOOT2_HEADER_MAGIC + 0 +
+		                                (sizeof(struct multiboot_header) +
+		                                 sizeof(struct multiboot2_header_tag_information_request) +
+		                                 sizeof(struct multiboot2_header_tag_end)))};
 
 // Tag information request
 const struct multiboot2_header_tag_information_request mb2_tag_info_req
@@ -25,15 +27,12 @@ const struct multiboot2_header_tag_information_request mb2_tag_info_req
         .type     = 1,
         .flags    = 0,
         .size     = sizeof(struct multiboot2_header_tag_information_request),
-        .requests = {MULTIBOOT_TAG_TYPE_MMAP} // 6 = memory map
-};
+        .requests = {MULTIBOOT_TAG_TYPE_CMDLINE, MULTIBOOT_TAG_TYPE_MMAP}};
 
 // End Tag
 const struct multiboot2_header_tag_end mb2_tag_end
     __attribute__((used, section(".multiboot2"), aligned(8))) = {
         .type = 0, .flags = 0, .size = sizeof(struct multiboot2_header_tag_end)};
-
-// Functions
 
 void mb2_mmap_iter(struct multiboot_tag_mmap *mmap, uint8_t *mmap_end, entry_handler_t handler,
                    bool free)
@@ -52,15 +51,23 @@ void mb2_mmap_iter(struct multiboot_tag_mmap *mmap, uint8_t *mmap_end, entry_han
 	}
 }
 
+void cmdline_init(const struct multiboot_tag *tag)
+{
+	size_t n = tag->size - sizeof(*tag);
+	if (n > sizeof(boot_cmdline))
+		n = sizeof(boot_cmdline);
+	ft_memcpy(boot_cmdline, tag + 1, n);
+	boot_cmdline[sizeof(boot_cmdline) - 1] = '\0';
+}
+
+const char *get_cmdline() { return boot_cmdline; }
+
 extern uint32_t mb2_magic;
 extern uint32_t mb2_mbi;
 
 void mb2_init(void)
 {
-	/* Make sure the magic number matches for memory mapping*/
-	if (unlikely(mb2_magic != MULTIBOOT2_BOOTLOADER_MAGIC))
-		kpanic("Invalid magic number: expected 0x%x | used 0x%x\n", MULTIBOOT2_BOOTLOADER_MAGIC,
-		       mb2_magic);
+	assert(mb2_magic == MULTIBOOT2_BOOTLOADER_MAGIC);
 
 	int tags_found            = 0;
 	mb2info                   = (struct multiboot_info *)mb2_mbi;
@@ -74,6 +81,10 @@ void mb2_init(void)
 			tags_found++;
 			break;
 		}
+
+		case MULTIBOOT_TAG_TYPE_CMDLINE:
+			cmdline_init(tag);
+			break;
 
 		default:
 			break;
