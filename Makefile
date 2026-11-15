@@ -79,7 +79,7 @@ all: $(BUILDDIR)/boot.iso
 
 -include $(DEPS)
 
-$(OBJ): src/generated/syscall_table.c include/uapi/syscalls.h
+$(OBJ): src/generated/syscall_table.c include/uapi/syscalls.h | libs
 
 src/generated/syscall_table.c include/uapi/syscalls.h: src/syscalls/syscall.tbl
 	python3 $(SCRIPTS_DIR)/generate_table.py
@@ -114,7 +114,7 @@ $(ISODIR)/boot/grub/grub.cfg: grub.cfg
 	@mkdir -pv $(@D)
 	cp grub.cfg $@
 
-$(ISODIR)/boot/kernel: $(OBJ) linker.ld | libs
+$(ISODIR)/boot/kernel: $(OBJ) linker.ld
 	@mkdir -pv $(@D)
 	$(LD) -T linker.ld $(LDFLAGS) -o $@ $(OBJ) $(LDLIBS)
 
