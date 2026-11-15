@@ -3,6 +3,7 @@
 #include <fs/ext2.h>
 #include <fs/vfs.h>
 #include <kernel/block.h>
+#include <kernel/cmdline.h>
 #include <kernel/panic.h>
 #include <keyboard/keyboard.h>
 #include <libk.h>
@@ -319,8 +320,7 @@ static void cat_cmd(SHELL_ARGS)
 	vfs_close(&f);
 }
 
-extern const char *get_cmdline();
-static void        cmdline_cmd(SHELL_ARGS_UNUSED) { vga_printf("cmdline: `%s`\n", get_cmdline()); }
+static void cmdline_cmd(SHELL_ARGS_UNUSED) { vga_printf("cmdline: `%s`\n", cmdline_raw()); }
 
 static const struct shell_command shell_commands[] = {
     {"poweroff", "Power off the system.", tty_handle_kprimitive},

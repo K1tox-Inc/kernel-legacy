@@ -1,10 +1,9 @@
+#include <kernel/cmdline.h>
 #include <kernel/mb2_info.h>
 #include <kernel/panic.h>
 #include <libk.h>
 #include <memory/boot_allocator.h>
 #include <multiboot2.h>
-
-static char boot_cmdline[512];
 
 struct multiboot_info *mb2info = NULL;
 
@@ -51,17 +50,6 @@ void mb2_mmap_iter(struct multiboot_tag_mmap *mmap, uint8_t *mmap_end, entry_han
 	}
 }
 
-void cmdline_init(const struct multiboot_tag *tag)
-{
-	size_t n = tag->size - sizeof(*tag);
-	if (n > sizeof(boot_cmdline))
-		n = sizeof(boot_cmdline);
-	ft_memcpy(boot_cmdline, tag + 1, n);
-	boot_cmdline[sizeof(boot_cmdline) - 1] = '\0';
-}
-
-const char *get_cmdline() { return boot_cmdline; }
-
 extern uint32_t mb2_magic;
 extern uint32_t mb2_mbi;
 
@@ -83,7 +71,8 @@ void mb2_init(void)
 		}
 
 		case MULTIBOOT_TAG_TYPE_CMDLINE:
-			cmdline_init(tag);
+			cmdline_set(((struct multiboot_tag_string *)tag)->string,
+			            tag->size - sizeof(*tag));
 			break;
 
 		default:
